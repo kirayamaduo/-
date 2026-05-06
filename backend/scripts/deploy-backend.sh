@@ -16,9 +16,9 @@
 #   5. Auto-rolls back if health check fails within 90s
 set -euo pipefail
 
-SERVER_USER="${DEPLOY_USER:-ubuntu}"
-SERVER_HOST="${DEPLOY_HOST:-43.138.240.228}"
-SERVER_DIR="${DEPLOY_DIR:-/home/ubuntu/careerloop}"
+SERVER_USER="${DEPLOY_USER:-jumpuser}"
+SERVER_HOST="${DEPLOY_HOST:-129.28.97.93}"
+SERVER_DIR="${DEPLOY_DIR:-/home/jumpuser/careerloop/2025-l5s4-group-1}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
 
 echo "========================================"
