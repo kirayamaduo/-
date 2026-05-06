@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.BACKEND_PORT || 8080;
-const ICP_FALLBACK_REMOTE = process.env.ICP_FALLBACK_REMOTE || 'http://43.138.240.228';
+const ICP_FALLBACK_REMOTE = process.env.ICP_FALLBACK_REMOTE || 'http://129.28.97.93:8088';
 const ENV_FILE = path.resolve(__dirname, '..', '.env.development');
 
 function pickLanIp() {

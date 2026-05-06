@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================
 # CareerLoop — 后端启动失败诊断脚本
-# 在服务器 (ubuntu@43.138.240.228) 的 backend/ 目录下运行：
+# 在服务器 (jumpuser@129.28.97.93) 的 backend/ 目录下运行：
 #   chmod +x scripts/diagnose-backend.sh
 #   bash scripts/diagnose-backend.sh
 # =============================================================
