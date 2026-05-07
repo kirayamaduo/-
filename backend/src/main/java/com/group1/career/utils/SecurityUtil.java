@@ -31,7 +31,10 @@ public final class SecurityUtil {
     public static Long requireCurrentUserId() {
         Long uid = currentUserId();
         if (uid == null) {
-            throw new com.group1.career.exception.BizException("Not authenticated");
+            // 使用 UNAUTHORIZED_ERROR (code=401) 而非默认的 PARAM_ERROR (code=400)
+            // 前端 request.ts 依赖 data.code === 401 来判断是否跳转登录页
+            throw new com.group1.career.exception.BizException(
+                    com.group1.career.common.ErrorCode.UNAUTHORIZED_ERROR);
         }
         return uid;
     }

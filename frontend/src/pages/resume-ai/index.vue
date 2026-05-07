@@ -197,12 +197,12 @@ const clearProgressTimers = () => {
 
 const runProgressAnimation = () => {
   loadingProgress.value = 0;
-  loadingMessage.value = 'Connecting to AI...';
+  loadingMessage.value = t('resumeAi.progressConnecting');
   clearProgressTimers();
   progressTimers = [
-    setTimeout(() => { loadingMessage.value = 'Downloading & parsing PDF...'; loadingProgress.value = 22; }, 400) as unknown as number,
-    setTimeout(() => { loadingMessage.value = 'Comparing resume vs. JD...'; loadingProgress.value = 55; }, 1500) as unknown as number,
-    setTimeout(() => { loadingMessage.value = 'AI generating insights...'; loadingProgress.value = 82; }, 3500) as unknown as number,
+    setTimeout(() => { loadingMessage.value = t('resumeAi.progressParsing'); loadingProgress.value = 22; }, 400) as unknown as number,
+    setTimeout(() => { loadingMessage.value = t('resumeAi.progressComparing'); loadingProgress.value = 55; }, 1500) as unknown as number,
+    setTimeout(() => { loadingMessage.value = t('resumeAi.progressInsights'); loadingProgress.value = 82; }, 3500) as unknown as number,
   ];
 };
 
@@ -211,22 +211,22 @@ const runProgressAnimation = () => {
 // 92% until the API actually returns, then snap to 100%.
 const runTailorProgress = () => {
   loadingProgress.value = 0;
-  loadingMessage.value = 'Preparing source resume...';
+  loadingMessage.value = t('resumeAi.progressPrep');
   clearProgressTimers();
-  const stages: Array<{ at: number; pct: number; msg: string }> = [
-    { at: 800,   pct: 8,  msg: 'Reading your PDF...' },
-    { at: 2500,  pct: 18, msg: 'Extracting text content...' },
-    { at: 5000,  pct: 32, msg: 'AI rewriting against the JD...' },
-    { at: 15000, pct: 52, msg: 'AI rewriting against the JD...' },
-    { at: 30000, pct: 70, msg: 'AI polishing wording...' },
-    { at: 50000, pct: 82, msg: 'Rendering PDF...' },
-    { at: 75000, pct: 90, msg: 'Uploading to cloud storage...' },
-    { at: 100000, pct: 92, msg: 'Almost there...' },
+  const stages: Array<{ at: number; pct: number; msgKey: string }> = [
+    { at: 800,    pct: 8,  msgKey: 'resumeAi.progressReading' },
+    { at: 2500,   pct: 18, msgKey: 'resumeAi.progressExtracting' },
+    { at: 5000,   pct: 32, msgKey: 'resumeAi.progressRewriting' },
+    { at: 15000,  pct: 52, msgKey: 'resumeAi.progressRewriting' },
+    { at: 30000,  pct: 70, msgKey: 'resumeAi.progressPolishing' },
+    { at: 50000,  pct: 82, msgKey: 'resumeAi.progressRendering' },
+    { at: 75000,  pct: 90, msgKey: 'resumeAi.progressUploading' },
+    { at: 100000, pct: 92, msgKey: 'resumeAi.progressAlmost' },
   ];
   progressTimers = stages.map(
     (s) =>
       setTimeout(() => {
-        loadingMessage.value = s.msg;
+        loadingMessage.value = t(s.msgKey);
         loadingProgress.value = s.pct;
       }, s.at) as unknown as number
   );
@@ -234,11 +234,11 @@ const runTailorProgress = () => {
 
 const startAnalysis = async () => {
   if (!selectedResumeId.value) {
-    uni.showToast({ title: 'Please select a resume first', icon: 'none' });
+    uni.showToast({ title: t('resumeAi.selectResumeFirst'), icon: 'none' });
     return;
   }
   if (!jdText.value || !jdText.value.trim()) {
-    uni.showToast({ title: 'Please paste the Job Description', icon: 'none' });
+    uni.showToast({ title: t('resumeAi.pasteJdFirst'), icon: 'none' });
     return;
   }
 
@@ -253,12 +253,12 @@ const startAnalysis = async () => {
       jobDescription: jdText.value.trim(),
     });
     loadingProgress.value = 100;
-    loadingMessage.value = 'Done';
+    loadingMessage.value = t('common.success');
     result.value = res;
     showResult.value = true;
-    uni.showToast({ title: 'Diagnosis complete', icon: 'success' });
+    uni.showToast({ title: t('resumeAi.diagnosisComplete'), icon: 'success' });
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Diagnosis failed', icon: 'none' });
+    uni.showToast({ title: t('resumeAi.diagnosisFailed'), icon: 'none' });
   } finally {
     progressTimers.forEach((t) => clearTimeout(t));
     analyzing.value = false;
@@ -267,12 +267,12 @@ const startAnalysis = async () => {
 
 const generateTailored = async () => {
   if (!selectedResumeId.value) {
-    uni.showToast({ title: 'Please select a resume first', icon: 'none' });
+    uni.showToast({ title: t('resumeAi.selectResumeFirst'), icon: 'none' });
     return;
   }
   const userId = Number(uni.getStorageSync('userId'));
   if (!userId) {
-    uni.showToast({ title: 'Please log in first', icon: 'none' });
+    uni.showToast({ title: t('login.wechatLogin'), icon: 'none' });
     return;
   }
   tailoring.value = true;
@@ -285,11 +285,11 @@ const generateTailored = async () => {
     });
     clearProgressTimers();
     loadingProgress.value = 100;
-    loadingMessage.value = 'Done!';
-    uni.showToast({ title: 'Tailored resume saved!', icon: 'success' });
+    loadingMessage.value = t('common.success');
+    uni.showToast({ title: t('resumeAi.tailorComplete'), icon: 'success' });
     setTimeout(() => uni.switchTab({ url: '/pages/resume/index' }), 900);
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Generation failed', icon: 'none' });
+    uni.showToast({ title: t('resumeAi.tailorFailed'), icon: 'none' });
   } finally {
     clearProgressTimers();
     tailoring.value = false;

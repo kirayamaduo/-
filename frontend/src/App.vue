@@ -2,6 +2,7 @@
 import { onLaunch } from "@dcloudio/uni-app";
 import { isLoggedIn, LOGIN_PAGE } from "@/utils/auth";
 import { useTheme } from "@/utils/theme";
+import { updateTabBar } from "@/locales/index";
 
 const ONBOARDING_KEY = 'onboarding_v1_seen';
 const ONBOARDING_PAGE = '/pages/onboarding/index';
@@ -9,6 +10,8 @@ const { refresh: refreshTheme } = useTheme();
 
 onLaunch(() => {
   refreshTheme();
+  // pages.json 里的 tabBar text 是静态值，需在启动时用检测到的语言覆盖
+  updateTabBar();
 
   // F20: First-run onboarding — show once, only for users who haven't
   // logged in yet. Existing users (already have a session) skip it so a

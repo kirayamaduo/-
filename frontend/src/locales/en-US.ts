@@ -27,6 +27,11 @@ export default {
   },
 
   home: {
+    agentKicker: 'AI Career Agent',
+    riskLevelHigh: 'High Risk',
+    riskLevelMedium: 'Moderate',
+    riskLevelLow: 'Low Risk',
+    taskSourcePlan: 'Plan',
     searchPlaceholder: 'Search videos, articles, paths…',
     pullToRefresh: 'Pull down to refresh — fresh videos and articles every day.',
     featureAssessment: 'Assessment',
@@ -176,6 +181,41 @@ export default {
     bestFor: 'Best for',
     thinking: 'AI is thinking…',
     inputHint: 'Type a message…',
+    noResponse: 'No response received. Please try again.',
+    requestFailed: '⚠️ Request failed: {msg}\n\nPlease check your network and try again.',
+    openHistoryFailed: 'Failed to open history',
+    personas: {
+      MENTOR: {
+        name: '小职 · Career Planning Agent',
+        tagline: 'Plan · Goals · Weekly focus',
+        intro: 'I help you turn your profile, assessment, resume, and conversations into a practical career direction and next-step plan.',
+        bestFor: 'long-term career direction, target role selection, personalised weekly focus, and plan reviews',
+        note: 'Uses your profile, career portrait, chat memories, and cloud history when available.',
+        chip1: 'Create my career plan',
+        chip2: 'What should I focus on this week?',
+        chip3: 'Review my target role',
+      },
+      CHALLENGER: {
+        name: '小严 · Strict Review Agent',
+        tagline: 'Risks · Gaps · Hard feedback',
+        intro: 'I challenge weak plans, vague goals, and shallow preparation. Send me your plan, resume idea, or interview answer and I will pressure-test it.',
+        bestFor: 'finding weaknesses, exposing unrealistic goals, prioritising hard improvements, and converting criticism into tasks',
+        note: 'Best used after 小职 gives a plan or after you upload resume/interview results.',
+        chip1: 'Attack my career plan',
+        chip2: 'Find the biggest risk in my resume',
+        chip3: 'Why am I not improving?',
+      },
+      INTERVIEWER: {
+        name: '小面 · Mock Interview Agent',
+        tagline: 'Practice · Score · Improve',
+        intro: 'I run structured interview practice: choose a role and interview type, answer one question at a time, then get targeted feedback.',
+        bestFor: 'HR, behavioural, technical, and role-specific mock interview practice with follow-up feedback',
+        note: 'For full scoring and reports, use the Interview module; this agent is for quick practice inside chat.',
+        chip1: 'Start a frontend technical interview',
+        chip2: 'Practice HR self-introduction',
+        chip3: 'Ask me one behavioral question',
+      },
+    },
   },
 
   quiz: {
@@ -189,6 +229,7 @@ export default {
   },
 
   assessmentResult: {
+    navTitle: 'Results',
     loading: 'Loading your result…',
     retry: 'Retry',
     personalityType: 'Your personality type is',
@@ -205,6 +246,7 @@ export default {
   },
 
   interviewChat: {
+    navTitle: 'Interview Chat',
     sessionCopy: 'Respond in complete answers and keep each reply focused on one example or argument.',
     endBtn: 'End',
     inputPlaceholder: 'Type your answer…',
@@ -433,6 +475,24 @@ export default {
   },
 
   resumeAi: {
+    diagnosisFailed: 'AI analysis failed. Please try again later.',
+    tailorFailed: 'Resume tailoring failed. Please try again later.',
+    selectResumeFirst: 'Please select a resume first',
+    pasteJdFirst: 'Please paste the job description',
+    diagnosisComplete: 'Diagnosis complete',
+    tailorComplete: 'Tailored resume saved',
+    progressConnecting: 'Connecting to AI...',
+    progressParsing: 'Downloading & parsing PDF...',
+    progressComparing: 'Comparing resume vs. JD...',
+    progressInsights: 'AI generating insights...',
+    progressPrep: 'Preparing source resume...',
+    progressReading: 'Reading your PDF...',
+    progressExtracting: 'Extracting text content...',
+    progressRewriting: 'AI rewriting against the JD...',
+    progressPolishing: 'AI polishing wording...',
+    progressRendering: 'Rendering PDF...',
+    progressUploading: 'Uploading to cloud storage...',
+    progressAlmost: 'Almost there...',
     title: 'Resume Diagnosis',
     subtitle: 'Pick one of your resumes and paste a job description. AI will score the match and suggest improvements.',
     resumeLabel: 'Resume',

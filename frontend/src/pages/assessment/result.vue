@@ -330,6 +330,7 @@ onMounted(() => {
 
 onShow(() => {
   refreshTheme();
+  uni.setNavigationBarTitle({ title: t('assessmentResult.navTitle') });
 });
 </script>
 

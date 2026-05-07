@@ -157,6 +157,7 @@ refreshTheme();
 
 onShow(() => {
   refreshTheme();
+  uni.setNavigationBarTitle({ title: t('resumeTemplate.pageTitle') });
 });
 
 const stepValid = computed(() => {

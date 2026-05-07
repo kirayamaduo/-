@@ -55,8 +55,26 @@ export function useI18n() {
 export function setLocale(lang: LangCode) {
   uni.setStorageSync(LANG_KEY, lang);
   (i18n.global.locale as any).value = lang;
+  updateTabBar(lang);
 }
 
 export function currentLocale(): LangCode {
   return (i18n.global.locale as any).value as LangCode;
+}
+
+/**
+ * 用 uni.setTabBarItem() 动态覆盖 tabBar 文字。
+ * pages.json 里的 text 是静态编译值，无法被 vue-i18n 响应式更新，
+ * 必须在运行时主动调用此函数。此函数在 setLocale 和 App.vue onLaunch 里均需调用。
+ */
+export function updateTabBar(lang?: LangCode) {
+  const locale = lang ?? currentLocale();
+  const msgs = locale === 'zh-CN' ? zhCN : enUS;
+  // 顺序必须与 pages.json tabBar.list 一致
+  const navKeys: (keyof typeof zhCN.nav)[] = ['home', 'messages', 'assistant', 'resume', 'profile'];
+  navKeys.forEach((key, index) => {
+    try {
+      uni.setTabBarItem({ index, text: msgs.nav[key] });
+    } catch { /* 非 tabBar 页面或渲染器未就绪时忽略 */ }
+  });
 }

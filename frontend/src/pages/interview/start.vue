@@ -219,6 +219,7 @@ onMounted(() => {
 
 onShow(() => {
   refreshTheme();
+  uni.setNavigationBarTitle({ title: t('interview.startPageTitle') });
 });
 
 const startInterview = async () => {

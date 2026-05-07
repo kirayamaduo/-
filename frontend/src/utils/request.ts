@@ -86,7 +86,8 @@ const request = <T>(options: RequestOptions): Promise<T> => {
         if (statusCode >= 200 && statusCode < 300) {
           if (isResultEnvelope<T>(data)) {
             // Some backend handlers return HTTP 200 with business code 401.
-            if (data.code === 401 || /unauthorized|not authenticated/i.test(String(data.message || ''))) {
+            // 只依赖精确的 code 字段判断，不用 message 正则（太宽泛，会误杀合法错误）
+            if (data.code === 401) {
               handleUnauthorized(options.silent);
               reject(new Error('Unauthorized'));
               return;

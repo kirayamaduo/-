@@ -42,9 +42,12 @@ export const generateCareerPlanApi = (targetRole?: string) => {
 };
 
 export const getCurrentCareerPlanApi = () => {
+  // silent:true — 新用户无规划时返回 401/404，不弹 toast 也不触发全局登录重定向
+  // map/index.vue 的 loadPlan() 已用 catch{} 静默处理空状态
   return request<UserCareerPlan | null>({
     url: '/api/careers/plan/current',
     method: 'GET',
+    silent: true,
   });
 };
 

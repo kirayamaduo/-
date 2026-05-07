@@ -80,7 +80,7 @@ const submitting = ref(false);
 const errorMsg = ref('');
 
 const scaleId = ref<number>(0);
-const scaleTitle = ref('Assessment');
+const scaleTitle = ref('');
 const questions = ref<QuizQuestion[]>([]);
 
 // answers maps questionId -> selected optionId. Stable across navigation.
@@ -196,6 +196,7 @@ onMounted(() => {
 
 onShow(() => {
   refreshTheme();
+  uni.setNavigationBarTitle({ title: scaleTitle.value || t('assessment.pageTitle') });
 });
 </script>
 

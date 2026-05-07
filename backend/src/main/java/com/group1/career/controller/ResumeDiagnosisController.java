@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -44,7 +43,9 @@ public class ResumeDiagnosisController {
 
     @Operation(summary = "Trigger AI resume diagnosis (resumeId-based, real Qwen call)")
     @PostMapping("/analyze")
-    @Transactional(readOnly = true)
+    // 不加 @Transactional：此方法调用外部 AI 接口（最长 90s），持有数据库事务会耗尽连接池
+    // 并在事务 cleanup 时抛 TransactionException（前端误读为 "translation error"）
+    // 读数据库操作（assertOwnership、downloadBytes）各自在自己的短事务中完成
     public Result<DiagnosisResultDto> triggerDiagnosis(@RequestBody DiagnosisRequestDto request) {
         // 1. Resolve resume text: prefer raw resumeText (template/AI-generated case),
         //    otherwise fetch the persisted resume and extract its OSS PDF.

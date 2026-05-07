@@ -127,6 +127,7 @@ onMounted(async () => {
 
 onShow(() => {
   refreshTheme();
+  uni.setNavigationBarTitle({ title: t('interviewChat.navTitle') });
 });
 
 const sendMessage = async () => {

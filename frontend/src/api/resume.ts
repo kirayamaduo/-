@@ -105,10 +105,13 @@ export const diagnoseResumeApi = (data: {
   resumeText?: string;
   jobDescription: string;
 }) => {
+  // silent:true — AI 分析耗时长，后端偶发的 Transaction/System 错误由页面 catch 统一处理
+  // 避免 request.ts 在 toast 里直接暴露原始 Java 堆栈信息
   return request<DiagnosisResult>({
     url: '/api/resume-diagnosis/analyze',
     method: 'POST',
     data,
+    silent: true,
   });
 };
 
@@ -131,6 +134,7 @@ export const tailorResumeApi = (data: { userId: number; resumeId: number; jobDes
     url: '/api/resume-gen/tailor',
     method: 'POST',
     data,
+    silent: true,
   });
 };
 

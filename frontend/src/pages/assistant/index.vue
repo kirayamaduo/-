@@ -106,7 +106,7 @@
         <input
           class="chat-input"
           v-model="inputText"
-          placeholder="Ask me anything about your career..."
+          :placeholder="t('assistantPage.inputHint')"
           placeholder-class="input-ph"
           @confirm="sendMessage"
           confirm-type="send"
@@ -116,7 +116,7 @@
           :class="{ 'send-active': inputText.trim().length > 0 }"
           @click="sendMessage"
         >
-          <text class="send-label">Send</text>
+          <text class="send-label">{{ t('assistant.send') }}</text>
         </view>
       </view>
     </view>
@@ -150,43 +150,55 @@ interface AssistantMessage {
 
 type PersonaKey = 'MENTOR' | 'CHALLENGER' | 'INTERVIEWER';
 
-// F15: persona definitions
+// F15: persona definitions — 所有文案通过 t() 读取，随语言切换自动变化
 const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; tagline: string; intro: string; bestFor: string; note: string; gradient: string; chips: string[] }[] = [
   {
     key: 'MENTOR',
     emoji: '🧭',
     label: '小职',
-    name: '小职 · Career Planning Agent',
-    tagline: 'Plan · Goals · Weekly focus',
-    intro: 'I help you turn your profile, assessment, resume, and conversations into a practical career direction and next-step plan.',
-    bestFor: 'long-term career direction, target role selection, personalised weekly focus, and plan reviews',
-    note: 'Uses your profile, career portrait, chat memories, and cloud history when available.',
+    name: t('assistantPage.personas.MENTOR.name'),
+    tagline: t('assistantPage.personas.MENTOR.tagline'),
+    intro: t('assistantPage.personas.MENTOR.intro'),
+    bestFor: t('assistantPage.personas.MENTOR.bestFor'),
+    note: t('assistantPage.personas.MENTOR.note'),
     gradient: 'linear-gradient(135deg, #2563eb, #60a5fa)',
-    chips: ['Create my career plan', 'What should I focus on this week?', 'Review my target role'],
+    chips: [
+      t('assistantPage.personas.MENTOR.chip1'),
+      t('assistantPage.personas.MENTOR.chip2'),
+      t('assistantPage.personas.MENTOR.chip3'),
+    ],
   },
   {
     key: 'CHALLENGER',
     emoji: '💪',
     label: '小严',
-    name: '小严 · Strict Review Agent',
-    tagline: 'Risks · Gaps · Hard feedback',
-    intro: 'I challenge weak plans, vague goals, and shallow preparation. Send me your plan, resume idea, or interview answer and I will pressure-test it.',
-    bestFor: 'finding weaknesses, exposing unrealistic goals, prioritising hard improvements, and converting criticism into tasks',
-    note: 'Best used after 小职 gives a plan or after you upload resume/interview results.',
+    name: t('assistantPage.personas.CHALLENGER.name'),
+    tagline: t('assistantPage.personas.CHALLENGER.tagline'),
+    intro: t('assistantPage.personas.CHALLENGER.intro'),
+    bestFor: t('assistantPage.personas.CHALLENGER.bestFor'),
+    note: t('assistantPage.personas.CHALLENGER.note'),
     gradient: 'linear-gradient(135deg, #dc2626, #f97316)',
-    chips: ['Attack my career plan', 'Find the biggest risk in my resume', 'Why am I not improving?'],
+    chips: [
+      t('assistantPage.personas.CHALLENGER.chip1'),
+      t('assistantPage.personas.CHALLENGER.chip2'),
+      t('assistantPage.personas.CHALLENGER.chip3'),
+    ],
   },
   {
     key: 'INTERVIEWER',
     emoji: '🎙️',
     label: '小面',
-    name: '小面 · Mock Interview Agent',
-    tagline: 'Practice · Score · Improve',
-    intro: 'I run structured interview practice: choose a role and interview type, answer one question at a time, then get targeted feedback.',
-    bestFor: 'HR, behavioural, technical, and role-specific mock interview practice with follow-up feedback',
-    note: 'For full scoring and reports, use the Interview module; this agent is for quick practice inside chat.',
+    name: t('assistantPage.personas.INTERVIEWER.name'),
+    tagline: t('assistantPage.personas.INTERVIEWER.tagline'),
+    intro: t('assistantPage.personas.INTERVIEWER.intro'),
+    bestFor: t('assistantPage.personas.INTERVIEWER.bestFor'),
+    note: t('assistantPage.personas.INTERVIEWER.note'),
     gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-    chips: ['Start a frontend technical interview', 'Practice HR self-introduction', 'Ask me one behavioral question'],
+    chips: [
+      t('assistantPage.personas.INTERVIEWER.chip1'),
+      t('assistantPage.personas.INTERVIEWER.chip2'),
+      t('assistantPage.personas.INTERVIEWER.chip3'),
+    ],
   },
 ];
 
@@ -229,7 +241,7 @@ const loadSessionMessages = async (sid: number, selectedPersona?: string) => {
     }));
     scrollToBottom();
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to open history', icon: 'none' });
+    uni.showToast({ title: e?.message || t('assistantPage.openHistoryFailed'), icon: 'none' });
   }
 };
 
@@ -288,7 +300,7 @@ const sendMessage = async () => {
       },
     });
     const reply = (res as any)?.reply ?? res ?? '';
-    messages.value[typingIdx] = { role: 'ai', content: reply || 'Sorry, no response. Please try again.' };
+    messages.value[typingIdx] = { role: 'ai', content: reply || t('assistantPage.noResponse') };
     apiHistory.value.push(
       { role: 'user', content: text },
       { role: 'assistant', content: String(reply) },
@@ -300,7 +312,7 @@ const sendMessage = async () => {
     const errMsg = err?.message || String(err) || 'Unknown error';
     messages.value[typingIdx] = {
       role: 'ai',
-      content: `⚠️ Request failed: ${errMsg}\n\nPlease check your network and try again.`,
+      content: t('assistantPage.requestFailed', { msg: errMsg }),
     };
   } finally {
     isSending.value = false;
@@ -337,7 +349,8 @@ onMounted(() => {
   refreshTheme();
   topSafeHeight.value = getTopSafeHeight();
   const now = new Date();
-  chatTimeLabel.value = `Today ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  chatTimeLabel.value = t('messages.timeToday', { time: timeStr });
   // Initialise with persona greeting
   messages.value = [{ role: 'ai', content: currentPersona.value.intro }];
   openPendingSessionIfAny();

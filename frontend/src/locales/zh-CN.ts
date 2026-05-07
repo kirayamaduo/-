@@ -27,6 +27,11 @@ export default {
   },
 
   home: {
+    agentKicker: 'AI 职业 Agent',
+    riskLevelHigh: '高风险',
+    riskLevelMedium: '中等',
+    riskLevelLow: '低风险',
+    taskSourcePlan: '计划',
     searchPlaceholder: '搜索视频、文章、职业路径…',
     pullToRefresh: '下拉刷新 — 每天更新视频和文章。',
     featureAssessment: '测评',
@@ -176,6 +181,41 @@ export default {
     bestFor: '适用于',
     thinking: 'AI 思考中…',
     inputHint: '输入消息…',
+    noResponse: '暂无回复，请重试',
+    requestFailed: '⚠️ 请求失败：{msg}\n\n请检查网络连接后重试',
+    openHistoryFailed: '无法加载历史对话',
+    personas: {
+      MENTOR: {
+        name: '小职 · 职业规划 Agent',
+        tagline: '规划 · 目标 · 每周聚焦',
+        intro: '我帮你把档案、测评、简历和对话，转化为清晰的职业方向和下一步计划。',
+        bestFor: '长期职业方向、目标岗位选择、个性化每周重点，以及计划复盘',
+        note: '可使用你的档案、职业画像、对话记忆和云端历史。',
+        chip1: '为我制定职业规划',
+        chip2: '这周我该专注什么？',
+        chip3: '复盘我的目标职位',
+      },
+      CHALLENGER: {
+        name: '小严 · 严格评审 Agent',
+        tagline: '风险 · 短板 · 硬核反馈',
+        intro: '我挑战模糊目标和浅层准备。把你的计划、简历或面试答案发给我，我来压力测试它。',
+        bestFor: '找出弱点、暴露不切实际的目标、排定改进优先级，并将批评转化为行动',
+        note: '最适合在小职给出规划或你上传简历/面试结果之后使用。',
+        chip1: '攻击我的职业规划',
+        chip2: '找出简历中最大的风险',
+        chip3: '为什么我没有进步？',
+      },
+      INTERVIEWER: {
+        name: '小面 · 模拟面试 Agent',
+        tagline: '练习 · 评分 · 提升',
+        intro: '我提供结构化面试练习：选择职位和面试类型，逐题回答，然后获得针对性反馈。',
+        bestFor: 'HR、行为面试、技术面试及岗位专项模拟练习，附跟进反馈',
+        note: '完整评分和报告请使用面试模块；本 Agent 专注于聊天中的快速练习。',
+        chip1: '开始前端技术面试',
+        chip2: '练习 HR 自我介绍',
+        chip3: '给我出一道行为面试题',
+      },
+    },
   },
 
   quiz: {
@@ -189,6 +229,7 @@ export default {
   },
 
   assessmentResult: {
+    navTitle: '测评结果',
     loading: '加载结果中…',
     retry: '重试',
     personalityType: '你的性格类型是',
@@ -205,6 +246,7 @@ export default {
   },
 
   interviewChat: {
+    navTitle: '面试对话',
     sessionCopy: '请完整回答每个问题，每条回答聚焦于一个例子或论点。',
     endBtn: '结束',
     inputPlaceholder: '输入你的回答…',
@@ -433,6 +475,24 @@ export default {
   },
 
   resumeAi: {
+    diagnosisFailed: 'AI 分析失败，请稍后重试',
+    tailorFailed: '简历定制失败，请稍后重试',
+    selectResumeFirst: '请先选择一份简历',
+    pasteJdFirst: '请粘贴目标职位描述',
+    diagnosisComplete: '诊断完成',
+    tailorComplete: '定制简历已保存',
+    progressConnecting: '正在连接 AI…',
+    progressParsing: '下载并解析 PDF…',
+    progressComparing: '简历与职位匹配中…',
+    progressInsights: 'AI 生成分析报告…',
+    progressPrep: '准备源简历…',
+    progressReading: '读取 PDF…',
+    progressExtracting: '提取文字内容…',
+    progressRewriting: 'AI 根据职位描述重写…',
+    progressPolishing: 'AI 润色表达…',
+    progressRendering: '渲染 PDF…',
+    progressUploading: '上传到云端…',
+    progressAlmost: '即将完成…',
     title: '简历诊断',
     subtitle: '选择一份简历并粘贴职位描述，AI 将评分匹配度并提供改进建议。',
     resumeLabel: '简历',

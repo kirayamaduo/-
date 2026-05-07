@@ -221,9 +221,16 @@ const applyFont = (f: FontKey) => {
 };
 
 const applyLang = (lang: LangCode) => {
+  if (lang === currentLang.value) return;
   setLocale(lang);
   currentLang.value = lang;
-  uni.showToast({ title: lang === 'zh-CN' ? '已切换为中文' : 'Switched to English', icon: 'none' });
+  const toastTitle = lang === 'zh-CN' ? '已切换为中文' : 'Switched to English';
+  uni.showToast({ title: toastTitle, icon: 'none' });
+  // 微信小程序 tabBar 页面常驻内存，切换语言后不会自动重渲染。
+  // reLaunch 销毁所有页面栈并重建，确保所有页面以新语言重新加载。
+  setTimeout(() => {
+    uni.reLaunch({ url: '/pages/home/index' });
+  }, 800);
 };
 
 const userInfo = ref({

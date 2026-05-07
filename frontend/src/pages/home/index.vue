@@ -83,11 +83,11 @@
           <text class="agent-icon">🤖</text>
         </view>
         <view class="agent-head-copy">
-          <text class="agent-kicker">AI Career Agent</text>
+          <text class="agent-kicker">{{ t('home.agentKicker') }}</text>
           <text class="agent-title">{{ agentHeadline }}</text>
         </view>
         <view class="risk-pill" :class="'risk-' + agentToday.riskLevel.toLowerCase()">
-          <text class="risk-text">{{ agentToday.riskLevel }}</text>
+          <text class="risk-text">{{ agentToday.riskLevel === 'HIGH' ? t('home.riskLevelHigh') : agentToday.riskLevel === 'LOW' ? t('home.riskLevelLow') : t('home.riskLevelMedium') }}</text>
         </view>
       </view>
       <view v-if="agentProfile" class="agent-pct-row" @click="navTo('/pages/agent/profile')">
@@ -132,7 +132,7 @@
           <view class="agent-task-main" @click="task.target ? navTo(task.target) : undefined">
             <view class="agent-task-title-row">
               <text class="agent-task-title">{{ task.title }}</text>
-              <text v-if="task.source === 'PLAN_WEEKLY'" class="agent-task-source">Plan</text>
+              <text v-if="task.source === 'PLAN_WEEKLY'" class="agent-task-source">{{ t('home.taskSourcePlan') }}</text>
             </view>
             <text class="agent-task-desc">{{ task.description || t('home.agentTaskDefaultDesc') }}</text>
           </view>
