@@ -13,7 +13,6 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.BACKEND_PORT || 8080;
-const ICP_FALLBACK_REMOTE = process.env.ICP_FALLBACK_REMOTE || 'http://129.28.97.93:8088';
 const ENV_FILE = path.resolve(__dirname, '..', '.env.development');
 
 function pickLanIp() {
@@ -82,12 +81,6 @@ try { prev = fs.readFileSync(ENV_FILE, 'utf8'); } catch {}
 // debugging is not overwritten by the local LAN IP auto-detection.
 const explicitRemoteUrl = prev.match(/VITE_API_BASE_URL=(https?:\/\/(?!localhost|127\.0\.0\.1)[^\s]+)/)?.[1];
 if (explicitRemoteUrl) {
-  // ICP filing period: domain traffic may be intercepted. Auto-fix known blocked domain.
-  if (/api\.careerloop\.top/i.test(explicitRemoteUrl)) {
-    fs.writeFileSync(ENV_FILE, `VITE_API_BASE_URL=${ICP_FALLBACK_REMOTE}\n`);
-    console.log(`[set-api-host] Replaced blocked domain with fallback remote URL: ${ICP_FALLBACK_REMOTE}`);
-    process.exit(0);
-  }
   console.log(`[set-api-host] Keeping existing remote URL: ${explicitRemoteUrl}`);
   process.exit(0);
 }

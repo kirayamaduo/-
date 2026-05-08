@@ -324,10 +324,7 @@ import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_BASE_URL = /api\.careerloop\.top/i.test(RAW_BASE_URL)
-  ? 'http://129.28.97.93:8088'
-  : RAW_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const userInfo = ref<{
   nickname: string;
