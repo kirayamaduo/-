@@ -1,10 +1,4 @@
-// Base URL logic: Prioritize environment variable, fallback to localhost.
-// During ICP filing, requests to api.careerloop.top may be web-blocked.
-// If that blocked domain is detected, force fallback to the stable server IP.
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const BASE_URL = /api\.careerloop\.top/i.test(RAW_BASE_URL)
-  ? 'http://129.28.97.93:8088'
-  : RAW_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 let _redirectingToLogin = false;
 
 interface Result<T> {

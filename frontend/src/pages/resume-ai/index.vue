@@ -160,8 +160,7 @@ const tailorResult = ref<Resume | null>(null);
 const loadingMessage = ref('Ready...');
 const loadingProgress = ref(0);
 
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_BASE = /api\.careerloop\.top/i.test(RAW_BASE) ? 'http://43.138.240.228' : RAW_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const scoreClass = computed(() => {
   const s = result.value?.overallScore ?? 0;
