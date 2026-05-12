@@ -1,21 +1,25 @@
 <template>
-  <view class="msg-page" :class="[themeClass, fontClass]">
+  <view class="msg-page app-soft-bg" :class="[themeClass, fontClass]">
+
     <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
 
-    <view class="page-header">
+    <view class="page-header" :style="{ paddingRight: rightAvoidWidth + 'px' }">
       <view class="header-row">
-        <text class="page-title">{{ t('messages.title') }}</text>
+        <view class="header-titles">
+          <text class="page-title">{{ t('messages.title') }}</text>
+          <text class="page-subtitle">{{ t('messages.subtitle') }}</text>
+        </view>
         <view
-          class="clear-btn"
+          class="clear-btn-icon"
           v-if="filteredMessages.length > 0 && unreadCount > 0"
           @click="markAllReadHandler"
-        ><text class="clear-btn-text">{{ t('messages.markAllRead') }}</text></view>
+        ><text class="ri-check-double-line"></text></view>
       </view>
     </view>
 
     <!-- F9: Category segment tabs -->
     <view class="segment-wrap">
-      <view class="segment-bar">
+      <view class="segment-bar app-card-soft">
         <view
           v-for="tab in TABS"
           :key="tab.key"
@@ -32,7 +36,7 @@
     </view>
 
     <!-- Message list -->
-    <scroll-view class="msg-list" scroll-y>
+    <scroll-view class="msg-list" scroll-y @scroll="onListScroll">
       <view class="list-wrap">
         <view
           class="swipe-row"
@@ -41,7 +45,7 @@
         >
           <!-- 消息卡片（可左滑） -->
           <view
-            class="msg-card"
+            class="msg-card app-card-soft"
             :class="{ 'msg-unread': item.unread, 'msg-card-swiped': (swipeOffsets[item.notificationId] ?? 0) < 0 }"
             :style="{ transform: `translateX(${swipeOffsets[item.notificationId] ?? 0}px)` }"
             @click="handleSystemClick(item)"
@@ -50,8 +54,8 @@
             @touchend="onMsgTouchEnd($event, item.notificationId)"
           >
             <view class="avatar-wrap">
-              <view class="msg-avatar sys-av" :class="'sys-' + (idx % 3)">
-                <text class="av-emoji">{{ item.icon }}</text>
+              <view class="app-icon-tile" :class="'sys-' + (idx % 3)">
+                <text :class="['av-icon', item.icon]"></text>
               </view>
               <view class="unread-dot" v-if="item.unread"></view>
             </view>
@@ -64,15 +68,19 @@
             </view>
           </view>
           <!-- 删除按钮（滑动后露出） -->
-          <view class="swipe-delete-btn" @click="deleteMessage(item)">
+          <view
+            class="swipe-delete-btn"
+            :class="{ 'swipe-delete-visible': (swipeOffsets[item.notificationId] ?? 0) < 0 }"
+            @click="deleteMessage(item)"
+          >
             <text class="swipe-delete-text">{{ t('messages.deleteBtn') }}</text>
           </view>
         </view>
       </view>
 
       <!-- Empty state -->
-      <view class="empty-state" v-if="!systemLoading && filteredMessages.length === 0">
-        <text class="empty-icon">🔕</text>
+      <view class="empty-state app-empty" v-if="!systemLoading && filteredMessages.length === 0">
+        <text class="empty-icon ri-notification-off-line"></text>
         <text class="empty-text">{{ t('messages.empty') }}</text>
         <text class="empty-sub">{{ t('messages.emptySub') }}</text>
       </view>
@@ -85,10 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
   listNotificationsApi,
   markReadApi,
@@ -100,7 +108,12 @@ import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
 const topSafeHeight = ref(88);
+const rightAvoidWidth = ref(20);
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+
+const onListScroll = (event: any) => {
+  // Logic for tracking scroll if needed
+};
 
 // ─── F9: Category tabs ───────────────────────────────────────────────────────
 const TABS = computed(() => [
@@ -114,7 +127,7 @@ type TabKey = 'ALL' | 'CAREER' | 'SYSTEM' | 'AI';
 
 const TAB_TYPES: Record<TabKey, string[]> = {
   ALL:    [],
-  CAREER: ['INTERVIEW_REPORT', 'ASSESSMENT_RESULT', 'RESUME_DIAGNOSIS', 'WEEKLY_REPORT', 'STREAK_WARNING', 'MARKET_LIKE'],
+  CAREER: ['INTERVIEW_REPORT', 'INTERVIEW_COMPLETED', 'ASSESSMENT_RESULT', 'ASSESSMENT_DONE', 'RESUME_DIAGNOSIS', 'RESUME_REVIEWED', 'WEEKLY_REPORT', 'STREAK_WARNING', 'MARKET_LIKE'],
   SYSTEM: ['SYSTEM', 'ADMIN_BROADCAST'],
   AI:     ['AI_PROACTIVE'],
 };
@@ -124,18 +137,18 @@ const activeTab = ref<TabKey>('ALL');
 // ─── Icon & label maps (all 9 types) ────────────────────────────────────────
 const iconForType = (type: string): string => {
   switch (type) {
-    case 'INTERVIEW_REPORT':  return '🎤';
-    case 'INTERVIEW_COMPLETED': return '🎤';
-    case 'ASSESSMENT_RESULT': return '🧠';
-    case 'ASSESSMENT_DONE':   return '🧠';
-    case 'RESUME_DIAGNOSIS':  return '📄';
-    case 'RESUME_REVIEWED':   return '📄';
-    case 'WEEKLY_REPORT':     return '📊';
-    case 'STREAK_WARNING':    return '🔥';
-    case 'MARKET_LIKE':       return '❤️';
-    case 'AI_PROACTIVE':      return '🤖';
-    case 'ADMIN_BROADCAST':   return '📢';
-    default:                  return '🔔';
+    case 'INTERVIEW_REPORT':  return 'ri-mic-2-line';
+    case 'INTERVIEW_COMPLETED': return 'ri-mic-2-line';
+    case 'ASSESSMENT_RESULT': return 'ri-brain-line';
+    case 'ASSESSMENT_DONE':   return 'ri-brain-line';
+    case 'RESUME_DIAGNOSIS':  return 'ri-file-text-line';
+    case 'RESUME_REVIEWED':   return 'ri-file-text-line';
+    case 'WEEKLY_REPORT':     return 'ri-bar-chart-2-line';
+    case 'STREAK_WARNING':    return 'ri-fire-line';
+    case 'MARKET_LIKE':       return 'ri-heart-fill';
+    case 'AI_PROACTIVE':      return 'ri-robot-2-line';
+    case 'ADMIN_BROADCAST':   return 'ri-megaphone-line';
+    default:                  return 'ri-notification-3-line';
   }
 };
 const nameForType = (type: string): string => {
@@ -170,6 +183,14 @@ interface SystemMessageView {
 const systemMessages = ref<SystemMessageView[]>([]);
 const systemLoading = ref(false);
 const unreadCount = computed(() => systemMessages.value.filter((m) => m.unread).length);
+
+watch(unreadCount, (val) => {
+  if (val > 0) {
+    uni.setTabBarBadge({ index: 1, text: val > 99 ? '99+' : String(val) });
+  } else {
+    uni.removeTabBarBadge({ index: 1 });
+  }
+}, { immediate: true });
 
 // ─── 滑动删除状态 ────────────────────────────────────────────────────────────
 // 每条消息的当前水平偏移量（px），负值表示向左滑动
@@ -295,9 +316,9 @@ const markAllReadHandler = async () => {
   systemMessages.value.forEach((m) => { m.unread = false; });
   try {
     await markAllReadApi();
-    uni.showToast({ title: 'All marked read', icon: 'success' });
+    uni.showToast({ title: t('messages.allMarkedRead'), icon: 'success' });
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed', icon: 'none' });
+    uni.showToast({ title: e?.message || t('common.failed'), icon: 'none' });
   }
 };
 
@@ -319,7 +340,7 @@ const handleSystemClick = async (item: SystemMessageView) => {
       // instead so the user can still recover the right report.
       if (item.link.startsWith('/pages/interview/report')
           && !/[?&]interviewId=\d+/.test(item.link)) {
-        uni.showToast({ title: 'This notification is no longer linked to a report', icon: 'none' });
+        uni.showToast({ title: t('messages.linkMissingReport'), icon: 'none' });
         uni.navigateTo({ url: '/pages/interview/history' });
         return;
       }
@@ -340,7 +361,9 @@ const handleSystemClick = async (item: SystemMessageView) => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
 });
 
 // Pull notifications every time the tab becomes visible -- new alerts can
@@ -354,12 +377,12 @@ onShow(() => {
 
 <style scoped>
 .msg-page {
-  height: 100vh;
-  background: var(--page-ios-gray);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
+  overflow: hidden;
 }
 
 .status-spacer {
@@ -373,31 +396,46 @@ onShow(() => {
 .header-row {
   display: flex; align-items: center; justify-content: space-between;
 }
-.clear-btn {
-  min-height: 32px;
-  padding: 6px 12px;
-  background: #eff6ff;
+.header-titles {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.clear-btn-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-soft, #eff6ff);
   border: 1px solid #dbeafe;
   border-radius: 999px;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary-color, #2563eb);
+  font-size: 18px;
 }
-.clear-btn:active { background: #dbeafe; }
-.clear-btn-text { color: #2563eb; font-size: 12px; font-weight: 700; }
+.clear-btn-icon:active { background: #dbeafe; }
+
+.topbar-action {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-soft, #eff6ff);
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  color: var(--primary-color, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
 
 .page-title {
   display: block;
-  font-size: 28px;
+  font-size: var(--font-hero, 28px);
   font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.35px;
+  color: var(--text-primary, #0f172a);
 }
 
 .page-subtitle {
   display: block;
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+  font-size: var(--font-caption, 13px);
+  line-height: var(--line-height-caption, 1.45);
+  color: var(--text-tertiary, #8e8e93);
 }
 
 /* ---- Segment tabs ---- */
@@ -407,12 +445,9 @@ onShow(() => {
 
 .segment-bar {
   display: flex;
-  background: #ffffff;
-  border: 1px solid #b8c8d8;
-  border-radius: 14px;
+  border-radius: var(--btn-radius, 14px);
   padding: 4px;
   gap: 2px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.11);
 }
 
 .seg-item {
@@ -424,15 +459,15 @@ onShow(() => {
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: relative;
   gap: 6px;
 }
 
 .seg-active {
-  background: var(--surface-2);
-  color: #0f172a;
+  background: var(--surface-2, #f8fafc);
+  color: var(--text-primary, #0f172a);
   font-weight: 600;
   box-shadow: none;
 }
@@ -441,7 +476,7 @@ onShow(() => {
   min-width: 18px;
   height: 18px;
   border-radius: 9px;
-  background: #ef4444;
+  background: var(--danger-color, #ef4444);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,18 +514,14 @@ onShow(() => {
 .swipe-row {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 16px);
   margin-bottom: 0;
 }
 
 .msg-card {
   display: flex;
   align-items: center;
-  background: #ffffff;
   padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid #b8c8d8;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07);
   transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: relative;
   z-index: 1;
@@ -505,12 +536,17 @@ onShow(() => {
   position: absolute;
   right: 0; top: 0; bottom: 0;
   width: 80px;
-  background: #ef4444;
+  background: var(--danger-color, #ef4444);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-radius: 0 var(--radius-md, 16px) var(--radius-md, 16px) 0;
   z-index: 0;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.swipe-delete-visible {
+  opacity: 1;
 }
 .swipe-delete-text {
   color: #ffffff;
@@ -519,8 +555,29 @@ onShow(() => {
 }
 
 .msg-unread {
-  border-color: rgba(37, 99, 235, 0.35);
-  background: linear-gradient(0deg, rgba(239, 246, 255, 0.6), rgba(239, 246, 255, 0.6)), #ffffff;
+  border-color: var(--primary-color, #2563eb);
+  background: linear-gradient(90deg, var(--primary-soft, #eff6ff), var(--surface-1, #ffffff));
+}
+.msg-unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--primary-color, #2563eb);
+}
+.msg-unread .msg-name {
+  color: var(--primary-color, #2563eb);
+  font-weight: 800;
+}
+.msg-card:not(.msg-unread) {
+  background: var(--surface-1, #ffffff);
+}
+.msg-card:not(.msg-unread) .msg-name,
+.msg-card:not(.msg-unread) .msg-preview {
+  opacity: 0.72;
 }
 
 /* ---- Avatar ---- */
@@ -530,39 +587,12 @@ onShow(() => {
   flex-shrink: 0;
 }
 
-.msg-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.sys-0 { background: var(--primary-soft); color: var(--primary-color); }
+.sys-1 { background: var(--violet-soft); color: var(--violet); }
+.sys-2 { background: var(--cyan-soft); color: var(--cyan); }
 
-.av-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.av-0 { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.av-1 { background: linear-gradient(135deg, #10b981, #059669); }
-.av-2 { background: linear-gradient(135deg, #f97316, #ea580c); }
-
-.sys-av {
-  border-radius: 16px;
-}
-.sys-0 { background: linear-gradient(135deg, #fef08a, #fbbf24); }
-.sys-1 { background: linear-gradient(135deg, #c4b5fd, #8b5cf6); }
-.sys-2 { background: linear-gradient(135deg, #6ee7b7, #10b981); }
-
-.status-av {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  border-radius: 16px;
-}
-
-.av-emoji {
-  font-size: 22px;
+.av-icon {
+  font-size: 20px;
 }
 
 .unread-dot {
@@ -572,7 +602,7 @@ onShow(() => {
   width: 10px;
   height: 10px;
   border-radius: 5px;
-  background: #2563eb;
+  background: var(--primary-color, #2563eb);
   border: 2px solid #ffffff;
 }
 
@@ -592,7 +622,7 @@ onShow(() => {
 .msg-name {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary, #0f172a);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -602,19 +632,19 @@ onShow(() => {
 
 .msg-time {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   flex-shrink: 0;
 }
 
 .msg-preview {
-  font-size: var(--font-caption);
-  color: var(--text-secondary);
+  font-size: var(--font-caption, 13px);
+  color: var(--text-secondary, #64748b);
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: var(--line-height-caption);
+  line-height: var(--line-height-caption, 1.45);
 }
 
 /* ---- Status tags ---- */
@@ -631,9 +661,9 @@ onShow(() => {
 }
 
 .tag-progress {
-  background: #eff6ff;
+  background: var(--primary-soft, #eff6ff);
 }
-.tag-progress .tag-text { color: #2563eb; }
+.tag-progress .tag-text { color: var(--primary-color, #2563eb); }
 
 .tag-sent {
   background: #f0fdf4;
@@ -661,13 +691,13 @@ onShow(() => {
 .empty-text {
   font-size: 16px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   margin-bottom: 6px;
 }
 
 .empty-sub {
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--text-secondary, #64748b);
 }
 
 .is-dark {
@@ -686,14 +716,13 @@ onShow(() => {
 
 .is-dark .msg-preview,
 .is-dark .msg-time {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 .is-dark .segment-bar { background: #1e293b; border-color: #334155; }
-.is-dark .seg-item { color: #94a3b8; }
+.is-dark .seg-item { color: var(--text-tertiary, #8e8e93); }
 .is-dark .seg-active { background: #334155; color: #f8fafc; }
-.is-dark .clear-btn { background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.3); }
-.is-dark .clear-btn-text { color: #60a5fa; }
+.is-dark .clear-btn-icon { background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.3); color: #60a5fa; }
 .is-dark .msg-unread { background: linear-gradient(0deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.15)), #1e293b; border-color: rgba(37, 99, 235, 0.35); }
 .is-dark .tag-progress { background: rgba(37, 99, 235, 0.15); }
 .is-dark .tag-progress .tag-text { color: #60a5fa; }
@@ -701,44 +730,35 @@ onShow(() => {
 .is-dark .tag-sent .tag-text { color: #34d399; }
 .is-dark .tag-pass { background: rgba(245, 158, 11, 0.15); }
 .is-dark .tag-pass .tag-text { color: #fbbf24; }
-.is-dark .empty-text { color: #94a3b8; }
-.is-dark .empty-sub { color: #64748b; }
-.is-dark .status-av { background: linear-gradient(135deg, #1e3a5f, #1e40af); }
-.is-dark .unread-dot { border-color: #1e293b; }
+.is-dark .empty-text { color: var(--text-tertiary, #8e8e93); }
+.is-dark .empty-sub { color: var(--text-secondary, #64748b); }
+.is-dark .unread-dot { border-color: var(--text-primary, #0f172a); }
 
 /* ================================================================
  *  MP-WEIXIN parity overrides — HARDCODED values, no CSS vars.
  * ================================================================ */
 /* #ifdef MP-WEIXIN */
 
-.msg-page {
-  background-color: #eaeff5;
-}
-
 .msg-card {
   overflow: visible;
-  border: 1.5px solid #b0bfd0;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.18),
-              0 1px 5px  rgba(0,0,0,0.10);
+  border: 1.5px solid #e2e8f0;
+  box-shadow: var(--shadow-xs);
 }
 
 .segment-bar {
   overflow: visible;
   border: 1.5px solid #b0bfd0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+  box-shadow: var(--shadow-sm);
 }
 
 .seg-active {
   background: #dbeafe;
-  color: #2563eb;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.22);
+  color: var(--primary-color, #2563eb);
+  box-shadow: var(--shadow-xs);
 }
 
 /* Dark theme on MP: the block above is light-first; pin dark styles with
    higher specificity so the segment bar never stays a white slab. */
-.msg-page.is-dark {
-  background-color: #0f172a;
-}
 
 .msg-page.is-dark .segment-bar {
   background: #1e293b;
@@ -747,7 +767,7 @@ onShow(() => {
 }
 
 .msg-page.is-dark .seg-item {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 .msg-page.is-dark .seg-active {
@@ -768,15 +788,18 @@ onShow(() => {
 
 .msg-page.is-dark .msg-preview,
 .msg-page.is-dark .msg-time {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
-.msg-page.is-dark .clear-btn {
+.msg-page.is-dark .clear-btn-icon {
   background: rgba(37, 99, 235, 0.15);
   border-color: rgba(37, 99, 235, 0.3);
+  color: #60a5fa;
 }
 
-.msg-page.is-dark .clear-btn-text {
+.msg-page.is-dark .topbar-action {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.3);
   color: #60a5fa;
 }
 

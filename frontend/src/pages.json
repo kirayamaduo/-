@@ -55,14 +55,16 @@
 			"path": "pages/assessment/quiz",
 			"style": {
 				"navigationBarTitleText": "Assessment",
-				"navigationBarBackgroundColor": "#f5f5f7"
+				"navigationBarBackgroundColor": "#f5f5f7",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/assessment/result",
 			"style": {
 				"navigationBarTitleText": "Results",
-				"navigationBarBackgroundColor": "#f5f5f7"
+				"navigationBarBackgroundColor": "#f5f5f7",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -90,7 +92,8 @@
 			"path": "pages/resume/template",
 			"style": {
 				"navigationBarTitleText": "Create Resume",
-				"navigationBarBackgroundColor": "#f5f5f7"
+				"navigationBarBackgroundColor": "#f5f5f7",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -118,14 +121,16 @@
 			"path": "pages/interview/chat",
 			"style": {
 				"navigationBarTitleText": "Interview Chat",
-				"navigationBarBackgroundColor": "#f5f5f7"
+				"navigationBarBackgroundColor": "#f5f5f7",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/interview/start",
 			"style": {
 				"navigationBarTitleText": "Start Interview",
-				"navigationBarBackgroundColor": "#f5f5f7"
+				"navigationBarBackgroundColor": "#f5f5f7",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -148,7 +153,8 @@
 				"navigationBarTitleText": "",
 				"navigationStyle": "custom",
 				"navigationBarBackgroundColor": "#f1f5f9",
-				"backgroundColor": "#f1f5f9"
+				"backgroundColor": "#f1f5f9",
+				"disableScroll": true
 			}
 		},
 		{
@@ -156,7 +162,8 @@
 			"style": {
 				"navigationBarTitleText": "Loading...",
 				"navigationBarBackgroundColor": "#ffffff",
-				"navigationBarTextStyle": "black"
+				"navigationBarTextStyle": "black",
+				"navigationStyle": "custom"
 			}
 		},
 		{

@@ -1,15 +1,6 @@
 <template>
-  <view class="market-page" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
-
-    <view class="nav-row">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-        <text class="back-text">{{ t('common.back') }}</text>
-      </view>
-      <text class="nav-title">{{ t('market.title') }}</text>
-      <view style="width:64px;"></view>
-    </view>
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar :title="t('market.title')" show-back @back="goBack" :safe-top="topSafeHeight" />
 
     <view class="source-tabs">
       <view
@@ -22,9 +13,9 @@
       </view>
     </view>
 
-    <view class="filters">
+    <view class="filters app-card-soft app-surface">
       <input
-        class="filter-input"
+        class="filter-input ui-input"
         v-model="positionFilter"
         :placeholder="t('market.filterPlaceholder')"
         @confirm="applyFilters"
@@ -44,24 +35,24 @@
       </view>
     </view>
 
-    <view class="contribute-card">
+    <view class="contribute-card app-card-soft app-surface">
       <text class="contribute-title">{{ t('market.shareTitle') }}</text>
       <text class="contribute-sub">{{ t('market.shareSub') }}</text>
       <view class="contribute-meta">
         <input
-          class="meta-input"
+          class="meta-input ui-input"
           v-model="contributePosition"
           :placeholder="t('market.positionPlaceholder')"
         />
-        <picker mode="selector" :range="['Easy', 'Normal', 'Hard']" @change="onPickDifficulty">
+        <picker mode="selector" :range="contributeDifficultyLabels" @change="onPickDifficulty">
           <view class="meta-picker">
-            <text class="meta-picker-text">{{ contributeDifficulty }}</text>
+            <text class="meta-picker-text">{{ contributeDifficultyLabel }}</text>
             <text class="meta-picker-arrow">▾</text>
           </view>
         </picker>
       </view>
       <textarea
-        class="contribute-input"
+        class="contribute-input ui-input"
         v-model="contributeContent"
         :maxlength="800"
         :placeholder="t('market.questionPlaceholder')"
@@ -80,23 +71,23 @@
       <text class="loading-text">{{ t('market.loading') }}</text>
     </view>
 
-    <view class="empty-state" v-else-if="!loading && items.length === 0">
-      <text class="empty-icon">📭</text>
+    <view class="empty-state app-empty app-surface" v-else-if="!loading && items.length === 0">
+      <text class="empty-icon ri-mail-close-line"></text>
       <text class="empty-text">{{ t('market.empty') }}</text>
       <text class="empty-sub">{{ t('market.emptySub') }}</text>
     </view>
 
     <view class="list" v-else>
       <view
-        class="q-card"
+        class="q-card app-card-soft app-surface"
         v-for="q in items"
         :key="q.id"
       >
         <view class="q-head">
           <text class="q-pos">{{ q.position }}</text>
           <view class="q-badges">
-            <text v-if="q.source === 'OFFICIAL'" class="badge badge-official">Official</text>
-            <text v-else-if="q.source === 'AI_GENERATED'" class="badge badge-ai">AI</text>
+            <text v-if="q.source === 'OFFICIAL'" class="badge badge-official">{{ t('market.badgeOfficial') }}</text>
+            <text v-else-if="q.source === 'AI_GENERATED'" class="badge badge-ai">{{ t('market.badgeAI') }}</text>
             <text :class="['q-diff', diffClass(q.difficulty)]">{{ q.difficulty }}</text>
           </view>
         </view>
@@ -107,10 +98,10 @@
         </view>
         <view class="q-foot">
           <view class="like-btn" @click="like(q)">
-            <text class="like-icon">{{ likedSet.has(q.id) ? '♥' : '♡' }}</text>
+            <text class="like-icon" :class="likedSet.has(q.id) ? 'ri-heart-fill' : 'ri-heart-line'"></text>
             <text class="like-count">{{ q.likes }}</text>
           </view>
-          <text class="q-meta">drawn {{ q.drawCount }}×</text>
+          <text class="q-meta">{{ t('market.drawnCount', { n: q.drawCount }) }}</text>
           <view v-if="q.answer" class="answer-btn" @click="toggleAnswer(q.id)">
             <text class="answer-btn-text">{{ expandedId === q.id ? t('market.hideAnswer') : t('market.showAnswer') }}</text>
           </view>
@@ -125,16 +116,18 @@
     </view>
 
     <view class="bottom-safe"></view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { listMarketApi, likeQuestionApi, contributeQuestionApi, type MarketQuestion } from '@/api/market';
 import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
@@ -146,9 +139,9 @@ const difficulties = ['', 'Easy', 'Normal', 'Hard'];
 const sourceFilter = ref<string>(''); // '' = all sources
 const sources = computed(() => [
   { label: t('market.srcAll'), value: '' },
-  { label: '✓ ' + t('market.srcOfficial'), value: 'OFFICIAL' },
-  { label: '👤 ' + t('market.srcCommunity'), value: 'USER' },
-  { label: '🤖 AI', value: 'AI_GENERATED' },
+  { label: t('market.srcOfficial'), value: 'OFFICIAL' },
+  { label: t('market.srcCommunity'), value: 'USER' },
+  { label: t('market.srcAI'), value: 'AI_GENERATED' },
 ]);
 const expandedId = ref<number | null>(null);
 
@@ -162,6 +155,15 @@ const contributePosition = ref('');
 const contributeDifficulty = ref('Normal');
 const contributeContent = ref('');
 const contributing = ref(false);
+const contributeDifficultyOptions = computed(() => [
+  { value: 'Easy', label: t('market.diffEasyLabel') },
+  { value: 'Normal', label: t('market.diffNormalLabel') },
+  { value: 'Hard', label: t('market.diffHardLabel') },
+]);
+const contributeDifficultyLabels = computed(() => contributeDifficultyOptions.value.map((item) => item.label));
+const contributeDifficultyLabel = computed(() =>
+  contributeDifficultyOptions.value.find((item) => item.value === contributeDifficulty.value)?.label || contributeDifficulty.value
+);
 
 const likedSet = ref<Set<number>>(new Set());
 
@@ -183,8 +185,8 @@ const toggleAnswer = (id: number) => {
 
 const onPickDifficulty = (e: any) => {
   const v = e?.detail?.value;
-  const list = ['Easy', 'Normal', 'Hard'];
-  if (typeof v === 'number' && list[v]) contributeDifficulty.value = list[v];
+  const item = contributeDifficultyOptions.value[v];
+  if (typeof v === 'number' && item) contributeDifficulty.value = item.value;
 };
 
 const diffClass = (d: string) => {
@@ -209,7 +211,7 @@ const load = async () => {
   } catch (e: any) {
     items.value = [];
     total.value = 0;
-    uni.showToast({ title: e?.message || 'Failed to load', icon: 'none' });
+    uni.showToast({ title: e?.message || t('market.loadFailed'), icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -243,14 +245,14 @@ const like = async (q: MarketQuestion) => {
   } catch (e: any) {
     likedSet.value.delete(q.id);
     q.likes = Math.max(0, q.likes - 1);
-    uni.showToast({ title: e?.message || 'Like failed', icon: 'none' });
+    uni.showToast({ title: e?.message || t('market.likeFailed'), icon: 'none' });
   }
 };
 
 const submitContribution = async () => {
   const trimmed = contributeContent.value.trim();
   if (trimmed.length < 8) {
-    uni.showToast({ title: 'Add a few more words', icon: 'none' });
+    uni.showToast({ title: t('market.addMoreWords'), icon: 'none' });
     return;
   }
   contributing.value = true;
@@ -261,11 +263,11 @@ const submitContribution = async () => {
       content: trimmed,
     });
     contributeContent.value = '';
-    uni.showToast({ title: 'Shared. Thank you!', icon: 'success' });
+    uni.showToast({ title: t('market.shareSuccess'), icon: 'success' });
     page.value = 0;
     await load();
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to share', icon: 'none' });
+    uni.showToast({ title: e?.message || t('market.shareFailed'), icon: 'none' });
   } finally {
     contributing.value = false;
   }
@@ -273,7 +275,7 @@ const submitContribution = async () => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  topSafeHeight.value = getMpSafeAreaMetrics().topSafeHeight;
   // Pre-fill filters / contribute form when launched from /pages/interview/report.
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any)?.options || {};
@@ -292,69 +294,57 @@ onShow(() => {
 </script>
 
 <style scoped>
-.market-page {
-  min-height: 100vh;
-  background-color: #f5f5f7;
-  padding: 0 20px 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+.sl-page :deep(.market-page) {
+  padding: 0 var(--page-gutter, 20px) 24px;
   box-sizing: border-box;
 }
-.status-spacer { width: 100%; }
-.nav-row { display: flex; align-items: center; height: 44px; padding: 0 2px; margin-bottom: 4px; }
-.back-btn { display: inline-flex; align-items: center; gap: 2px; color: #2563eb; width: 64px; }
-.back-icon { font-size: 24px; font-weight: 300; line-height: 1; }
-.back-text { font-size: 16px; font-weight: 500; }
-.nav-title { flex: 1; text-align: center; font-size: 17px; font-weight: 600; color: #0f172a; letter-spacing: -0.3px; }
 
 .filters {
-  background: #fff; border: 1px solid var(--border-color);
-  border-radius: 16px; padding: 14px; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md, 16px); padding: 14px;
   display: flex; flex-direction: column; gap: 10px;
   margin-top: 8px;
 }
 .filter-input {
   height: 40px; padding: 0 12px;
-  border-radius: 10px; background: #f1f5f9;
-  font-size: 14px; color: #0f172a;
+  border-radius: var(--radius-sm, 12px);
+  font-size: 14px; color: var(--text-primary, #0f172a);
 }
 .diff-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.diff-chip { padding: 6px 14px; background: #f1f5f9; border-radius: 999px; }
-.diff-chip-text { font-size: 12px; color: #475569; font-weight: 600; }
-.diff-chip-on { background: #2563eb; }
+.diff-chip { padding: 6px 14px; background: var(--surface-3, #f1f5f9); border-radius: 999px; }
+.diff-chip-text { font-size: 12px; color: var(--text-secondary, #64748b); font-weight: 600; }
+.diff-chip-on { background: var(--primary-color, #2563eb); }
 .diff-chip-on .diff-chip-text { color: #fff; }
 .diff-action { margin-left: auto; padding: 6px 14px; background: #0f172a; border-radius: 999px; }
 .diff-action-text { font-size: 12px; color: #fff; font-weight: 700; }
 
 .contribute-card {
-  background: #fff; border: 1px solid var(--border-color);
-  border-radius: 18px; padding: 16px; margin-top: 14px;
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg, 20px); padding: 16px; margin-top: 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
-.contribute-title { font-size: 15px; font-weight: 700; color: #0f172a; }
-.contribute-sub { font-size: 12px; color: #64748b; line-height: 1.45; }
+.contribute-title { font-size: 15px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.contribute-sub { font-size: 12px; color: var(--text-secondary, #64748b); line-height: 1.45; }
 .contribute-meta { display: flex; gap: 8px; }
 .meta-input {
   flex: 1; height: 40px; padding: 0 12px;
-  border-radius: 10px; background: #f1f5f9; font-size: 13px; color: #0f172a;
+  border-radius: 10px; background: var(--surface-3, #f1f5f9); font-size: 13px; color: var(--text-primary, #0f172a);
 }
 .meta-picker {
   display: inline-flex; align-items: center; gap: 6px;
   height: 40px; padding: 0 14px; border-radius: 10px;
-  background: #f1f5f9; min-width: 96px; justify-content: center;
+  background: var(--surface-3, #f1f5f9); min-width: 96px; justify-content: center;
 }
-.meta-picker-text { font-size: 13px; color: #0f172a; font-weight: 600; }
-.meta-picker-arrow { font-size: 12px; color: #64748b; }
+.meta-picker-text { font-size: 13px; color: var(--text-primary, #0f172a); font-weight: 600; }
+.meta-picker-arrow { font-size: 12px; color: var(--text-secondary, #64748b); }
 .contribute-input {
   width: 100%; min-height: 80px; padding: 10px 12px;
-  border-radius: 10px; background: #f1f5f9;
-  font-size: 14px; line-height: 1.5; color: #0f172a;
+  border-radius: 10px; background: var(--surface-3, #f1f5f9);
+  font-size: 14px; line-height: 1.5; color: var(--text-primary, #0f172a);
   box-sizing: border-box;
 }
 .contribute-actions { display: flex; }
 .btn-primary {
   flex: 1; height: 42px; line-height: 42px;
-  border-radius: 12px; background: #2563eb; color: #fff;
+  border-radius: 12px; background: var(--primary-color, #2563eb); color: #fff;
   font-size: 14px; font-weight: 700; border: none;
 }
 .btn-primary[disabled] { opacity: 0.55; }
@@ -364,19 +354,18 @@ onShow(() => {
 }
 .spinner {
   width: 36px; height: 36px; border-radius: 18px; margin: 0 auto 14px;
-  border: 3px solid #e2e8f0; border-top-color: #2563eb;
+  border: 3px solid #e2e8f0; border-top-color: var(--primary-color, #2563eb);
   animation: spin 0.9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: #64748b; }
+.loading-text { font-size: 14px; color: var(--text-secondary, #64748b); }
 .empty-icon { font-size: 40px; display: block; margin-bottom: 10px; }
-.empty-text { font-size: 14px; color: #475569; font-weight: 600; display: block; }
-.empty-sub { font-size: 12px; color: #94a3b8; margin-top: 6px; display: block; }
+.empty-text { font-size: 14px; color: var(--text-secondary, #64748b); font-weight: 600; display: block; }
+.empty-sub { font-size: 12px; color: var(--text-tertiary, #8e8e93); margin-top: 6px; display: block; }
 
 .list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
 .q-card {
-  background: #fff; border: 1px solid var(--border-color);
-  border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md, 16px); padding: 14px 16px;
   display: flex; flex-direction: column; gap: 8px;
 }
 .q-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -385,47 +374,47 @@ onShow(() => {
   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
   letter-spacing: 0.04em;
 }
-.diff-easy { background: #dcfce7; color: #047857; }
-.diff-normal { background: #dbeafe; color: #1d4ed8; }
-.diff-hard { background: #fee2e2; color: #b91c1c; }
-.q-content { font-size: 14px; color: #0f172a; line-height: 1.5; }
+.diff-easy { background: var(--success-soft, #dcfce7); color: var(--success-color, #059669); }
+.diff-normal { background: var(--primary-soft, #eff6ff); color: var(--primary-hover, #1d4ed8); }
+.diff-hard { background: var(--danger-soft, #fef2f2); color: var(--danger-color, #ef4444); }
+.q-content { font-size: 14px; color: var(--text-primary, #0f172a); line-height: 1.5; }
 .q-foot { display: flex; align-items: center; gap: 12px; }
 .like-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fef2f2; border-radius: 999px; }
 .like-icon { font-size: 14px; color: #ef4444; line-height: 1; }
-.like-count { font-size: 12px; color: #64748b; font-weight: 700; }
-.q-meta { font-size: 11px; color: #94a3b8; }
+.like-count { font-size: 12px; color: var(--text-secondary, #64748b); font-weight: 700; }
+.q-meta { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
 
 .pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; }
 .btn-page {
   height: 36px; line-height: 36px; padding: 0 14px;
-  border-radius: 999px; background: #f1f5f9;
-  font-size: 13px; font-weight: 600; color: #0f172a; border: none;
+  border-radius: 999px; background: var(--surface-3, #f1f5f9);
+  font-size: 13px; font-weight: 600; color: var(--text-primary, #0f172a); border: none;
 }
 .btn-page[disabled] { opacity: 0.5; }
-.page-meta { font-size: 13px; color: #64748b; font-weight: 600; }
+.page-meta { font-size: 13px; color: var(--text-secondary, #64748b); font-weight: 600; }
 
 .bottom-safe { height: calc(env(safe-area-inset-bottom, 0px) + 24px); }
 
 .source-tabs { display: flex; gap: 8px; margin: 8px 0; overflow-x: auto; padding-bottom: 2px; }
-.source-tab { padding: 6px 14px; border-radius: 999px; background: #f1f5f9; white-space: nowrap; }
-.source-tab-text { font-size: 12px; font-weight: 600; color: #475569; }
+.source-tab { padding: 6px 14px; border-radius: 999px; background: var(--surface-3, #f1f5f9); white-space: nowrap; }
+.source-tab-text { font-size: 12px; font-weight: 600; color: var(--text-secondary, #64748b); }
 .source-tab-on { background: #0f172a; }
 .source-tab-on .source-tab-text { color: #fff; }
 
 .q-badges { display: flex; align-items: center; gap: 6px; }
 .badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; }
-.badge-official { background: #dcfce7; color: #047857; }
+.badge-official { background: var(--success-soft, #dcfce7); color: var(--success-color, #059669); }
 .badge-ai { background: #fef3c7; color: #b45309; }
 
 .q-answer { margin-top: 8px; padding: 10px; background: #f8faff; border-radius: 10px; }
 .q-answer-label { font-size: 11px; font-weight: 700; color: #2563eb; display: block; margin-bottom: 4px; }
 .q-answer-text { font-size: 13px; color: #334155; line-height: 1.6; }
 
-.answer-btn { margin-left: auto; padding: 3px 10px; background: #eff6ff; border-radius: 999px; }
+.answer-btn { margin-left: auto; padding: 3px 10px; background: var(--primary-soft, #eff6ff); border-radius: 999px; }
 .answer-btn-text { font-size: 11px; font-weight: 700; color: #2563eb; }
 
 .is-dark .source-tab { background: #1e293b; }
-.is-dark .source-tab-text { color: #94a3b8; }
+.is-dark .source-tab-text { color: var(--text-tertiary, #8e8e93); }
 .is-dark .source-tab-on { background: #334155; }
 .is-dark .source-tab-on .source-tab-text { color: #f8fafc; }
 .is-dark .q-answer { background: #1e293b; }
@@ -433,8 +422,7 @@ onShow(() => {
 .is-dark .answer-btn { background: rgba(37,99,235,0.18); }
 .is-dark .answer-btn-text { color: #93c5fd; }
 
-.is-dark { background-color: #0f172a; }
-.is-dark .nav-title,
+/* Dark mode */
 .is-dark .contribute-title,
 .is-dark .q-content { color: #f8fafc; }
 .is-dark .filters,
@@ -449,6 +437,6 @@ onShow(() => {
 .is-dark .diff-chip-text { color: #cbd5f5; }
 .is-dark .like-btn { background: rgba(239, 68, 68, 0.18); }
 .is-dark .like-count { color: #cbd5f5; }
-.is-dark .q-meta { color: #94a3b8; }
+.is-dark .q-meta { color: var(--text-tertiary, #8e8e93); }
 .is-dark .btn-page { background: #0f172a; color: #cbd5f5; }
 </style>

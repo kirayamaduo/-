@@ -27,8 +27,8 @@ const emit = defineEmits<{
 .sl-segment {
   display: flex;
   padding: 3px;
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: var(--surface-3, #f1f5f9);
+  border-radius: var(--radius-sm, 12px);
 }
 
 .sl-segment__item {
@@ -39,12 +39,12 @@ const emit = defineEmits<{
   justify-content: center;
   align-items: center;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary, #64748b);
 }
 
 .sl-segment__item.is-active {
-  background: #fff;
-  color: #0f172a;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-primary, #0f172a);
   font-weight: 600;
 }
 </style>

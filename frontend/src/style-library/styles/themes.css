@@ -1,0 +1,222 @@
+.theme-green {
+  background-color: #f0fdf4 !important;
+}
+.theme-green .ui-card,
+.theme-green .card,
+.theme-green .panel,
+.theme-green .section-card,
+.theme-green .app-surface,
+.theme-green .sl-card,
+.theme-green .sl-list-item,
+.theme-green .sl-search-bar,
+.theme-green .sl-stat-bar,
+.theme-green .sl-modal__panel,
+.theme-green .sl-sheet__item,
+.theme-green .sl-sheet__cancel {
+  background: #ffffff !important;
+  border-color: #bbf7d0 !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+.theme-green .ui-list-item,
+.theme-green .list-item,
+.theme-green .item {
+  border-color: #bbf7d0;
+}
+.theme-green .ui-btn-primary,
+.theme-green .btn-primary,
+.theme-green .btn-send,
+.theme-green .sl-button--primary {
+  background: #059669 !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.theme-green .ui-input,
+.theme-green .input,
+.theme-green textarea.ui-input,
+.theme-green .sl-input {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+}
+
+.font-compact {
+  --font-hero:    22px;
+  --font-title:   15px;
+  --font-section: 14px;
+  --font-body:    12px;
+  --font-caption: 10px;
+  --font-micro:   9px;
+}
+.font-large {
+  --font-hero:    36px;
+  --font-title:   23px;
+  --font-section: 21px;
+  --font-body:    19px;
+  --font-caption: 17px;
+  --font-micro:   15px;
+}
+
+.font-compact text,
+.font-compact input,
+.font-compact textarea,
+.font-compact button {
+  font-size: 12px !important;
+}
+.font-compact .page-title,
+.font-compact .greeting-title,
+.font-compact .hero-title,
+.font-compact .title,
+.font-compact .summary-title {
+  font-size: 24px !important;
+}
+.font-compact .section-title,
+.font-compact .card-title,
+.font-compact .nav-title {
+  font-size: 16px !important;
+}
+.font-large text,
+.font-large input,
+.font-large textarea,
+.font-large button {
+  font-size: 17px !important;
+}
+.font-large .page-title,
+.font-large .greeting-title,
+.font-large .hero-title,
+.font-large .title,
+.font-large .summary-title {
+  font-size: 34px !important;
+}
+.font-large .section-title,
+.font-large .card-title,
+.font-large .nav-title {
+  font-size: 22px !important;
+}
+
+.is-dark,
+.is-dark.app-shell,
+.is-dark[class*="-page"],
+.is-dark[class*="-container"] {
+  background: #0f172a !important;
+  color: #e2e8f0;
+}
+.is-dark text {
+  color: #e2e8f0 !important;
+}
+.is-dark .app-surface,
+.is-dark .ui-card,
+.is-dark .card,
+.is-dark .panel,
+.is-dark .section-card,
+.is-dark .menu-card,
+.is-dark .stats-bar,
+.is-dark .empty-state,
+.is-dark .modal-content,
+.is-dark .form-sheet,
+.is-dark .facts-card,
+.is-dark .welcome-card,
+.is-dark .quick-chip,
+.is-dark .persona-chip,
+.is-dark .search-bar,
+.is-dark .field-input,
+.is-dark .ui-input,
+.is-dark .input,
+.is-dark .sl-card,
+.is-dark .sl-list-item,
+.is-dark .sl-search-bar,
+.is-dark .sl-input,
+.is-dark .sl-stat-bar,
+.is-dark .sl-modal__panel,
+.is-dark .sl-sheet__item,
+.is-dark .sl-sheet__cancel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+}
+.is-dark .surface-muted,
+.is-dark .skeleton-card,
+.is-dark .tag,
+.is-dark .pill,
+.is-dark .chip,
+.is-dark .picker-box,
+.is-dark .fact-delete-btn {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+.is-dark .app-page-title,
+.is-dark .page-title,
+.is-dark .title,
+.is-dark .hero-title,
+.is-dark .summary-title,
+.is-dark .section-title,
+.is-dark .card-title,
+.is-dark .nav-title,
+.is-dark .menu-text,
+.is-dark .field-label,
+.is-dark .empty-title,
+.is-dark .sl-list-item__title,
+.is-dark .sl-navbar__title,
+.is-dark .sl-navbar__back,
+.is-dark .sl-section-title__text,
+.is-dark .sl-icon-button__label,
+.is-dark .sl-stat-bar__value,
+.is-dark .sl-empty__title,
+.is-dark .sl-modal__title,
+.is-dark .sl-sheet__item,
+.is-dark .sl-sheet__cancel,
+.is-dark .sl-segment__item.is-active {
+  color: #f8fafc !important;
+}
+.is-dark .app-page-subtitle,
+.is-dark .page-subtitle,
+.is-dark .subtitle,
+.is-dark .hero-subtitle,
+.is-dark .summary-text,
+.is-dark .section-meta,
+.is-dark .empty-desc,
+.is-dark .field-hint,
+.is-dark .desc,
+.is-dark .sl-input__label,
+.is-dark .sl-list-item__subtitle,
+.is-dark .sl-search-bar__clear,
+.is-dark .sl-stat-bar__label,
+.is-dark .sl-empty__desc,
+.is-dark .sl-modal__body,
+.is-dark .sl-sheet__title,
+.is-dark .sl-tabs__item,
+.is-dark .sl-segment__item {
+  color: #94a3b8 !important;
+}
+.is-dark input,
+.is-dark textarea {
+  color: #f8fafc !important;
+}
+.is-dark .ph,
+.is-dark .search-ph,
+.is-dark .input-ph {
+  color: #64748b !important;
+}
+.is-dark .btn-primary,
+.is-dark .btn-send,
+.is-dark .send-active,
+.is-dark .pill-active,
+.is-dark .sl-button--primary {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+.is-dark .sl-button--secondary {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+.is-dark .sl-button--ghost {
+  color: #93c5fd !important;
+  border-color: #3b82f6 !important;
+}
+.is-dark .sl-segment {
+  background: #334155 !important;
+}
+.is-dark .sl-segment__item.is-active {
+  background: #1e293b !important;
+}
+.is-dark .sl-tabs {
+  border-color: #334155 !important;
+}

@@ -1,0 +1,131 @@
+page {
+  height: 100%;
+  background-color: var(--surface-1, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--surface-1, #ffffff);
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.app-mp-nav {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-mp-nav-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.app-page-content {
+  padding: 0 var(--page-gutter, 20px);
+  box-sizing: border-box;
+}
+
+.app-bottom-safe {
+  height: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.app-gradient-bg {
+  background: linear-gradient(180deg, var(--primary-soft, #eff6ff) 0%, var(--surface-1, #ffffff) 100%);
+  min-height: 100vh;
+}
+
+.app-soft-bg {
+  background: var(--surface-1, #ffffff);
+  min-height: 100vh;
+}
+
+.app-page-header {
+  padding: 8px 0 18px;
+}
+
+.app-page-kicker {
+  display: block;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--primary-color, #2563eb);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.app-page-title {
+  display: block;
+  font-size: var(--font-hero, 28px);
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+}
+
+.app-page-subtitle {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary, #64748b);
+}
+
+.app-section-title {
+  display: block;
+  font-size: var(--font-section, 17px);
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.app-section-meta {
+  font-size: var(--font-caption, 13px);
+  color: var(--text-tertiary, #8e8e93);
+}
+
+.app-surface {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #b8c8d8);
+  border-radius: var(--radius-md, 16px);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08));
+}
+
+.app-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-empty {
+  padding: 56px 20px 28px;
+  text-align: center;
+}
+
+.app-empty__title {
+  display: block;
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.app-empty__desc {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+
+/* #ifdef H5 */
+html,
+body,
+#app {
+  height: 100%;
+  overflow-x: hidden;
+}
+/* #endif */

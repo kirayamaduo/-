@@ -62,6 +62,15 @@ export function currentLocale(): LangCode {
   return (i18n.global.locale as any).value as LangCode;
 }
 
+export function translate(key: string, params?: Record<string, unknown>): string {
+  const raw = i18n.global.t(key) as string;
+  if (!params || typeof raw !== 'string') return raw;
+  return Object.entries(params).reduce(
+    (s, [k, v]) => s.split(`{${k}}`).join(String(v ?? '')),
+    raw,
+  );
+}
+
 /**
  * 用 uni.setTabBarItem() 动态覆盖 tabBar 文字。
  * pages.json 里的 text 是静态编译值，无法被 vue-i18n 响应式更新，

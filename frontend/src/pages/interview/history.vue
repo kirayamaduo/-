@@ -1,80 +1,83 @@
 <template>
-  <view class="history-page" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
-    <view class="nav-row">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-        <text class="back-text">{{ t('common.back') }}</text>
-      </view>
-      <text class="nav-title">{{ t('interviewHistory.navTitle') }}</text>
-      <view class="nav-new-btn" @click="startNew">
-        <text class="nav-new-text">{{ t('interviewHistory.newBtn') }}</text>
-      </view>
-    </view>
-
-    <view class="page-hero">
-      <text class="hero-title">{{ t('interviewHistory.heroTitle') }}</text>
-      <text class="hero-subtitle">{{ t('interviewHistory.heroSubtitle') }}</text>
-    </view>
-
-    <!-- Loading skeleton -->
-    <view class="skeleton-list" v-if="loading">
-      <view class="skel-card" v-for="i in 3" :key="i">
-        <view class="skel-line skel-w60"></view>
-        <view class="skel-line skel-w40"></view>
-        <view class="skel-line skel-w80"></view>
-      </view>
-    </view>
-
-    <view class="list" v-else-if="groupedInterviews.length > 0">
-      <template v-for="group in groupedInterviews" :key="group.label">
-        <text class="group-label">{{ group.label }}</text>
-        <view
-          v-for="item in group.items"
-          :key="item.interviewId"
-          class="interview-card"
-          @click="viewDetail(item)"
-        >
-          <view class="card-top">
-            <text class="position">{{ item.positionName }}</text>
-            <view :class="['status-pill', (item.status ?? '').toLowerCase()]">
-              <text class="pill-text">{{ item.status === 'COMPLETED' ? t('interviewHistory.statusCompleted') : t('interviewHistory.statusOngoing') }}</text>
-            </view>
-          </view>
-          <view class="card-bottom">
-            <view class="info-item">
-              <text class="info-label">{{ t('interviewHistory.difficultyLabel') }}</text>
-              <text class="info-val">{{ item.difficulty }}</text>
-            </view>
-            <view class="info-item" v-if="item.finalScore != null">
-              <text class="info-label">{{ t('interviewHistory.scoreLabel') }}</text>
-              <text class="info-val score-val">{{ item.finalScore }}</text>
-            </view>
-            <view class="info-item info-item-time">
-              <text class="info-label">{{ t('interviewHistory.timeLabel') }}</text>
-              <text class="info-val">{{ formatTime(item.startedAt) }}</text>
-            </view>
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar show-back @back="goBack" :safe-top="topSafeHeight">
+      <template #title>
+        <view class="nav-title-wrap">
+          <text class="nav-title">{{ t('interviewHistory.navTitle') }}</text>
+          <view class="nav-icon-btn" @click.stop="startNew">
+            <text class="ri-add-line"></text>
           </view>
         </view>
       </template>
-    </view>
+    </SlNavBar>
 
-    <view class="empty" v-else>
-      <text class="empty-icon">💼</text>
-      <text class="empty-text">{{ t('interviewHistory.emptyText') }}</text>
-      <text class="empty-desc">{{ t('interviewHistory.emptyDesc') }}</text>
-      <button class="btn-primary" @click="startNew">{{ t('interviewHistory.emptyBtn') }}</button>
+    <view class="history-page">
+      <view class="page-hero">
+        <text class="hero-title">{{ t('interviewHistory.heroTitle') }}</text>
+        <text class="hero-subtitle">{{ t('interviewHistory.heroSubtitle') }}</text>
+      </view>
+
+      <!-- Loading skeleton -->
+      <view class="skeleton-list" v-if="loading">
+        <view class="skel-card app-card-soft app-surface" v-for="i in 3" :key="i">
+          <view class="skel-line skel-w60"></view>
+          <view class="skel-line skel-w40"></view>
+          <view class="skel-line skel-w80"></view>
+        </view>
+      </view>
+
+      <view class="list" v-else-if="groupedInterviews.length > 0">
+        <template v-for="group in groupedInterviews" :key="group.label">
+          <text class="group-label">{{ group.label }}</text>
+          <view
+            v-for="item in group.items"
+            :key="item.interviewId"
+            class="interview-card app-card-soft app-surface"
+            @click="viewDetail(item)"
+          >
+            <view class="card-top">
+              <text class="position">{{ item.positionName }}</text>
+              <view :class="['status-pill', (item.status ?? '').toLowerCase()]">
+                <text class="pill-text">{{ item.status === 'COMPLETED' ? t('interviewHistory.statusCompleted') : t('interviewHistory.statusOngoing') }}</text>
+              </view>
+            </view>
+            <view class="card-bottom">
+              <view class="info-item">
+                <text class="info-label">{{ t('interviewHistory.difficultyLabel') }}</text>
+                <text class="info-val">{{ item.difficulty }}</text>
+              </view>
+              <view class="info-item" v-if="item.finalScore != null">
+                <text class="info-label">{{ t('interviewHistory.scoreLabel') }}</text>
+                <text class="info-val score-val">{{ item.finalScore }}</text>
+              </view>
+              <view class="info-item info-item-time">
+                <text class="info-label">{{ t('interviewHistory.timeLabel') }}</text>
+                <text class="info-val">{{ formatTime(item.startedAt) }}</text>
+              </view>
+            </view>
+          </view>
+        </template>
+      </view>
+
+      <view class="empty app-empty app-surface" v-else>
+        <text class="empty-icon ri-briefcase-line"></text>
+        <text class="empty-text">{{ t('interviewHistory.emptyText') }}</text>
+        <text class="empty-desc">{{ t('interviewHistory.emptyDesc') }}</text>
+        <button class="btn-primary" @click="startNew">{{ t('interviewHistory.emptyBtn') }}</button>
+      </view>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getUserInterviewsApi, type Interview } from '@/api/interview';
 import { useI18n } from '@/locales';
 import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const interviews = ref<Interview[]>([]);
 const loading = ref(true);
@@ -96,7 +99,7 @@ const loadInterviews = async () => {
     interviews.value = await getUserInterviewsApi(numericId);
   } catch (error) {
     console.error('Failed to load interviews:', error);
-    uni.showToast({ title: 'Failed to load interviews', icon: 'none' });
+    uni.showToast({ title: t('interviewHistory.loadFailed'), icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -104,7 +107,7 @@ const loadInterviews = async () => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  topSafeHeight.value = getMpSafeAreaMetrics().topSafeHeight;
 });
 
 // Refresh every time the page becomes visible — in particular when the
@@ -137,7 +140,7 @@ const viewDetail = (item: Interview) => {
   } else if (item.status === 'COMPLETED') {
     uni.navigateTo({ url: `/pages/interview/report?interviewId=${item.interviewId}` });
   } else {
-    uni.showToast({ title: 'This interview was cancelled', icon: 'none' });
+    uni.showToast({ title: t('interviewHistory.cancelled'), icon: 'none' });
   }
 };
 
@@ -172,45 +175,42 @@ const groupedInterviews = computed(() => {
 
 <style scoped>
 .history-page {
-  min-height: 100vh;
-  background-color: var(--page-ios-gray);
-  padding: 0 20px 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  padding: 0 var(--page-gutter, 20px) 24px;
   box-sizing: border-box;
 }
 
-.status-spacer { width: 100%; }
-
-.nav-row {
-  display: flex; align-items: center;
-  height: 44px; padding: 0 2px; margin-bottom: 4px;
+.nav-title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: auto;
 }
-
-.back-btn {
-  display: inline-flex; align-items: center; gap: 2px;
-  color: #2563eb; width: 64px;
-}
-
-.back-icon { font-size: 24px; font-weight: 300; line-height: 1; }
-.back-text { font-size: 16px; font-weight: 500; }
 
 .nav-title {
-  flex: 1; text-align: center;
-  font-size: 17px; font-weight: 600;
-  color: #0f172a; letter-spacing: -0.3px;
+  font-size: var(--font-section, 17px);
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.3px;
 }
 
-/* "+ New" target raised to a comfortable 44pt thumb zone (HCI: Apple HIG / WCAG 2.5.5) */
-.nav-new-btn {
-  min-width: 64px;
-  min-height: 44px;
-  display: flex; justify-content: flex-end; align-items: center;
-  padding: 0 6px;
+.nav-icon-btn {
+  font-size: 16px;
+  color: var(--primary-color, #2563eb);
+  background: var(--primary-soft, #eff6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
 }
 
-.nav-new-text {
-  font-size: 15px; font-weight: 600; color: #2563eb;
+.is-dark .nav-icon-btn {
+  background: #1e293b;
+  color: #93c5fd;
 }
+.is-dark .nav-title { color: #f8fafc; }
 
 /* Section labels between date buckets */
 .group-label {
@@ -219,17 +219,13 @@ const groupedInterviews = computed(() => {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #8e8e93);
   text-transform: uppercase;
 }
 
 /* Skeleton loader */
 .skeleton-list { display: flex; flex-direction: column; gap: 12px; }
 .skel-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 20px 18px;
   display: flex; flex-direction: column; gap: 10px;
 }
 .skel-line {
@@ -250,24 +246,19 @@ const groupedInterviews = computed(() => {
 .page-hero { margin-bottom: 20px; padding: 0 2px; }
 
 .hero-title {
-  font-size: var(--font-hero); font-weight: 800;
-  color: var(--text-primary); letter-spacing: -0.5px;
+  font-size: var(--font-hero, 28px); font-weight: 800;
+  color: var(--text-primary, #0f172a); letter-spacing: -0.5px;
   display: block; margin-bottom: 6px;
 }
 
 .hero-subtitle {
-  display: block; font-size: 14px; line-height: 1.5;
-  color: var(--text-secondary);
+  display: block; font-size: 14px; line-height: var(--line-height-body, 1.5);
+  color: var(--text-secondary, #64748b);
 }
 
 .list { display: flex; flex-direction: column; gap: 12px; }
 
 .interview-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  box-shadow: var(--shadow-sm);
   transition: transform 0.15s;
 }
 
@@ -278,14 +269,14 @@ const groupedInterviews = computed(() => {
   margin-bottom: 14px;
 }
 
-.position { font-size: 17px; font-weight: 600; color: #1e293b; }
+.position { font-size: var(--font-section, 17px); font-weight: 600; color: var(--text-primary, #0f172a); }
 
 .status-pill { padding: 4px 12px; border-radius: 10px; }
 
 .pill-text { font-size: 12px; font-weight: 600; }
 
-.completed { background: #dcfce7; }
-.completed .pill-text { color: #16a34a; }
+.completed { background: var(--success-soft, #dcfce7); }
+.completed .pill-text { color: var(--success-color, #059669); }
 
 .ongoing { background: #fef3c7; }
 .ongoing .pill-text { color: #d97706; }
@@ -294,18 +285,18 @@ const groupedInterviews = computed(() => {
 
 .info-item { display: flex; flex-direction: column; gap: 2px; }
 
-.info-label { font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.info-label { font-size: 11px; color: var(--text-tertiary, #8e8e93); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
 
-.info-val { font-size: 14px; color: #334155; font-weight: 500; }
+.info-val { font-size: 14px; color: var(--text-secondary, #64748b); font-weight: 500; }
 
-.score-val { color: #2563eb; font-weight: 700; }
+.score-val { color: var(--primary-color, #2563eb); font-weight: 700; }
 
 .empty { text-align: center; padding: 80px 20px; }
 
 .empty-icon { font-size: 56px; display: block; margin-bottom: 16px; }
 
 .empty-text {
-  font-size: 16px; color: #94a3b8; font-weight: 500;
+  font-size: 16px; color: var(--text-tertiary, #8e8e93); font-weight: 500;
   display: block; margin-bottom: 24px;
 }
 
@@ -314,20 +305,17 @@ const groupedInterviews = computed(() => {
   margin: -14px 0 24px;
   font-size: 13px;
   line-height: 1.45;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
 }
 
 .btn-primary {
-  background: #2563eb; color: #fff; font-size: 16px; font-weight: 600;
-  border-radius: 14px; height: 48px; line-height: 48px; border: none;
+  background: var(--primary-color, #2563eb); color: #fff; font-size: 16px; font-weight: 600;
+  border-radius: var(--btn-radius, 14px); height: var(--btn-height-md, 48px); line-height: var(--btn-height-md, 48px); border: none;
 }
 
-.btn-primary:active { background: #1d4ed8; }
+.btn-primary:active { background: var(--primary-hover, #1d4ed8); }
 
 /* Dark mode */
-.is-dark { background-color: #0f172a; }
-
-.is-dark .nav-title,
 .is-dark .hero-title { color: #f8fafc; }
 
 .is-dark .hero-subtitle { color: #94a3b8; }
@@ -338,7 +326,7 @@ const groupedInterviews = computed(() => {
 .is-dark .subtitle,
 .is-dark .empty-desc { color: #94a3b8; }
 
-.is-dark .interview-card { background: #1e293b; box-shadow: none; }
+.is-dark .interview-card { background: transparent; box-shadow: none; }
 
 .is-dark .info-val { color: #e2e8f0; }
 
@@ -371,14 +359,6 @@ const groupedInterviews = computed(() => {
 
 .is-dark .group-label {
   color: #64748b;
-}
-
-.is-dark .nav-title {
-  color: #f8fafc;
-}
-
-.is-dark .back-btn {
-  color: #93c5fd;
 }
 
 .is-dark .nav-new-text {

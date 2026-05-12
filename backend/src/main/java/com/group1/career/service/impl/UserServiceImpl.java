@@ -144,7 +144,15 @@ public class UserServiceImpl implements UserService {
                 "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
                 wechatAppId, wechatSecret, code);
 
+        // WeChat's jscode2session returns JSON with Content-Type: text/plain,
+        // so we need a converter that accepts text/plain as JSON.
         RestTemplate restTemplate = new RestTemplate();
+        org.springframework.http.converter.json.MappingJackson2HttpMessageConverter converter =
+                new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter();
+        converter.setSupportedMediaTypes(java.util.List.of(
+                org.springframework.http.MediaType.APPLICATION_JSON,
+                org.springframework.http.MediaType.TEXT_PLAIN));
+        restTemplate.getMessageConverters().add(0, converter);
         @SuppressWarnings("unchecked")
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 

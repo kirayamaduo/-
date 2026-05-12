@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .sl-avatar {
-  background: #e2e8f0;
+  background: var(--surface-3, #f1f5f9);
   display: block;
 }
 </style>

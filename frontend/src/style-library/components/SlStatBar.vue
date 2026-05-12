@@ -16,9 +16,9 @@ defineProps<{
 <style scoped>
 .sl-stat-bar {
   display: flex;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-1, #ffffff);
+  border-radius: var(--btn-radius, 14px);
+  border: 1px solid var(--border-color, #b8c8d8);
   overflow: hidden;
 }
 
@@ -32,18 +32,18 @@ defineProps<{
 }
 
 .sl-stat-bar__item + .sl-stat-bar__item {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid var(--border-color, #b8c8d8);
 }
 
 .sl-stat-bar__value {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
 }
 
 .sl-stat-bar__label {
   margin-top: 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
 }
 </style>

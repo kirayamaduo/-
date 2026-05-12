@@ -1,62 +1,57 @@
 <template>
-  <view class="resume-ai-container" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
+  <SlPage class="resume-ai-page app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar :title="t('resumeAi.title')" show-back @back="goBack" :safe-top="topSafeHeight" />
 
-    <view class="top-bar">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-      </view>
-    </view>
-
-    <view class="header">
-      <text class="title">{{ t('resumeAi.title') }}</text>
-      <text class="subtitle">{{ t('resumeAi.subtitle') }}</text>
-    </view>
-
-    <view class="card">
-      <view class="section">
-        <text class="section-title">{{ t('resumeAi.resumeLabel') }}</text>
-        <view class="select-box" :class="{ 'has-value': !!selectedResume }" @click="selectResume">
-          <view class="s-icon-wrap"><text class="s-icon-text">PDF</text></view>
-          <text class="s-text">{{ selectedResume || t('resumeAi.chooseResume') }}</text>
-          <text class="s-chevron">›</text>
-        </view>
+    <view class="resume-ai-content">
+      <view class="header app-page-header">
+        <text class="subtitle app-page-subtitle">{{ t('resumeAi.subtitle') }}</text>
       </view>
 
-      <!-- 测评推荐岗位 banner（有测评结果时才显示） -->
-      <view class="assessment-banner" v-if="assessmentRoles.length > 0">
-        <text class="ab-title">{{ t('resumeAi.assessmentBannerTitle') }}</text>
-        <text class="ab-body">{{ t('resumeAi.assessmentBannerBody') }}</text>
-        <view class="ab-chips">
-          <view
-            class="ab-chip"
-            v-for="role in assessmentRoles"
-            :key="role"
-          >
-            <text class="ab-chip-text">{{ role }}</text>
+      <view class="analysis-card app-card-soft app-surface">
+        <view class="section">
+          <text class="section-title">{{ t('resumeAi.resumeLabel') }}</text>
+          <view class="select-box ui-list-item" :class="{ 'has-value': !!selectedResume }" @click="selectResume">
+            <view class="s-icon-wrap"><text class="s-icon-text">PDF</text></view>
+            <text class="s-text">{{ selectedResume || t('resumeAi.chooseResume') }}</text>
+            <text class="s-chevron">›</text>
           </view>
         </view>
-      </view>
 
-      <view class="section">
-        <view class="jd-header">
-          <text class="section-title">{{ t('resumeAi.jdLabel') }}</text>
-          <text class="jd-counter" :class="{ 'jd-counter-warn': jdText.length > 4000 }">
-            {{ jdText.length }} / 4000
-          </text>
+        <!-- 测评推荐岗位 banner（有测评结果时才显示） -->
+        <view class="assessment-banner" v-if="assessmentRoles.length > 0">
+          <text class="ab-title">{{ t('resumeAi.assessmentBannerTitle') }}</text>
+          <text class="ab-body">{{ t('resumeAi.assessmentBannerBody') }}</text>
+          <view class="ab-chips">
+            <view
+              class="ab-chip"
+              v-for="role in assessmentRoles"
+              :key="role"
+            >
+              <text class="ab-chip-text">{{ role }}</text>
+            </view>
+          </view>
         </view>
-        <textarea
-          class="jd-input"
-          v-model="jdText"
-          :maxlength="4000"
-          :placeholder="t('resumeAi.jdPlaceholder')"
-          placeholder-class="ph"
-        ></textarea>
-      </view>
 
-      <button class="btn-primary" :loading="analyzing" @click="startAnalysis">
-        {{ t('resumeAi.analyzeBtn') }}
-      </button>
+        <view class="section">
+          <view class="jd-header">
+            <text class="section-title">{{ t('resumeAi.jdLabel') }}</text>
+            <text class="jd-counter" :class="{ 'jd-counter-warn': jdText.length > 4000 }">
+              {{ jdText.length }} / 4000
+            </text>
+          </view>
+          <textarea
+            class="jd-input ui-input"
+            v-model="jdText"
+            :maxlength="4000"
+            :placeholder="t('resumeAi.jdPlaceholder')"
+            placeholder-class="ph"
+          ></textarea>
+        </view>
+
+        <button class="btn-primary" :loading="analyzing" @click="startAnalysis">
+          {{ t('resumeAi.analyzeBtn') }}
+        </button>
+      </view>
     </view>
 
     <!-- Loading overlay (shared by Analyze and Tailor flows) -->
@@ -68,72 +63,74 @@
       </view>
     </view>
 
-    <view class="result-card" v-if="showResult && result">
-      <view class="r-header">
-        <view class="r-title-wrap">
-          <text class="r-title">{{ t('resumeAi.matchScore') }}</text>
-          <text class="r-sub">{{ t('resumeAi.vsJobDesc') }}</text>
-        </view>
-        <view class="score-ring" :class="scoreClass">
-          <text class="score-val">{{ result.overallScore }}</text>
-        </view>
-      </view>
-
-      <view class="r-body">
-        <view class="point-block strengths" v-if="result.strengths && result.strengths.length">
-          <text class="point-title">{{ t('resumeAi.strengths') }}</text>
-          <view class="point-list">
-            <text class="point-text" v-for="(s, i) in result.strengths" :key="'s'+i">{{ s }}</text>
+    <view class="resume-ai-content">
+      <view class="result-card app-surface" v-if="showResult && result">
+        <view class="r-header">
+          <view class="r-title-wrap">
+            <text class="r-title">{{ t('resumeAi.matchScore') }}</text>
+            <text class="r-sub">{{ t('resumeAi.vsJobDesc') }}</text>
+          </view>
+          <view class="score-ring" :class="scoreClass">
+            <text class="score-val">{{ result.overallScore }}</text>
           </view>
         </view>
 
-        <view class="point-block weaknesses" v-if="result.weaknesses && result.weaknesses.length">
-          <text class="point-title">{{ t('resumeAi.weaknesses') }}</text>
-          <view class="point-list">
-            <text class="point-text" v-for="(w, i) in result.weaknesses" :key="'w'+i">{{ w }}</text>
+        <view class="r-body">
+          <view class="point-block strengths" v-if="result.strengths && result.strengths.length">
+            <text class="point-title">{{ t('resumeAi.strengths') }}</text>
+            <view class="point-list">
+              <text class="point-text" v-for="(s, i) in result.strengths" :key="'s'+i">{{ s }}</text>
+            </view>
+          </view>
+
+          <view class="point-block weaknesses" v-if="result.weaknesses && result.weaknesses.length">
+            <text class="point-title">{{ t('resumeAi.weaknesses') }}</text>
+            <view class="point-list">
+              <text class="point-text" v-for="(w, i) in result.weaknesses" :key="'w'+i">{{ w }}</text>
+            </view>
+          </view>
+
+          <view class="point-block suggestions" v-if="result.suggestions && result.suggestions.length">
+            <text class="point-title">{{ t('resumeAi.suggestions') }}</text>
+            <view class="point-list">
+              <text class="point-text" v-for="(g, i) in result.suggestions" :key="'g'+i">{{ g }}</text>
+            </view>
           </view>
         </view>
 
-        <view class="point-block suggestions" v-if="result.suggestions && result.suggestions.length">
-          <text class="point-title">{{ t('resumeAi.suggestions') }}</text>
-          <view class="point-list">
-            <text class="point-text" v-for="(g, i) in result.suggestions" :key="'g'+i">{{ g }}</text>
+        <!-- 生成定制简历按钮（成功后隐藏，换成结果卡） -->
+        <button
+          v-if="!tailorResult"
+          class="btn-secondary"
+          :loading="tailoring"
+          @click="generateTailored"
+        >{{ t('resumeAi.tailorBtn') }}</button>
+
+        <!-- 定制成功结果卡 -->
+        <view v-else class="tailor-success-card">
+          <text class="ts-icon ri-check-line"></text>
+          <text class="ts-title">{{ t('resumeAi.tailorSuccessTitle') }}</text>
+          <text class="ts-hint">{{ tailorResult.title }}</text>
+          <text class="ts-sub">{{ t('resumeAi.tailorSuccessHint') }}</text>
+          <view class="ts-actions">
+            <button class="ts-btn-primary" :loading="openingPdf" @click="viewTailoredPdf">
+              {{ t('resumeAi.viewPdf') }}
+            </button>
+            <button class="ts-btn-secondary" @click="gotoResumes">
+              {{ t('resumeAi.gotoResumes') }}
+            </button>
           </view>
-        </view>
-      </view>
-
-      <!-- 生成定制简历按钮（成功后隐藏，换成结果卡） -->
-      <button
-        v-if="!tailorResult"
-        class="btn-secondary"
-        :loading="tailoring"
-        @click="generateTailored"
-      >{{ t('resumeAi.tailorBtn') }}</button>
-
-      <!-- 定制成功结果卡 -->
-      <view v-else class="tailor-success-card">
-        <text class="ts-icon">✅</text>
-        <text class="ts-title">{{ t('resumeAi.tailorSuccessTitle') }}</text>
-        <text class="ts-hint">{{ tailorResult.title }}</text>
-        <text class="ts-sub">{{ t('resumeAi.tailorSuccessHint') }}</text>
-        <view class="ts-actions">
-          <button class="ts-btn-primary" :loading="openingPdf" @click="viewTailoredPdf">
-            {{ t('resumeAi.viewPdf') }}
-          </button>
-          <button class="ts-btn-secondary" @click="gotoResumes">
-            {{ t('resumeAi.gotoResumes') }}
-          </button>
         </view>
       </view>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
   getUserResumesApi,
   diagnoseResumeApi,
@@ -143,6 +140,8 @@ import {
 } from '@/api/resume';
 import { getProfileSnapshotApi } from '@/api/user';
 import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const selectedResume = ref('');
 const selectedResumeId = ref<number | null>(null);
@@ -376,7 +375,7 @@ const viewTailoredPdf = () => {
             openingPdf.value = false;
             uni.showModal({
               title: t('resumeAi.pdfOpenFail'),
-              content: 'PDF preview is not supported in the DevTools simulator. Please use the "Preview" button to test on a real phone.',
+              content: t('resumeAi.pdfPreviewUnsupported'),
               showCancel: false,
             });
           },
@@ -384,7 +383,7 @@ const viewTailoredPdf = () => {
       } else {
         uni.hideLoading();
         openingPdf.value = false;
-        uni.showToast({ title: `Download failed (${dl.statusCode})`, icon: 'none' });
+        uni.showToast({ title: t('resumeAi.downloadFailed', { status: dl.statusCode }), icon: 'none' });
       }
     },
     fail: () => {
@@ -399,7 +398,7 @@ const gotoResumes = () => uni.switchTab({ url: '/pages/resume/index' });
 
 onMounted(async () => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  topSafeHeight.value = getMpSafeAreaMetrics().topSafeHeight;
   await loadResumes();
   await applyPrefill();
 });
@@ -410,36 +409,21 @@ onShow(() => {
 </script>
 
 <style scoped>
-.resume-ai-container {
-  min-height: 100vh;
-  background-color: #f5f5f7;
-  padding: 0 20px 60px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+.resume-ai-page {
+  background: var(--surface-1, #ffffff);
+}
+
+.resume-ai-content {
+  padding: 0 var(--page-gutter, 20px) 60px;
   box-sizing: border-box;
 }
 
-.status-spacer { width: 100%; }
-
-.top-bar { padding: 4px 0 8px; }
-.back-btn {
-  width: 36px; height: 36px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.85);
-  border: 1px solid #e2e8f0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-.back-btn:active { background: #f1f5f9; }
-.back-icon { font-size: 22px; font-weight: 400; line-height: 1; color: #1e293b; margin-top: -2px; }
-
-.header { margin-bottom: 20px; }
+.header { margin-bottom: var(--space-xl, 20px); }
 
 .title {
   font-size: 28px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
   letter-spacing: -0.5px;
   display: block;
   margin-bottom: 8px;
@@ -447,26 +431,24 @@ onShow(() => {
 
 .subtitle {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   line-height: 1.6;
   display: block;
 }
 
-.card {
-  background-color: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 24px 20px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
-}
+.section { margin-bottom: var(--space-lg, 16px); }
 
-.section { margin-bottom: 24px; }
+.analysis-card {
+  margin-bottom: var(--space-2xl, 24px);
+  padding: var(--space-xl, 20px);
+  border-radius: var(--radius-xl, 24px);
+  box-sizing: border-box;
+}
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary, #0f172a);
   margin-bottom: 12px;
   display: block;
 }
@@ -474,11 +456,8 @@ onShow(() => {
 .select-box {
   display: flex;
   align-items: center;
-  background-color: #f8fafc;
   padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-xs);
+  border-radius: var(--radius-md, 16px);
 }
 
 .select-box:active { background-color: #f1f5f9; }
@@ -490,24 +469,24 @@ onShow(() => {
   display: flex; align-items: center; justify-content: center;
   margin-right: 12px; flex-shrink: 0;
 }
-.s-icon-text { font-size: 10px; font-weight: 800; color: #2563eb; letter-spacing: 0.5px; }
+.s-icon-text { font-size: 10px; font-weight: 800; color: var(--primary-color, #2563eb); letter-spacing: 0.5px; }
 
 .s-text {
   flex: 1;
   min-width: 0;
   font-size: 15px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   line-height: 1.45;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 10px;
 }
-.select-box.has-value .s-text { color: #0f172a; font-weight: 500; }
+.select-box.has-value .s-text { color: var(--text-primary, #0f172a); font-weight: 500; }
 
 .s-chevron {
   font-size: 22px;
-  color: #cbd5e1;
+  color: var(--text-secondary, #64748b);
   font-weight: 400;
   line-height: 1;
   flex-shrink: 0;
@@ -521,7 +500,7 @@ onShow(() => {
 }
 .jd-counter {
   font-size: 11px; font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   font-variant-numeric: tabular-nums;
 }
 .jd-counter-warn { color: #f59e0b; }
@@ -529,32 +508,31 @@ onShow(() => {
 .jd-input {
   width: 100%;
   height: 160px;
-  background-color: #f8fafc;
-  border-radius: 16px;
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
   box-sizing: border-box;
   font-size: 15px;
-  color: #334155;
-  border: 1px solid var(--border-color);
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-color, #b8c8d8);
   line-height: 1.5;
 }
 
-.ph { color: #94a3b8; }
+.ph { color: var(--text-tertiary, #8e8e93); }
 
 /* WeChat <button> defaults to white bg with a ::after pseudo border.
    Use solid hex (gradients on button are unreliable on mp-weixin) and
    reset the ::after border so our background actually shows through. */
 .btn-primary {
-  background-color: #2563eb !important;
+  background-color: var(--primary-color, #2563eb) !important;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
   font-size: 16px;
   font-weight: 600;
-  border-radius: 14px;
+  border-radius: var(--btn-radius, 14px);
   height: 52px;
   line-height: 52px;
   border: none;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  box-shadow: none;
   margin-top: 4px;
 }
 .btn-primary::after { border: none; }
@@ -565,8 +543,8 @@ onShow(() => {
   background: #ffffff;
   border-radius: 20px;
   padding: 22px 18px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color, #b8c8d8);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08));
 }
 
 .r-header {
@@ -575,12 +553,12 @@ onShow(() => {
   align-items: center;
   margin-bottom: 18px;
   padding-bottom: 18px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--surface-3, #f1f5f9);
 }
 
 .r-title-wrap { display: flex; flex-direction: column; gap: 2px; }
-.r-title { font-size: 18px; font-weight: 700; color: #0f172a; }
-.r-sub { font-size: 12px; color: #94a3b8; }
+.r-title { font-size: 18px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.r-sub { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 
 .score-ring {
   width: 76px; height: 76px;
@@ -617,14 +595,14 @@ onShow(() => {
 .point-block.suggestions .point-title { color: #4338ca; }
 
 .point-list { display: flex; flex-direction: column; gap: 6px; }
-.point-text { font-size: 14px; color: #334155; line-height: 1.55; display: block; }
+.point-text { font-size: 14px; color: var(--text-secondary, #64748b); line-height: 1.55; display: block; }
 
 .btn-secondary {
-  background-color: #eff6ff !important;
-  color: #2563eb !important;
+  background-color: var(--primary-soft, #eff6ff) !important;
+  color: var(--primary-color, #2563eb) !important;
   font-size: 15px;
   font-weight: 600;
-  border-radius: 14px;
+  border-radius: var(--btn-radius, 14px);
   height: 48px;
   line-height: 48px;
   border: none;
@@ -637,7 +615,7 @@ onShow(() => {
 .assessment-banner {
   background: linear-gradient(135deg, #eff6ff, #f5f3ff);
   border: 1px solid #c7d2fe;
-  border-radius: 14px;
+  border-radius: var(--btn-radius, 14px);
   padding: 14px 16px;
   margin-bottom: 16px;
   display: flex;
@@ -688,8 +666,8 @@ onShow(() => {
   background-color: #16a34a !important;
   color: #ffffff !important;
   font-size: 15px; font-weight: 700;
-  border-radius: 14px; height: 48px; line-height: 48px;
-  border: none; box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+  border-radius: var(--btn-radius, 14px); height: 48px; line-height: 48px;
+  border: none; box-shadow: var(--shadow-card);
 }
 .ts-btn-primary::after { border: none; }
 .ts-btn-primary:active { opacity: 0.88; }
@@ -697,7 +675,7 @@ onShow(() => {
   background-color: rgba(22,163,74,0.1) !important;
   color: #16a34a !important;
   font-size: 14px; font-weight: 600;
-  border-radius: 14px; height: 44px; line-height: 44px;
+  border-radius: var(--btn-radius, 14px); height: 44px; line-height: 44px;
   border: none;
 }
 .ts-btn-secondary::after { border: none; }
@@ -726,8 +704,8 @@ onShow(() => {
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #eff6ff;
-  border-top: 4px solid #2563eb;
+  border: 4px solid var(--primary-soft, #eff6ff);
+  border-top: 4px solid var(--primary-color, #2563eb);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -738,7 +716,7 @@ onShow(() => {
   100% { transform: rotate(360deg); }
 }
 
-.loading-text { font-size: 16px; font-weight: 600; color: #1e293b; }
+.loading-text { font-size: 16px; font-weight: 600; color: var(--text-primary, #0f172a); }
 
 .progress-bar-container {
   width: 220px;
@@ -751,12 +729,12 @@ onShow(() => {
 
 .progress-bar-fill {
   height: 100%;
-  background-color: #2563eb;
+  background-color: var(--primary-color, #2563eb);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.is-dark { background-color: #0f172a; }
+/* Dark mode */
 
 .is-dark .title,
 .is-dark .section-title,
@@ -766,19 +744,14 @@ onShow(() => {
 
 .is-dark .subtitle,
 .is-dark .point-text,
-.is-dark .s-text { color: #94a3b8; }
+.is-dark .s-text { color: var(--text-tertiary, #8e8e93); }
 
-.is-dark .card,
-.is-dark .result-card,
 .is-dark .select-box,
-.is-dark .jd-input { background-color: #1e293b; border-color: #334155; }
+.is-dark .jd-input { background-color: transparent; border-color: var(--text-secondary, #64748b); }
 
 .is-dark .loading-overlay { background: rgba(15, 23, 42, 0.88); }
 
-.is-dark .back-text,
-.is-dark .back-icon { color: #60a5fa; }
-
-.is-dark .score-ring { background-color: #1e293b; }
+.is-dark .score-ring { background-color: var(--text-primary, #0f172a); }
 .is-dark .score-ring.ring-good { border-color: #10b981; background: #022c22; }
 .is-dark .score-ring.ring-good .score-val { color: #34d399; }
 .is-dark .score-ring.ring-warn { border-color: #f59e0b; background: #451a03; }
@@ -792,12 +765,12 @@ onShow(() => {
 .is-dark .point-block.weaknesses .point-title { color: #f87171; }
 .is-dark .point-block.suggestions { border-left-color: #6366f1; }
 .is-dark .point-block.suggestions .point-title { color: #818cf8; }
-.is-dark .point-title { color: #94a3b8; }
-.is-dark .point-text { color: #cbd5e1; }
+.is-dark .point-title { color: var(--text-tertiary, #8e8e93); }
+.is-dark .point-text { color: var(--text-secondary, #64748b); }
 .is-dark .btn-secondary { background: rgba(37, 99, 235, 0.15); color: #60a5fa; }
 .is-dark .btn-secondary:active { background: rgba(37, 99, 235, 0.25); }
-.is-dark .s-chevron { color: #64748b; }
+.is-dark .s-chevron { color: var(--text-secondary, #64748b); }
 .is-dark .select-box.has-value .s-text { color: #f8fafc; }
 .is-dark .jd-input { color: #f8fafc; }
-.is-dark .progress-bar-container { background-color: #334155; }
+.is-dark .progress-bar-container { background-color: var(--text-secondary, #64748b); }
 </style>

@@ -1,18 +1,18 @@
 <template>
-  <view class="result-container" :class="[themeClass, fontClass]">
+  <view class="result-container app-soft-bg" :class="[themeClass, fontClass]" :style="{ paddingTop: topSafeHeight + 24 + 'px' }">
     <!-- Loading + error states -->
-    <view class="loading-state" v-if="loading">
+    <view class="loading-state app-surface" v-if="loading">
       <view class="spinner"></view>
       <text class="loading-text">{{ t('assessmentResult.loading') }}</text>
     </view>
 
-    <view class="error-state" v-else-if="errorMsg">
+    <view class="error-state app-surface" v-else-if="errorMsg">
       <text class="err-title">{{ errorMsg }}</text>
       <view class="btn-retry" @click="loadResult"><text class="btn-retry-text">{{ t('assessmentResult.retry') }}</text></view>
     </view>
 
     <template v-else-if="record">
-      <view class="result-header">
+      <view class="result-header app-card-gradient">
         <text class="result-subtitle">{{ t('assessmentResult.personalityType') }}</text>
         <text class="result-title">{{ summaryDisplay }}</text>
         <view class="tags-container" v-if="typeTags.length > 0">
@@ -21,7 +21,7 @@
       </view>
 
       <view class="section-title">{{ t('assessmentResult.dimensionBreakdown') }}</view>
-      <view class="radar-card">
+      <view class="radar-card app-card-soft">
         <view class="skill-bars">
           <view class="skill-row" v-for="(d, i) in dimensions" :key="i">
             <text class="skill-name">{{ d.name }}</text>
@@ -35,7 +35,7 @@
         <text class="section-title-text">{{ t('assessmentResult.personalityInsight') }}</text>
         <text class="ai-badge" v-if="insight.fromAi">AI</text>
       </view>
-      <view class="analysis-card">
+      <view class="analysis-card app-card-soft">
         <view class="paragraph">
           <text class="p-title">{{ t('assessmentResult.careerStrengths') }}</text>
           <text class="p-content">{{ insight.strengths }}</text>
@@ -83,9 +83,11 @@ import {
 } from '@/api/assessment';
 import { updatePreferencesApi } from '@/api/user';
 import { useTheme } from '@/utils/theme';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topSafeHeight = ref(52);
 const loading = ref(true);
 const errorMsg = ref('');
 const recordId = ref<number>(0);
@@ -263,7 +265,7 @@ const dimensions = computed<DimensionRow[]>(() => {
 
 const loadResult = async () => {
   if (!recordId.value) {
-    errorMsg.value = 'Missing record id';
+    errorMsg.value = t('assessmentResult.missingRecordId');
     loading.value = false;
     return;
   }
@@ -272,7 +274,7 @@ const loadResult = async () => {
   try {
     record.value = await getAssessmentRecordApi(recordId.value);
   } catch (e: any) {
-    errorMsg.value = e?.message || 'Failed to load result';
+    errorMsg.value = e?.message || t('assessmentResult.loadFailed');
   } finally {
     loading.value = false;
   }
@@ -322,6 +324,7 @@ const goBack = () => {
 
 onMounted(() => {
   refreshTheme();
+  topSafeHeight.value = getMpSafeAreaMetrics().contentTop;
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any).options || {};
   recordId.value = parseInt(opts.recordId || '0');
@@ -337,9 +340,8 @@ onShow(() => {
 <style scoped>
 .result-container {
   min-height: 100vh;
-  background-color: #f5f5f7;
   padding: 24px 20px;
-  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
 }
@@ -347,9 +349,7 @@ onShow(() => {
 .result-header {
   display: flex; flex-direction: column; align-items: center;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
-  border-radius: 24px; color: white; margin-bottom: 32px;
-  box-shadow: 0 16px 32px -8px rgba(67, 56, 202, 0.4);
+  border-radius: var(--radius-xl, 24px); color: white; margin-bottom: 32px;
 }
 
 .result-subtitle { font-size: 14px; font-weight: 500; opacity: 0.8; margin-bottom: 8px; letter-spacing: 1px; }
@@ -390,7 +390,7 @@ onShow(() => {
 }
 
 .radar-card {
-  background-color: #ffffff; border-radius: 24px; padding: 24px; margin-bottom: 32px;
+  margin-bottom: 32px;
 }
 
 .skill-bars { display: flex; flex-direction: column; gap: 20px; }
@@ -411,7 +411,7 @@ onShow(() => {
 
 .skill-score { width: 24px; font-size: 14px; font-weight: 700; color: #000000; text-align: right; }
 
-.analysis-card { background-color: #ffffff; border-radius: 24px; padding: 24px; margin-bottom: 24px; }
+.analysis-card { margin-bottom: 24px; }
 
 .paragraph { display: flex; flex-direction: column; gap: 8px; }
 
@@ -423,7 +423,7 @@ onShow(() => {
 
 .bottom-action {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 16px 20px calc(20px + env(safe-area-inset-bottom)) 20px;
+  padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px)) 20px;
   background: rgba(245, 245, 247, 0.92);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);
@@ -438,7 +438,7 @@ onShow(() => {
   border-radius: 16px;
   height: 52px;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-card);
 }
 .btn-primary-text { color: #ffffff; font-size: 17px; font-weight: 700; }
 .btn-primary:active { background-color: #1d4ed8; }
@@ -447,7 +447,7 @@ onShow(() => {
    leads against the standard solid blue secondary action below it. */
 .btn-primary.practice-cta {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.36);
+  box-shadow: var(--shadow-card);
 }
 .btn-primary.practice-cta:active { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
 
@@ -470,7 +470,7 @@ onShow(() => {
 
 /* Loading + error */
 .loading-state, .error-state {
-  background: #ffffff; border: 1px solid var(--border-color);
+  background: #ffffff; border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 20px; padding: 60px 24px;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
   margin-top: 12px;
@@ -497,10 +497,6 @@ onShow(() => {
 .is-dark .p-title,
 .is-dark .skill-name,
 .is-dark .skill-score { color: #f8fafc; }
-
-.is-dark .radar-card,
-.is-dark .analysis-card,
-.is-dark .bottom-action { background-color: #1e293b; border-color: #334155; }
 
 .is-dark .p-content,
 .is-dark .result-subtitle { color: #94a3b8; }

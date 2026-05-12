@@ -60,8 +60,8 @@ const onMaskClick = () => {
   position: relative;
   width: 82%;
   max-width: 640rpx;
-  background: #fff;
-  border-radius: 16px;
+  background: var(--card-bg, #ffffff);
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
 }
 
@@ -72,12 +72,12 @@ const onMaskClick = () => {
 .sl-modal__title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
 }
 
 .sl-modal__body {
   font-size: 14px;
-  color: #334155;
+  color: var(--text-secondary, #64748b);
 }
 
 .sl-modal__footer {

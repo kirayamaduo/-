@@ -1,24 +1,17 @@
 <template>
-  <view class="report-container" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
-    <view class="nav-row">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-        <text class="back-text">{{ t('common.back') }}</text>
-      </view>
-      <text class="nav-title">{{ t('interviewReport.navTitle') }}</text>
-      <view style="width:64px;"></view>
-    </view>
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar :title="t('interviewReport.navTitle')" show-back @back="goBack" :safe-top="topSafeHeight" />
+
 
     <!-- Loading state while AI evaluates -->
-    <view class="loading-state" v-if="loading">
+    <view class="loading-state app-surface" v-if="loading">
       <view class="spinner"></view>
       <text class="loading-title">{{ t('interviewReport.loading') }}</text>
       <text class="loading-sub">{{ t('interviewReport.loadingSub') }}</text>
     </view>
 
     <!-- Error state -->
-    <view class="error-state" v-else-if="errorMsg">
+    <view class="error-state app-surface" v-else-if="errorMsg">
       <text class="err-title">{{ t('interviewReport.errTitle') }}</text>
       <text class="err-detail">{{ errorMsg }}</text>
       <button class="btn-retry" @click="loadReport">{{ t('interviewReport.retry') }}</button>
@@ -32,7 +25,7 @@
       </view>
 
       <!-- Overall score -->
-      <view class="score-card">
+      <view class="score-card app-card-metric app-surface">
         <view class="score-ring-box">
           <view class="score-ring" :class="scoreRingClass">
             <text class="score-num" :class="scoreNumClass">{{ report.overallScore }}</text>
@@ -48,7 +41,7 @@
       <!-- Dimensions breakdown -->
       <view class="dims-section">
         <text class="section-title">{{ t('interviewReport.dimensionBreakdown') }}</text>
-        <view class="dims-card">
+        <view class="dims-card app-card-soft app-surface">
           <view class="dim-row" v-for="(d, i) in dimensions" :key="i">
             <text class="dim-name">{{ d.name }}</text>
             <view class="dim-bar-bg">
@@ -62,8 +55,8 @@
       <!-- Strengths -->
       <view class="advice-section" v-if="report.strengths && report.strengths.length">
         <text class="section-title">{{ t('interviewReport.strengths') }}</text>
-        <view class="advice-card good" v-for="(a, i) in report.strengths" :key="'s' + i">
-          <text class="advice-icon">✓</text>
+        <view class="advice-card app-card-soft good app-surface" v-for="(a, i) in report.strengths" :key="'s' + i">
+          <text class="advice-icon ri-check-line"></text>
           <view class="advice-body">
             <text class="advice-title">{{ a.title }}</text>
             <text class="advice-detail">{{ a.detail }}</text>
@@ -74,7 +67,7 @@
       <!-- Improvements -->
       <view class="advice-section" v-if="report.improvements && report.improvements.length">
         <text class="section-title">{{ t('interviewReport.improvements') }}</text>
-        <view class="advice-card warn" v-for="(a, i) in report.improvements" :key="'i' + i">
+        <view class="advice-card app-card-soft warn app-surface" v-for="(a, i) in report.improvements" :key="'i' + i">
           <text class="advice-icon">!</text>
           <view class="advice-body">
             <text class="advice-title">{{ a.title }}</text>
@@ -86,10 +79,10 @@
       <!-- Contribute to the question market -->
       <view class="advice-section">
         <text class="section-title">{{ t('interviewReport.helpOthers') }}</text>
-        <view class="contribute-card">
+        <view class="contribute-card app-card-soft app-surface">
           <text class="contribute-tip">{{ t('interviewReport.helpOthersTip') }}</text>
           <textarea
-            class="contribute-input"
+            class="contribute-input ui-input"
             v-model="contributeText"
             :maxlength="800"
             :placeholder="t('interviewReport.questionPlaceholder')"
@@ -113,17 +106,19 @@
     <view class="bottom-bar">
       <button class="btn-back" @click="backToLobby">{{ t('interviewReport.backToLobby') }}</button>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getInterviewReportApi, type InterviewReport } from '@/api/interview';
 import { contributeQuestionApi } from '@/api/market';
 import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
@@ -157,9 +152,9 @@ const dimensions = computed(() => {
 const scoreLabel = computed(() => {
   const s = report.value?.overallScore ?? 0;
   if (s >= 85) return 'Excellent';
-  if (s >= 70) return 'Good';
-  if (s >= 55) return 'Fair';
-  return 'Needs Work';
+  if (s >= 70) return t('interviewReport.scoreGood');
+  if (s >= 55) return t('interviewReport.scoreFair');
+  return t('interviewReport.scoreNeedsWork');
 });
 
 const scoreNumClass = computed(() => {
@@ -180,7 +175,7 @@ const formatDuration = (seconds: number) => {
 
 const loadReport = async () => {
   if (!interviewId.value) {
-    errorMsg.value = 'Missing interview id';
+    errorMsg.value = t('interviewReport.missingInterviewId');
     loading.value = false;
     return;
   }
@@ -189,7 +184,7 @@ const loadReport = async () => {
   try {
     report.value = await getInterviewReportApi(interviewId.value);
   } catch (e: any) {
-    errorMsg.value = e?.message || 'Failed to generate report';
+    errorMsg.value = e?.message || t('interviewReport.generateFailed');
   } finally {
     loading.value = false;
   }
@@ -207,7 +202,7 @@ const navTo = (url: string) => uni.navigateTo({ url });
 const submitContribution = async () => {
   const trimmed = contributeText.value.trim();
   if (trimmed.length < 8) {
-    uni.showToast({ title: 'Add a few more words', icon: 'none' });
+    uni.showToast({ title: t('market.addMoreWords'), icon: 'none' });
     return;
   }
   if (!report.value) return;
@@ -219,9 +214,9 @@ const submitContribution = async () => {
       content: trimmed,
     });
     contributeText.value = '';
-    uni.showToast({ title: 'Shared. Thank you!', icon: 'success' });
+    uni.showToast({ title: t('market.shareSuccess'), icon: 'success' });
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to share', icon: 'none' });
+    uni.showToast({ title: e?.message || t('market.shareFailed'), icon: 'none' });
   } finally {
     contributing.value = false;
   }
@@ -229,7 +224,7 @@ const submitContribution = async () => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  topSafeHeight.value = getMpSafeAreaMetrics().topSafeHeight;
   const pages = getCurrentPages();
   const currentPage = pages[pages.length - 1] as any;
   interviewId.value = parseInt(currentPage.options?.interviewId || '0');
@@ -242,37 +237,13 @@ onShow(() => {
 </script>
 
 <style scoped>
-.report-container {
-  min-height: 100vh;
-  background: #f5f5f7;
+.sl-page :deep(.report-container) {
   padding: 0 20px;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
-.status-spacer { width: 100%; }
-
-.nav-row {
-  display: flex; align-items: center;
-  height: 44px; padding: 0 2px; margin-bottom: 4px;
-}
-
-.back-btn {
-  display: inline-flex; align-items: center; gap: 2px;
-  color: #2563eb; width: 64px;
-}
-
-.back-icon { font-size: 24px; font-weight: 300; line-height: 1; }
-.back-text { font-size: 16px; font-weight: 500; }
-
-.nav-title {
-  flex: 1; text-align: center;
-  font-size: 17px; font-weight: 600;
-  color: #0f172a; letter-spacing: -0.3px;
-}
-
-.report-header { margin-bottom: 24px; }
+.report-header { margin-bottom: 24px; padding: 0 20px; }
 
 .r-title {
   font-size: 28px; font-weight: 800; color: #0f172a;
@@ -291,11 +262,8 @@ onShow(() => {
 
 /* Score card */
 .score-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 24px; padding: 28px 24px;
-  display: flex; gap: 20px; align-items: center; margin-bottom: 28px;
-  box-shadow: var(--shadow-sm);
+  padding: 28px 24px;
+  display: flex; gap: 20px; align-items: center; margin-bottom: 28px; margin-left: 20px; margin-right: 20px;
 }
 
 .score-ring-box {
@@ -335,8 +303,7 @@ onShow(() => {
 
 .score-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
 
-/* Dimensions */
-.dims-section { margin-bottom: 28px; }
+.dims-section { margin-bottom: 28px; padding: 0 20px; }
 
 .section-title {
   font-size: 18px; font-weight: 700; color: #0f172a;
@@ -344,10 +311,7 @@ onShow(() => {
 }
 
 .dims-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 20px; padding: 20px;
-  box-shadow: var(--shadow-sm);
+  padding: 20px;
 }
 
 .dim-row {
@@ -373,13 +337,10 @@ onShow(() => {
 .dim-score { width: 28px; font-size: 14px; font-weight: 700; color: #0f172a; text-align: right; }
 
 /* Advice */
-.advice-section { margin-bottom: 24px; }
+.advice-section { margin-bottom: 24px; padding: 0 20px; }
 
 .advice-card {
-  display: flex; gap: 14px; background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 16px; padding: 18px; margin-bottom: 12px;
-  box-shadow: var(--shadow-sm);
+  display: flex; gap: 14px; padding: 18px; margin-bottom: 12px;
 }
 
 .advice-icon {
@@ -391,7 +352,7 @@ onShow(() => {
 .advice-card.warn .advice-icon { background: #f59e0b; }
 
 .loading-state, .error-state {
-  background: #fff; border: 1px solid var(--border-color);
+  background: #fff; border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 20px; padding: 36px 24px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   margin-top: 12px;
@@ -423,7 +384,7 @@ onShow(() => {
 /* Bottom bar */
 .bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+  padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
   background: rgba(245, 245, 247, 0.88);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1); z-index: 100;
@@ -439,21 +400,17 @@ onShow(() => {
 
 /* Phase 4 — contribute card */
 .contribute-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: var(--shadow-sm);
 }
 .contribute-tip { font-size: 13px; line-height: 1.5; color: #64748b; }
 .contribute-input {
   width: 100%;
   min-height: 88px;
   padding: 10px 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 12px;
   background: #f8fafc;
   font-size: 14px; line-height: 1.5;
@@ -474,10 +431,6 @@ onShow(() => {
 .btn-primary[disabled] { opacity: 0.55; }
 
 /* Dark mode */
-.is-dark { background: #0f172a; }
-
-.is-dark .nav-title { color: #f8fafc; }
-
 .is-dark .r-title,
 .is-dark .section-title,
 .is-dark .dim-name,
@@ -487,7 +440,7 @@ onShow(() => {
 .is-dark .score-card,
 .is-dark .dims-card,
 .is-dark .advice-card,
-.is-dark .contribute-card { background: #1e293b; box-shadow: none; border-color: #334155; }
+.is-dark .contribute-card { background: transparent; box-shadow: none; border-color: #334155; }
 .is-dark .contribute-input { background: #0f172a; color: #f8fafc; border-color: #334155; }
 .is-dark .contribute-tip { color: #94a3b8; }
 .is-dark .btn-secondary { background: #1e293b; color: #93c5fd; border-color: #334155; }

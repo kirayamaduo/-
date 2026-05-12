@@ -1,5 +1,7 @@
 <template>
-  <view class="onboarding-page">
+  <view class="onboarding-page app-soft-bg" :class="[themeClass, fontClass]">
+    <view class="top-safe-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
+
     <swiper
       class="slides"
       :current="current"
@@ -10,20 +12,20 @@
       <!-- Slide 1: Welcome -->
       <swiper-item class="slide">
         <view class="slide-inner">
-          <view class="slide-emoji">🎓</view>
+          <view class="slide-emoji"><text class="ri-graduation-cap-line"></text></view>
           <text class="slide-title">{{ t('onboarding.slide1Title') }}</text>
           <text class="slide-desc">{{ t('onboarding.slide1Desc') }}</text>
           <view class="feature-list">
-            <view class="feature-row">
-              <text class="feature-icon">🤖</text>
+            <view class="feature-row app-card-soft app-surface ui-list-item">
+              <text class="feature-icon ri-robot-2-line"></text>
               <text class="feature-text">{{ t('onboarding.feature1') }}</text>
             </view>
-            <view class="feature-row">
-              <text class="feature-icon">🎯</text>
+            <view class="feature-row app-card-soft app-surface ui-list-item">
+              <text class="feature-icon ri-focus-2-line"></text>
               <text class="feature-text">{{ t('onboarding.feature2') }}</text>
             </view>
-            <view class="feature-row">
-              <text class="feature-icon">🎤</text>
+            <view class="feature-row app-card-soft app-surface ui-list-item">
+              <text class="feature-icon ri-mic-2-line"></text>
               <text class="feature-text">{{ t('onboarding.feature3') }}</text>
             </view>
           </view>
@@ -33,26 +35,26 @@
       <!-- Slide 2: AI Personas -->
       <swiper-item class="slide">
         <view class="slide-inner">
-          <view class="slide-emoji">✨</view>
+          <view class="slide-emoji"><text class="ri-sparkling-line"></text></view>
           <text class="slide-title">{{ t('onboarding.slide2Title') }}</text>
           <text class="slide-desc">{{ t('onboarding.slide2Desc') }}</text>
           <view class="persona-list">
-            <view class="persona-card">
-              <text class="persona-emoji">😊</text>
+            <view class="persona-card app-card-soft app-surface">
+              <text class="persona-emoji ri-emotion-line"></text>
               <view class="persona-info">
                 <text class="persona-name">{{ t('onboarding.persona1Name') }}</text>
                 <text class="persona-role">{{ t('onboarding.persona1Role') }}</text>
               </view>
             </view>
-            <view class="persona-card">
-              <text class="persona-emoji">🔥</text>
+            <view class="persona-card app-card-soft app-surface">
+              <text class="persona-emoji ri-fire-line"></text>
               <view class="persona-info">
                 <text class="persona-name">{{ t('onboarding.persona2Name') }}</text>
                 <text class="persona-role">{{ t('onboarding.persona2Role') }}</text>
               </view>
             </view>
-            <view class="persona-card">
-              <text class="persona-emoji">�</text>
+            <view class="persona-card app-card-soft app-surface">
+              <text class="persona-emoji ri-mic-line"></text>
               <view class="persona-info">
                 <text class="persona-name">{{ t('onboarding.persona3Name') }}</text>
                 <text class="persona-role">{{ t('onboarding.persona3Role') }}</text>
@@ -65,10 +67,10 @@
       <!-- Slide 3: Get Started -->
       <swiper-item class="slide">
         <view class="slide-inner">
-          <view class="slide-emoji">🚀</view>
+          <view class="slide-emoji"><text class="ri-rocket-line"></text></view>
           <text class="slide-title">{{ t('onboarding.slide3Title') }}</text>
           <text class="slide-desc">{{ t('onboarding.slide3Desc') }}</text>
-          <view class="tip-card">
+          <view class="tip-card app-card-soft app-surface">
             <text class="tip-title">{{ t('onboarding.tipsTitle') }}</text>
             <text class="tip-item">{{ t('onboarding.tip1') }}</text>
             <text class="tip-item">{{ t('onboarding.tip2') }}</text>
@@ -107,13 +109,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from '@/locales';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const ONBOARDING_KEY = 'onboarding_v1_seen';
 
 const current = ref(0);
+const topSafeHeight = ref(52);
+
+onMounted(() => {
+  refreshTheme();
+  topSafeHeight.value = getMpSafeAreaMetrics().contentTop;
+});
 
 const onSlideChange = (e: any) => {
   current.value = e.detail.current;
@@ -136,16 +147,20 @@ const finish = () => {
 <style scoped>
 .onboarding-page {
   min-height: 100vh;
-  background: linear-gradient(160deg, #eff6ff 0%, #f8fafc 60%, #f0fdf4 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.top-safe-spacer {
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .slides {
   width: 100%;
-  height: 72vh;
+  height: calc(72vh - 52px);
 }
 
 .slide { width: 100%; height: 100%; }
@@ -170,7 +185,7 @@ const finish = () => {
 .slide-title {
   font-size: 26px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
   text-align: center;
   margin-bottom: 16px;
 }
@@ -178,7 +193,7 @@ const finish = () => {
 .slide-desc {
   font-size: 15px;
   line-height: 1.65;
-  color: #475569;
+  color: var(--text-secondary, #64748b);
   text-align: center;
   margin-bottom: 28px;
 }
@@ -187,39 +202,32 @@ const finish = () => {
 .feature-list { width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .feature-row {
   display: flex; align-items: center; gap: 12px;
-  background: #ffffff;
-  border: 1px solid #dbeafe;
-  border-radius: 14px;
+  border-radius: var(--btn-radius, 14px);
   padding: 14px 16px;
 }
 .feature-icon { font-size: 22px; }
-.feature-text { font-size: 14px; color: #1e293b; font-weight: 500; flex: 1; }
+.feature-text { font-size: 14px; color: var(--text-primary, #0f172a); font-weight: 500; flex: 1; }
 
 /* Slide 2: personas */
 .persona-list { width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .persona-card {
   display: flex; align-items: center; gap: 14px;
-  background: #ffffff;
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
 }
 .persona-emoji { font-size: 32px; }
 .persona-info { display: flex; flex-direction: column; gap: 3px; }
-.persona-name { font-size: 16px; font-weight: 700; color: #0f172a; }
-.persona-role { font-size: 13px; color: #64748b; }
+.persona-name { font-size: 16px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.persona-role { font-size: 13px; color: var(--text-secondary, #64748b); }
 
 /* Slide 3: tip card */
 .tip-card {
   width: 100%;
-  background: #ffffff;
-  border: 1px solid #bbf7d0;
-  border-radius: 16px;
+  border-radius: var(--radius-md, 16px);
   padding: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .tip-title { font-size: 15px; font-weight: 700; color: #065f46; display: block; margin-bottom: 14px; }
-.tip-item { font-size: 14px; color: #374151; line-height: 1.6; display: block; margin-bottom: 6px; }
+.tip-item { font-size: 14px; color: var(--text-secondary, #64748b); line-height: 1.6; display: block; margin-bottom: 6px; }
 
 /* Dots */
 .dots {
@@ -232,7 +240,7 @@ const finish = () => {
 }
 .dot-active {
   width: 24px;
-  background: #2563eb;
+  background: var(--primary-color, #2563eb);
 }
 
 /* Bottom bar */
@@ -247,13 +255,13 @@ const finish = () => {
 .btn-row-single { justify-content: center; }
 
 .btn-skip {
-  font-size: 15px; color: #94a3b8; font-weight: 500;
+  font-size: 15px; color: var(--text-tertiary, #8e8e93); font-weight: 500;
   padding: 12px 8px;
 }
 
 .btn-next {
   display: flex; align-items: center; gap: 6px;
-  background: #2563eb; border-radius: 16px;
+  background: var(--primary-color, #2563eb); border-radius: var(--radius-md, 16px);
   padding: 14px 28px;
   min-height: 50px;
 }
@@ -262,8 +270,8 @@ const finish = () => {
 
 .btn-start {
   width: 100%;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  border-radius: 16px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-md, 16px);
   padding: 16px 0;
   text-align: center;
   min-height: 52px;

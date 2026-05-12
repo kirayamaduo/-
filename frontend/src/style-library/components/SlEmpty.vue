@@ -1,6 +1,6 @@
 <template>
   <view class="sl-empty">
-    <text class="sl-empty__icon">{{ icon }}</text>
+    <text class="sl-empty__icon" :class="icon"></text>
     <text class="sl-empty__title">{{ title }}</text>
     <text v-if="desc" class="sl-empty__desc">{{ desc }}</text>
     <slot />
@@ -15,7 +15,7 @@ withDefaults(
     desc?: string;
   }>(),
   {
-    icon: '📭',
+    icon: 'ri-mail-close-line',
     desc: '',
   },
 );
@@ -36,7 +36,7 @@ withDefaults(
 
 .sl-empty__title {
   font-size: 15px;
-  color: #334155;
+  color: var(--text-primary, #0f172a);
   font-weight: 600;
 }
 
@@ -44,6 +44,6 @@ withDefaults(
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 </style>

@@ -1,82 +1,86 @@
 <template>
-  <view class="start-page" :class="[themeClass, fontClass]">
-    <view class="header">
-      <text class="title">{{ t('interview.startPageTitle') }}</text>
-      <text class="subtitle">{{ t('interview.startSubtitle') }}</text>
-    </view>
+  <view class="start-page app-soft-bg" :class="[themeClass, fontClass]">
+    <SlNavBar :title="t('interview.startPageTitle')" show-back @back="goBack" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
 
-    <view class="form-card">
-      <view class="form-item">
-        <text class="label">{{ t('interview.modeLabel') }}</text>
-        <view class="mode-grid">
-          <view
-            v-for="item in modes"
-            :key="item.value"
-            :class="['mode-card', selectedMode === item.value ? 'active' : '']"
-            @click="selectedMode = item.value as 'voice' | 'text'"
-          >
-            <view class="mode-head">
-              <text class="mode-icon">{{ item.icon }}</text>
-              <text class="mode-name">{{ item.label }}</text>
-              <text v-if="item.badge" class="mode-badge">{{ item.badge }}</text>
+    <view class="start-content">
+      <view class="header app-card-gradient">
+        <text class="title">{{ t('interview.startPageTitle') }}</text>
+        <text class="subtitle">{{ t('interview.startSubtitle') }}</text>
+      </view>
+
+      <view class="form-card app-card-soft">
+        <view class="form-item">
+          <text class="label">{{ t('interview.modeLabel') }}</text>
+          <view class="mode-grid">
+            <view
+              v-for="item in modes"
+              :key="item.value"
+              :class="['mode-card', selectedMode === item.value ? 'active' : '']"
+              @click="selectedMode = item.value as 'voice' | 'text'"
+            >
+              <view class="mode-head">
+                <text class="mode-icon">{{ item.icon }}</text>
+                <text class="mode-name">{{ item.label }}</text>
+                <text v-if="item.badge" class="mode-badge">{{ item.badge }}</text>
+              </view>
+              <text class="mode-desc">{{ item.desc }}</text>
             </view>
-            <text class="mode-desc">{{ item.desc }}</text>
+          </view>
+        </view>
+
+        <view class="form-item">
+          <view class="label-row">
+            <text class="label">{{ t('interview.positionLabel') }}</text>
+            <text v-if="prefillSource" class="label-hint">{{ prefillSource }}</text>
+          </view>
+          <picker :range="positions" :value="selectedPositionIndex" @change="onPositionChange">
+            <view class="picker-box ui-list-item" :class="{ 'picker-filled': selectedPosition }">
+              <text class="picker-val" :class="{ 'has-val': selectedPosition }">{{ selectedPosition || t('interview.chooseRole') }}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="form-card app-card-soft">
+        <view class="form-item form-item-last">
+          <text class="label">{{ t('interview.difficultyLabel') }}</text>
+          <view class="difficulty-grid">
+            <view
+              v-for="item in difficulties"
+              :key="item.value"
+              :class="['diff-card', selectedDifficulty === item.value ? 'active' : '']"
+              @click="selectedDifficulty = item.value"
+            >
+              <text class="diff-name">{{ item.label }}</text>
+              <text class="diff-desc">{{ item.desc }}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <view class="form-item">
-        <view class="label-row">
-          <text class="label">{{ t('interview.positionLabel') }}</text>
-          <text v-if="prefillSource" class="label-hint">{{ prefillSource }}</text>
-        </view>
-        <picker :range="positions" :value="selectedPositionIndex" @change="onPositionChange">
-          <view class="picker-box" :class="{ 'picker-filled': selectedPosition }">
-            <text class="picker-val" :class="{ 'has-val': selectedPosition }">{{ selectedPosition || t('interview.chooseRole') }}</text>
-            <text class="picker-arrow">›</text>
-          </view>
-        </picker>
-      </view>
-
-      <view class="form-item form-item-last">
-        <text class="label">{{ t('interview.difficultyLabel') }}</text>
-        <view class="difficulty-grid">
-          <view
-            v-for="item in difficulties"
-            :key="item.value"
-            :class="['diff-card', selectedDifficulty === item.value ? 'active' : '']"
-            @click="selectedDifficulty = item.value"
-          >
-            <text class="diff-name">{{ item.label }}</text>
-            <text class="diff-desc">{{ item.desc }}</text>
+      <view class="expect-card app-card-soft">
+        <text class="expect-title">{{ t('interview.whatToExpect') }}</text>
+        <view class="expect-row">
+          <text class="expect-icon expect-icon-time">01</text>
+          <view class="expect-body">
+            <text class="expect-h">{{ t('interview.expect1Title') }}</text>
+            <text class="expect-p">{{ t('interview.expect1Desc') }}</text>
           </view>
         </view>
-      </view>
-    </view>
-
-    <!-- What to expect: fills the bottom half with useful preview context
-         instead of empty white space -->
-    <view class="expect-card">
-      <text class="expect-title">{{ t('interview.whatToExpect') }}</text>
-      <view class="expect-row">
-        <text class="expect-icon">⏱</text>
-        <view class="expect-body">
-          <text class="expect-h">{{ t('interview.expect1Title') }}</text>
-          <text class="expect-p">{{ t('interview.expect1Desc') }}</text>
+        <view class="expect-row">
+          <text class="expect-icon expect-icon-chat">02</text>
+          <view class="expect-body">
+            <text class="expect-h">{{ t('interview.expect2Title') }}</text>
+            <text class="expect-p">{{ t('interview.expect2Desc') }}</text>
+          </view>
         </view>
-      </view>
-      <view class="expect-row">
-        <text class="expect-icon">💬</text>
-        <view class="expect-body">
-          <text class="expect-h">{{ t('interview.expect2Title') }}</text>
-          <text class="expect-p">{{ t('interview.expect2Desc') }}</text>
-        </view>
-      </view>
-      <view class="expect-row">
-        <text class="expect-icon">📊</text>
-        <view class="expect-body">
-          <text class="expect-h">{{ t('interview.expect3Title') }}</text>
-          <text class="expect-p">{{ t('interview.expect3Desc') }}</text>
+        <view class="expect-row">
+          <text class="expect-icon expect-icon-score">03</text>
+          <view class="expect-body">
+            <text class="expect-h">{{ t('interview.expect3Title') }}</text>
+            <text class="expect-p">{{ t('interview.expect3Desc') }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -107,12 +111,16 @@ import { startInterviewApi } from '@/api/interview';
 import { getProfileSnapshotApi, updatePreferencesApi } from '@/api/user';
 import { LOGIN_PAGE } from '@/utils/auth';
 import { useTheme } from '@/utils/theme';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
 const positions = ref<string[]>(['Java Backend Engineer', 'Frontend Engineer', 'Full Stack Engineer', 'Product Manager', 'Data Analyst']);
 const selectedPosition = ref('');
 const selectedPositionIndex = ref(0);
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(20);
 
 /**
  * Tells the user *why* a position came pre-selected — e.g. "From your INFP
@@ -132,8 +140,8 @@ const selectedDifficulty = ref('Normal');
 // what real interviews feel like. We keep Text as the fallback for users
 // without a quiet space or with poor mic permissions.
 const modes = computed(() => [
-  { label: t('interview.modeVoice'), value: 'voice', icon: '🎤', badge: t('interview.modeRecommended'), desc: t('interview.modeVoiceDesc') },
-  { label: t('interview.modeText'),  value: 'text',  icon: '⌨',  badge: '',                              desc: t('interview.modeTextDesc') },
+  { label: t('interview.modeVoice'), value: 'voice', icon: 'V', badge: t('interview.modeRecommended'), desc: t('interview.modeVoiceDesc') },
+  { label: t('interview.modeText'),  value: 'text',  icon: 'T', badge: '',                              desc: t('interview.modeTextDesc') },
 ]);
 // Persist the user's last choice so returning users land on their preference.
 const selectedMode = ref<'voice' | 'text'>(
@@ -214,8 +222,15 @@ const applyPrefill = async () => {
 
 onMounted(() => {
   refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   applyPrefill();
 });
+
+const goBack = () => {
+  uni.navigateBack({ delta: 1 });
+};
 
 onShow(() => {
   refreshTheme();
@@ -268,7 +283,7 @@ const startInterview = async () => {
     }, 800);
   } catch (error: any) {
     console.error(error);
-    uni.showToast({ title: error?.message || 'Failed to start', icon: 'none' });
+    uni.showToast({ title: error?.message || t('interview.startFailed'), icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -278,36 +293,43 @@ const startInterview = async () => {
 <style scoped>
 .start-page {
   min-height: 100vh;
-  background-color: var(--page-ios-gray);
   /* Reserve space for the sticky CTA so content never sits under it */
-  padding: 24px 20px calc(120px + env(safe-area-inset-bottom));
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
 }
 
-.header { margin-bottom: 24px; padding: 0 4px; }
+.start-content {
+  padding: 24px var(--page-gutter, 20px) calc(120px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: 24px;
+  padding: 26px 24px;
+  border-radius: var(--radius-xl, 24px);
+  position: relative;
+  overflow: hidden;
+}
 
 .title {
-  font-size: var(--font-hero);
+  font-size: var(--font-hero, 28px);
   font-weight: 800;
-  color: var(--text-primary);
+  color: #ffffff;
   letter-spacing: -0.5px;
   display: block;
   margin-bottom: 8px;
 }
 
 .subtitle {
-  font-size: var(--font-caption);
-  color: var(--text-tertiary);
+  font-size: var(--font-caption, 13px);
+  color: rgba(255, 255, 255, 0.86);
   display: block;
-  line-height: var(--line-height-caption);
+  line-height: var(--line-height-caption, 1.45);
 }
 
 .form-card {
-  background: #ffffff;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 20px);
   padding: 22px 20px 8px;
-  box-shadow: var(--shadow-card);
   margin-bottom: 18px;
 }
 
@@ -315,7 +337,7 @@ const startInterview = async () => {
 .form-item-last { margin-bottom: 14px; }
 
 .label {
-  font-size: 15px; font-weight: 700; color: #0f172a;
+  font-size: 15px; font-weight: 700; color: var(--text-primary, #0f172a);
   margin-bottom: 12px; display: block;
 }
 
@@ -350,8 +372,20 @@ const startInterview = async () => {
   min-height: 96px;
 }
 .mode-head { display: flex; align-items: center; gap: 8px; }
-.mode-icon { font-size: 20px; line-height: 1; }
-.mode-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+.mode-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  background: var(--primary-soft, #eff6ff);
+  color: var(--primary-color, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 30px;
+  font-weight: 800;
+}
+.mode-name { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); }
 .mode-badge {
   margin-left: auto;
   font-size: 9px; font-weight: 700;
@@ -360,12 +394,13 @@ const startInterview = async () => {
   padding: 2px 6px; border-radius: 999px;
   text-transform: uppercase;
 }
-.mode-desc { font-size: 11.5px; color: #64748b; line-height: 1.45; }
+.mode-desc { font-size: 11.5px; color: var(--text-secondary, #64748b); line-height: 1.45; }
 
 .mode-card.active {
-  border-color: #2563eb;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  border-color: var(--primary-color, #2563eb);
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #3b82f6 100%));
 }
+.mode-card.active .mode-icon { background: rgba(255, 255, 255, 0.24); color: #ffffff; }
 .mode-card.active .mode-name { color: #ffffff; }
 .mode-card.active .mode-desc { color: rgba(255, 255, 255, 0.85); }
 .mode-card.active .mode-badge { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
@@ -375,15 +410,15 @@ const startInterview = async () => {
 .picker-box {
   display: flex; align-items: center; justify-content: space-between;
   border: 1.5px solid #e2e8f0; border-radius: 14px;
-  padding: 14px 16px; background: #f8fafc;
+  padding: 14px 16px; background: var(--surface-2, #f8fafc);
   min-height: 52px; box-sizing: border-box;
   transition: border-color 0.15s, background 0.15s;
 }
-.picker-box:active { border-color: #2563eb; background: #eff6ff; }
+.picker-box:active { border-color: var(--primary-color, #2563eb); background: var(--primary-soft, #eff6ff); }
 .picker-filled { border-color: #c7d2fe; background: #ffffff; }
 
-.picker-val { font-size: 15px; color: #94a3b8; flex: 1; }
-.has-val { color: #0f172a; font-weight: 600; }
+.picker-val { font-size: 15px; color: var(--text-tertiary, #8e8e93); flex: 1; }
+.has-val { color: var(--text-primary, #0f172a); font-weight: 600; }
 
 .picker-arrow { font-size: 20px; color: #c7c7cc; line-height: 1; flex-shrink: 0; }
 
@@ -402,12 +437,12 @@ const startInterview = async () => {
   min-height: 72px;
 }
 
-.diff-name { font-size: 14px; font-weight: 700; color: #1e293b; }
-.diff-desc { font-size: 11px; color: #64748b; line-height: 1.35; }
+.diff-name { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.diff-desc { font-size: 11px; color: var(--text-secondary, #64748b); line-height: 1.35; }
 
 .diff-card.active {
-  border-color: #2563eb;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  border-color: var(--primary-color, #2563eb);
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #3b82f6 100%));
 }
 .diff-card.active .diff-name { color: #ffffff; }
 .diff-card.active .diff-desc { color: rgba(255, 255, 255, 0.85); }
@@ -417,15 +452,15 @@ const startInterview = async () => {
 /* What-to-expect card */
 .expect-card {
   background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color, #b8c8d8);
+  border-radius: var(--radius-lg, 20px);
   padding: 20px;
   display: flex; flex-direction: column; gap: 16px;
 }
 
 .expect-title {
   font-size: 12px; font-weight: 700;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -433,19 +468,25 @@ const startInterview = async () => {
 .expect-row { display: flex; gap: 14px; align-items: flex-start; }
 .expect-icon {
   width: 32px; height: 32px; flex-shrink: 0;
-  background: #eff6ff; border-radius: 10px;
+  background: var(--primary-soft, #eff6ff); border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
+  font-size: 11px;
+  line-height: 32px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
+.expect-icon-time { background: var(--primary-soft, #eff6ff); color: var(--primary-color, #2563eb); }
+.expect-icon-chat { background: var(--violet-soft, #f5f3ff); color: var(--violet, #8b5cf6); }
+.expect-icon-score { background: var(--success-soft, #d1fae5); color: var(--success-color, #10b981); }
 .expect-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.expect-h { font-size: 14px; font-weight: 700; color: #0f172a; }
-.expect-p { font-size: 12px; color: #64748b; line-height: 1.45; }
+.expect-h { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.expect-p { font-size: 12px; color: var(--text-secondary, #64748b); line-height: 1.45; }
 
 /* Sticky CTA -- pinned to the bottom thumb zone (HCI: Fitts's law) */
 .sticky-cta {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
   background: rgba(245, 245, 247, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -458,14 +499,13 @@ const startInterview = async () => {
    We hardcode colours here rather than using CSS vars to guarantee contrast
    is never accidentally broken by a variable resolution issue. */
 .btn-primary {
-  width: 100%;
-  background: #2563eb;
+  height: 52px;
   border-radius: 16px;
-  height: 56px;
+  background: var(--primary-color, #2563eb);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.36);
+  box-shadow: var(--shadow-card);
   transition: background 0.15s, opacity 0.15s;
 }
 
@@ -481,16 +521,16 @@ const startInterview = async () => {
 /* Disabled = no position selected. Use a mid-grey background with dark text
    so "Choose a position to begin" is legible — white-on-lightgrey fails WCAG. */
 .btn-disabled {
-  background: #e2e8f0;
+  background: var(--surface-3, #f1f5f9);
   box-shadow: none;
 }
 .btn-disabled .btn-primary-label {
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   font-weight: 600;
 }
 
 /* Dark mode */
-.is-dark { background-color: #0f172a; }
+.is-dark { background-color: var(--text-primary, #0f172a); }
 
 .is-dark .title,
 .is-dark .label,
@@ -506,7 +546,7 @@ const startInterview = async () => {
 .is-dark .mode-card:not(.active) { border-color: #334155; background: #0f172a; }
 .is-dark .mode-name { color: #f8fafc; }
 
-.is-dark .picker-val { color: #64748b; }
+.is-dark .picker-val { color: var(--text-secondary, #64748b); }
 
 .is-dark .expect-icon { background: rgba(37, 99, 235, 0.2); }
 
@@ -519,7 +559,7 @@ const startInterview = async () => {
   background: #1e293b;
 }
 .is-dark .btn-disabled .btn-primary-label {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 /* ================================================================
@@ -531,7 +571,7 @@ const startInterview = async () => {
 .sticky-cta {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: #f5f5f7;
+  background: var(--surface-1, #ffffff);
 }
 
 /* Mode cards and diff cards: overflow:visible for visible shadows */

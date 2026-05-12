@@ -1,24 +1,40 @@
 <template>
-  <view class="webview-container">
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar :title="title" show-back @back="goBack" :safe-top="topSafe" />
     <web-view v-if="url" :src="url" @error="handleError"></web-view>
     <view class="fallback" v-if="showFallback">
-      <text class="fb-icon">🔗</text>
-      <text class="fb-text">{{ t('webview.fallbackText') }}</text>
-      <text class="fb-url">{{ url }}</text>
-      <button class="btn-copy" @click="copyUrl">{{ t('webview.copyBtn') }}</button>
+      <view class="fallback-card app-card-soft app-surface">
+        <text class="fb-icon ri-link"></text>
+        <text class="fb-text">{{ t('webview.fallbackText') }}</text>
+        <text class="fb-url">{{ url }}</text>
+        <button class="btn-copy" @click="copyUrl">{{ t('webview.copyBtn') }}</button>
+      </view>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { onLoad } from '@dcloudio/uni-app';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topSafe = ref(44);
 const url = ref('');
 const title = ref('');
 const showFallback = ref(false);
+
+const goBack = () => uni.navigateBack();
+
+onMounted(() => {
+  refreshTheme();
+  topSafe.value = getMpSafeAreaMetrics().topSafeHeight;
+});
 
 onLoad((options: any) => {
   if (options.url) {
@@ -45,20 +61,24 @@ const copyUrl = () => {
 </script>
 
 <style scoped>
-.webview-container {
+.sl-page :deep(.webview-container) {
   width: 100vw;
-  height: 100vh;
-  background: #f8fafc;
+  min-height: 100vh;
 }
 
 .fallback {
+  padding: 40px 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.fallback-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  height: 100%;
-  box-sizing: border-box;
+  padding: 30px 20px;
+  border-radius: var(--radius-lg, 20px);
 }
 
 .fb-icon {
@@ -86,9 +106,9 @@ const copyUrl = () => {
 }
 
 .btn-copy {
-  background: #2563eb;
+  background: var(--primary-color, #2563eb);
   color: #ffffff;
-  border-radius: 12px;
+  border-radius: var(--btn-radius, 14px);
   font-size: 15px;
   font-weight: 600;
   width: 100%;
@@ -96,4 +116,7 @@ const copyUrl = () => {
   line-height: 48px;
   border: none;
 }
+
+.is-dark .fb-text { color: #f8fafc; }
+.is-dark .fb-url { background: #1e293b; color: #cbd5e1; }
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <view class="quiz-container" :class="[themeClass, fontClass]">
-    <view class="header-bar">
+  <view class="quiz-container app-soft-bg" :class="[themeClass, fontClass]">
+    <view class="header-bar" :style="{ paddingTop: topSafeHeight + 6 + 'px', paddingRight: rightAvoidWidth + 'px' }">
       <view class="header-top">
         <view class="back-btn" @click="goBack">
           <text class="back-icon">‹</text>
@@ -16,12 +16,12 @@
     </view>
 
     <!-- Loading state while we fetch the question bank -->
-    <view class="loading-state" v-if="loading">
+    <view class="loading-state app-surface" v-if="loading">
       <view class="spinner"></view>
       <text class="loading-text">{{ t('quiz.loading') }}</text>
     </view>
 
-    <view class="error-state" v-else-if="errorMsg">
+    <view class="error-state app-surface" v-else-if="errorMsg">
       <text class="err-title">{{ errorMsg }}</text>
       <view class="btn-retry" @click="loadQuestions"><text class="btn-retry-text">{{ t('quiz.retry') }}</text></view>
     </view>
@@ -34,10 +34,10 @@
 
       <view class="options-list">
         <view
-          class="option-item"
-          :class="{ 'option-selected': currentAnswerOptionId === opt.optionId }"
-          v-for="opt in currentQuestion.options"
+          class="option-item app-card-soft"
+          v-for="opt in currentQuestion?.options"
           :key="opt.optionId"
+          :class="{ 'option-selected': currentAnswerOptionId === opt.optionId }"
           @click="selectOption(opt.optionId)"
         >
           <view class="option-label">{{ opt.optionLabel }}</view>
@@ -71,10 +71,13 @@ import {
   type QuizQuestion,
 } from '@/api/assessment';
 import { useTheme } from '@/utils/theme';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 
 const currentIndex = ref(0);
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(20);
 const loading = ref(true);
 const submitting = ref(false);
 const errorMsg = ref('');
@@ -100,7 +103,7 @@ const progressPercentage = computed(() =>
 
 const loadQuestions = async () => {
   if (!scaleId.value) {
-    errorMsg.value = 'Missing scale id';
+    errorMsg.value = t('quiz.missingScaleId');
     loading.value = false;
     return;
   }
@@ -110,10 +113,10 @@ const loadQuestions = async () => {
     const list = await getScaleQuestionsApi(scaleId.value);
     questions.value = list || [];
     if (questions.value.length === 0) {
-      errorMsg.value = 'This quiz has no questions yet.';
+      errorMsg.value = t('quiz.noQuestions');
     }
   } catch (e: any) {
-    errorMsg.value = e?.message || 'Failed to load questions';
+    errorMsg.value = e?.message || t('quiz.loadFailed');
   } finally {
     loading.value = false;
   }
@@ -139,7 +142,7 @@ const handlePrev = () => {
 const submitQuiz = async () => {
   if (submitting.value) return;
   submitting.value = true;
-  uni.showLoading({ title: 'Submitting...' });
+  uni.showLoading({ title: t('quiz.submitting') });
   try {
     const record = await submitAssessmentApi(scaleId.value, answers.value);
     uni.hideLoading();
@@ -148,7 +151,7 @@ const submitQuiz = async () => {
     });
   } catch (e: any) {
     uni.hideLoading();
-    uni.showToast({ title: e?.message || 'Submission failed', icon: 'none' });
+    uni.showToast({ title: e?.message || t('quiz.submissionFailed'), icon: 'none' });
   } finally {
     submitting.value = false;
   }
@@ -156,7 +159,7 @@ const submitQuiz = async () => {
 
 const handleNext = () => {
   if (currentAnswerOptionId.value == null) {
-    uni.showToast({ title: 'Please select an option', icon: 'none' });
+    uni.showToast({ title: t('quiz.selectOption'), icon: 'none' });
     return;
   }
   if (isLastQuestion.value) {
@@ -169,8 +172,8 @@ const handleNext = () => {
 const goBack = () => {
   if (Object.keys(answers.value).length > 0) {
     uni.showModal({
-      title: 'Exit Quiz?',
-      content: 'Your progress will be lost. Are you sure you want to exit?',
+      title: t('quiz.exitTitle'),
+      content: t('quiz.exitContent'),
       confirmColor: '#ef4444',
       success: (res) => {
         if (res.confirm) uni.navigateBack({ delta: 1 });
@@ -183,6 +186,9 @@ const goBack = () => {
 
 onMounted(() => {
   refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   // Pull scaleId + title from query params (set by assessment/index.vue).
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any).options || {};
@@ -203,8 +209,7 @@ onShow(() => {
 <style scoped>
 .quiz-container {
   min-height: 100vh;
-  background-color: #f5f5f7;
-  padding: 122px 20px 120px 20px;
+  padding: 122px 20px calc(120px + env(safe-area-inset-bottom, 0px)) 20px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
 }
@@ -212,21 +217,22 @@ onShow(() => {
 .header-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
-  background: rgba(245, 245, 247, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--surface-1, #ffffff);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   z-index: 100;
-  padding: calc(var(--status-bar-height, 20px) + 6px) 20px 14px 20px;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.1);
+  padding: 26px 20px 14px 20px;
+  border-bottom: 0.5px solid var(--border-color, #e2e8f0);
+  box-sizing: border-box;
 }
 
-.header-top { display: flex; align-items: center; margin-bottom: 10px; }
+.header-top { display: flex; align-items: center; min-height: 44px; margin-bottom: 10px; }
 
-.back-btn { display: inline-flex; align-items: center; gap: 2px; color: #2563eb; }
+.back-btn { display: inline-flex; align-items: center; gap: 2px; color: var(--text-primary, #0f172a); width: var(--nav-back-width, 64px); }
 
-.back-icon { font-size: 20px; font-weight: 300; line-height: 1; }
+.back-icon { font-size: 26px; font-weight: 500; line-height: 1; }
 
-.back-text { font-size: 16px; font-weight: 500; }
+.back-text { display: none; }
 
 .progress-wrapper { width: 100%; display: flex; align-items: center; gap: 12px; }
 
@@ -245,12 +251,8 @@ onShow(() => {
 .options-list { display: flex; flex-direction: column; gap: 16px; }
 
 .option-item {
-  background-color: #ffffff;
-  border-radius: 20px;
-  padding: 20px;
   display: flex;
   align-items: flex-start;
-  border: 1.5px solid transparent;
   transition: all 0.2s ease;
 }
 
@@ -274,7 +276,7 @@ onShow(() => {
 
 .bottom-action {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 16px 20px 32px 20px;
+  padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px)) 20px;
   background: rgba(245, 245, 247, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -290,7 +292,7 @@ onShow(() => {
   border-radius: 16px;
   height: 52px;
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b8c8d8);
 }
 .btn-prev-text {
   color: #2563eb; font-size: 17px; font-weight: 600;
@@ -303,7 +305,7 @@ onShow(() => {
   border-radius: 16px;
   height: 52px;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-card);
   transition: background 0.15s, opacity 0.15s;
 }
 .btn-next-text {
@@ -316,7 +318,7 @@ onShow(() => {
 /* Loading + error states */
 .loading-state, .error-state {
   background: #ffffff;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 20px;
   padding: 60px 24px;
   display: flex; flex-direction: column; align-items: center; gap: 14px;

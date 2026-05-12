@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { translate } from '@/locales';
 
 export function openLink(url: string, title?: string) {
   // #ifdef H5
@@ -13,7 +14,7 @@ export function openLink(url: string, title?: string) {
       uni.setClipboardData({
         data: url,
         success: () => {
-          uni.showToast({ title: 'Link copied to clipboard', icon: 'none' });
+          uni.showToast({ title: translate('webview.copied'), icon: 'none' });
         }
       });
     }
@@ -24,7 +25,7 @@ export function openLink(url: string, title?: string) {
   uni.setClipboardData({
     data: url,
     success: () => {
-      uni.showToast({ title: 'Link copied to clipboard', icon: 'none' });
+      uni.showToast({ title: translate('webview.copied'), icon: 'none' });
     }
   });
   // #endif

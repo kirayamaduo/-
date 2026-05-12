@@ -1,11 +1,11 @@
 <template>
-  <view class="chat-page" :class="[themeClass, fontClass]">
+  <view class="chat-page app-soft-bg" :class="[themeClass, fontClass]">
     <!-- Custom nav bar -->
     <view class="chat-nav">
       <view class="nav-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
-      <view class="nav-row">
+      <view class="nav-row" :style="{ paddingRight: rightAvoidWidth + 'px' }">
         <view class="nav-bot-avatar" :style="{ background: currentPersona.gradient }">
-          <text class="nav-bot-emoji">{{ currentPersona.emoji }}</text>
+          <text class="nav-bot-emoji" :class="currentPersona.emoji"></text>
         </view>
         <view class="nav-meta">
           <text class="nav-name">{{ currentPersona.name }}</text>
@@ -15,7 +15,7 @@
           </view>
         </view>
         <view class="nav-action" @click="openHistory">
-          <text class="nav-action-text">{{ t('assistantPage.history') }}</text>
+          <text class="ri-history-line nav-action-icon"></text>
         </view>
       </view>
       <!-- F15: Persona switcher -->
@@ -23,11 +23,11 @@
         <view
           v-for="p in PERSONAS"
           :key="p.key"
-          class="persona-chip"
+          class="persona-chip ui-list-item"
           :class="{ 'persona-active': persona === p.key }"
           @click="switchPersona(p.key)"
         >
-          <text class="persona-emoji">{{ p.emoji }}</text>
+          <text class="persona-emoji" :class="p.emoji"></text>
           <text class="persona-label">{{ p.label }}</text>
         </view>
       </view>
@@ -39,16 +39,17 @@
       scroll-y
       :scroll-top="scrollTop"
       scroll-with-animation
+      @scroll="onListScroll"
     >
       <!-- Full-bleed surface so MP scroll-view never shows a light strip
            below long threads (scroll-view default vs page theme). -->
       <view class="chat-list-surface">
       <!-- Welcome card -->
       <view class="welcome-card">
-        <view class="welcome-icon">{{ currentPersona.emoji }}</view>
+        <view class="welcome-icon" :class="currentPersona.emoji"></view>
         <text class="welcome-title">{{ currentPersona.name }}</text>
         <text class="welcome-desc">{{ currentPersona.intro }}</text>
-        <view class="agent-scope">
+        <view class="agent-scope ui-list-item">
           <text class="agent-scope-label">{{ t('assistantPage.bestFor') }}</text>
           <text class="agent-scope-text">{{ currentPersona.bestFor }}</text>
         </view>
@@ -59,7 +60,7 @@
           <view
             v-for="chip in currentPersona.chips"
             :key="chip"
-            class="quick-chip"
+            class="quick-chip ui-list-item"
             @click="sendQuick(chip)"
           >
             <text class="chip-text">{{ chip }}</text>
@@ -81,7 +82,7 @@
       >
         <!-- AI avatar (top-left of bubble) -->
         <view class="bot-avatar" v-if="msg.role === 'ai'">
-          <text class="bot-emoji">🤖</text>
+          <text class="bot-emoji ri-robot-2-line"></text>
         </view>
 
         <view class="bubble-area">
@@ -126,7 +127,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import request from '@/utils/request';
 import { useTheme } from '@/utils/theme';
 import { useI18n } from '@/locales';
@@ -154,14 +155,14 @@ type PersonaKey = 'MENTOR' | 'CHALLENGER' | 'INTERVIEWER';
 const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; tagline: string; intro: string; bestFor: string; note: string; gradient: string; chips: string[] }[] = [
   {
     key: 'MENTOR',
-    emoji: '🧭',
+    emoji: 'ri-compass-3-line',
     label: '小职',
     name: t('assistantPage.personas.MENTOR.name'),
     tagline: t('assistantPage.personas.MENTOR.tagline'),
     intro: t('assistantPage.personas.MENTOR.intro'),
     bestFor: t('assistantPage.personas.MENTOR.bestFor'),
     note: t('assistantPage.personas.MENTOR.note'),
-    gradient: 'linear-gradient(135deg, #2563eb, #60a5fa)',
+    gradient: 'linear-gradient(135deg, #2563eb, #8b5cf6)',
     chips: [
       t('assistantPage.personas.MENTOR.chip1'),
       t('assistantPage.personas.MENTOR.chip2'),
@@ -170,7 +171,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   },
   {
     key: 'CHALLENGER',
-    emoji: '💪',
+    emoji: 'ri-shield-star-line',
     label: '小严',
     name: t('assistantPage.personas.CHALLENGER.name'),
     tagline: t('assistantPage.personas.CHALLENGER.tagline'),
@@ -186,7 +187,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   },
   {
     key: 'INTERVIEWER',
-    emoji: '🎙️',
+    emoji: 'ri-mic-line',
     label: '小面',
     name: t('assistantPage.personas.INTERVIEWER.name'),
     tagline: t('assistantPage.personas.INTERVIEWER.tagline'),
@@ -203,7 +204,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
 ];
 
 const persona = ref<PersonaKey>('MENTOR');
-const currentPersona = computed(() => PERSONAS.find((p) => p.key === persona.value)!);
+const currentPersona = computed(() => PERSONAS.find(p => p.key === persona.value) || PERSONAS[0]);
 
 const messages = ref<ChatMessage[]>([]);
 const apiHistory = ref<{ role: string; content: string }[]>([]);
@@ -211,9 +212,14 @@ const apiHistory = ref<{ role: string; content: string }[]>([]);
 const inputText = ref('');
 const scrollTop = ref(0);
 const topSafeHeight = ref(88);
+const rightAvoidWidth = ref(20);
 const isSending = ref(false);
 const chatTimeLabel = ref('');
 const sessionId = ref<number | null>(null);
+
+const onListScroll = (event: any) => {
+  // scrolling logic if needed
+};
 
 const openHistory = () => {
   uni.navigateTo({ url: '/pages/assistant/history' });
@@ -326,7 +332,7 @@ const ensureSession = async () => {
     const session = await request<{ sessionId: number }>({
       url: '/api/chat/history/create',
       method: 'POST',
-      data: { title: 'New Conversation', persona: persona.value },
+      data: { title: t('assistantHistory.newConversation'), persona: persona.value },
     });
     sessionId.value = session.sessionId;
     return sessionId.value;
@@ -347,7 +353,9 @@ const appendMessage = async (sid: number, userMessage: string, assistantReply: s
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   chatTimeLabel.value = t('messages.timeToday', { time: timeStr });
@@ -367,7 +375,7 @@ onShow(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--page-ios-gray);
+  background: var(--surface-1, #ffffff);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
@@ -405,6 +413,7 @@ onShow(() => {
 
 .nav-bot-emoji {
   font-size: 20px;
+  color: #ffffff;
 }
 
 .nav-meta {
@@ -415,9 +424,9 @@ onShow(() => {
 }
 
 .nav-name {
-  font-size: var(--font-section);
+  font-size: var(--font-section, 17px);
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-primary, #0f172a);
   letter-spacing: -0.3px;
 }
 
@@ -437,25 +446,28 @@ onShow(() => {
 
 .nav-status {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
   line-height: 1.35;
 }
 
 .nav-action {
   flex-shrink: 0;
-  background: #eff6ff;
-  border-radius: 999px;
-  padding: 7px 12px;
+  background: var(--primary-soft, #eff6ff);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-action:active {
   background: #dbeafe;
 }
 
-.nav-action-text {
-  font-size: 12px;
-  font-weight: 800;
-  color: #2563eb;
+.nav-action-icon {
+  font-size: 16px;
+  color: var(--primary-color, #2563eb);
 }
 
 /* ---- Persona bar ---- */
@@ -476,12 +488,13 @@ onShow(() => {
 }
 .persona-chip:active { opacity: 0.75; }
 .persona-active {
-  background: #eff6ff;
-  border-color: #2563eb;
+  background: var(--primary-soft, #eff6ff);
+  border-color: var(--primary-color, #2563eb);
 }
-.persona-emoji { font-size: 14px; }
-.persona-label { font-size: 13px; font-weight: 600; color: #374151; }
-.persona-active .persona-label { color: #2563eb; }
+.persona-label { font-size: 13px; font-weight: 600; color: var(--text-secondary, #64748b); }
+.persona-active .persona-label { color: var(--primary-color, #2563eb); }
+
+
 
 /* ---- Chat list ---- */
 .chat-list {
@@ -495,7 +508,7 @@ onShow(() => {
   min-height: 100%;
   padding: 16px 16px 0;
   box-sizing: border-box;
-  background-color: #f5f5f7;
+  background-color: var(--surface-1, #ffffff);
 }
 
 .scroll-pad {
@@ -504,12 +517,12 @@ onShow(() => {
 
 /* ---- Welcome card ---- */
 .welcome-card {
-  background: #ffffff;
-  border-radius: 20px;
+  background: var(--card-bg, #ffffff);
+  border-radius: var(--radius-lg, 20px);
   padding: 24px 20px;
   margin-bottom: 20px;
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -524,22 +537,22 @@ onShow(() => {
 .welcome-title {
   font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
   margin-bottom: 8px;
 }
 
 .welcome-desc {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   line-height: 1.55;
   margin-bottom: 14px;
 }
 
 .agent-scope {
   width: 100%;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-sm, 12px);
   padding: 10px 12px;
   box-sizing: border-box;
   margin-bottom: 10px;
@@ -550,7 +563,7 @@ onShow(() => {
   display: block;
   font-size: 11px;
   font-weight: 800;
-  color: #2563eb;
+  color: var(--primary-color, #2563eb);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;
@@ -560,13 +573,13 @@ onShow(() => {
   display: block;
   font-size: 12px;
   line-height: 1.45;
-  color: #334155;
+  color: var(--text-secondary, #64748b);
 }
 
 .agent-note {
   width: 100%;
-  background: #eff6ff;
-  border-radius: 12px;
+  background: var(--primary-soft, #eff6ff);
+  border-radius: var(--radius-sm, 12px);
   padding: 9px 12px;
   box-sizing: border-box;
   margin-bottom: 18px;
@@ -576,7 +589,7 @@ onShow(() => {
 .agent-note-text {
   font-size: 12px;
   line-height: 1.45;
-  color: #1d4ed8;
+  color: var(--primary-hover, #1d4ed8);
 }
 
 .quick-actions {
@@ -587,21 +600,25 @@ onShow(() => {
 }
 
 .quick-chip {
-  background: #eff6ff;
-  border-radius: 20px;
+  background: var(--primary-soft, #eff6ff);
+  border-radius: var(--radius-lg, 20px);
   padding: 8px 16px;
   transition: all 0.15s;
 }
 
 .quick-chip:active {
-  background: #dbeafe;
+  background: var(--primary-mid, #3b82f6);
   transform: scale(0.96);
+}
+
+.quick-chip:active .chip-text {
+  color: #ffffff;
 }
 
 .chip-text {
   font-size: 13px;
   font-weight: 500;
-  color: #2563eb;
+  color: var(--primary-color, #2563eb);
 }
 
 /* ---- Time divider ---- */
@@ -613,7 +630,7 @@ onShow(() => {
 
 .time-text {
   font-size: 11px;
-  color: #8e8e93;
+  color: var(--text-tertiary, #8e8e93);
   background: rgba(142, 142, 147, 0.12);
   padding: 3px 12px;
   border-radius: 10px;
@@ -634,14 +651,15 @@ onShow(() => {
   width: 34px;
   height: 34px;
   border-radius: 17px;
-  background: #ffffff;
+  background: var(--card-bg, #ffffff);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 10px;
   margin-top: 2px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color, #e2e8f0);
 }
 
 .bot-emoji {
@@ -661,18 +679,19 @@ onShow(() => {
 }
 
 .bubble-ai {
-  background: #ffffff;
-  color: #1c1c1e;
+  background: var(--card-bg, #ffffff);
+  color: var(--text-primary, #0f172a);
   border-radius: 4px 20px 20px 20px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
 }
 
 .bubble-user {
-  background: #2563eb;
+  background: var(--gradient-primary);
   color: #ffffff;
   border-radius: 20px 4px 20px 20px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: var(--shadow-sm);
+  border: none;
 }
 
 .bubble-text {
@@ -709,12 +728,9 @@ onShow(() => {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);
-  /* In mp-weixin the system tab bar is rendered OUTSIDE the page viewport,
-     so 100vh / bottom:0 already sits flush with the tab bar's top edge.
-     Adding `--tab-bar-height` here was double-counting and left a fat gap. */
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 16px;
   position: fixed;
-  bottom: 0;
+  bottom: var(--window-bottom, 0);
   left: 0;
   right: 0;
   z-index: 10;
@@ -724,22 +740,25 @@ onShow(() => {
 .input-row {
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: var(--card-bg, #ffffff);
   border-radius: 24px;
   padding: 4px 4px 4px 16px;
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-input {
   flex: 1;
   height: 40px;
   font-size: 15px;
-  color: #000000;
+  color: var(--text-primary, #0f172a);
+  background: transparent;
+  border: none;
+  outline: none;
 }
 
 .input-ph {
-  color: #8e8e93;
+  color: var(--text-tertiary, #8e8e93);
   font-size: 15px;
 }
 
@@ -758,11 +777,12 @@ onShow(() => {
 }
 
 .send-active {
-  background: #2563eb;
+  background: var(--gradient-primary);
+  border: none;
 }
 
 .send-label {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -778,7 +798,7 @@ onShow(() => {
 
 .is-dark .chat-nav {
   background: rgba(15, 23, 42, 0.88);
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .nav-name,
@@ -789,12 +809,12 @@ onShow(() => {
 .is-dark .welcome-desc,
 .is-dark .nav-status,
 .is-dark .agent-scope-text {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 .is-dark .agent-scope {
   background: #0f172a;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .agent-note {
@@ -818,12 +838,17 @@ onShow(() => {
 
 .is-dark .input-bar {
   background: rgba(15, 23, 42, 0.92);
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
+}
+
+.is-dark .topbar-history {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
 }
 
 .is-dark .input-row {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .chat-input {
@@ -835,18 +860,18 @@ onShow(() => {
 .is-dark .chip-text { color: #60a5fa; }
 .is-dark .nav-action { background: rgba(37, 99, 235, 0.16); }
 .is-dark .nav-action:active { background: rgba(37, 99, 235, 0.26); }
-.is-dark .persona-chip { background: rgba(30, 41, 59, 0.6); border-color: #334155; }
-.is-dark .persona-active { background: rgba(37, 99, 235, 0.2); border-color: #2563eb; }
-.is-dark .persona-label { color: #94a3b8; }
+.is-dark .persona-chip { background: rgba(30, 41, 59, 0.6); border-color: var(--text-secondary, #64748b); }
+.is-dark .persona-active { background: rgba(37, 99, 235, 0.2); border-color: var(--primary-color, #2563eb); }
+.is-dark .persona-label { color: var(--text-tertiary, #8e8e93); }
 .is-dark .persona-active .persona-label { color: #60a5fa; }
-.is-dark .time-text { color: #94a3b8; background: rgba(100, 116, 139, 0.15); }
+.is-dark .time-text { color: var(--text-tertiary, #8e8e93); background: rgba(100, 116, 139, 0.15); }
 .is-dark .send-btn { background: #334155; }
-.is-dark .send-label { color: #64748b; }
+.is-dark .send-label { color: var(--text-secondary, #64748b); }
 .is-dark .send-active .send-label { color: #ffffff; }
 .is-dark .dot { background: #64748b; }
 
 .is-dark .chat-list-surface {
-  background-color: #0f172a;
+  background-color: var(--text-primary, #0f172a);
 }
 
 .theme-green .chat-list-surface {
@@ -862,13 +887,13 @@ onShow(() => {
 .input-bar {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: #f5f5f7;
+  background: var(--surface-1, #ffffff);
 }
 
 /* Stronger border on the pill-shaped input row */
 .input-row {
-  border: 1.5px solid #b8c8d8;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  border: 1.5px solid #e2e8f0;
+  box-shadow: var(--shadow-xs);
 }
 
 /* Chat nav: solid white instead of frosted */
@@ -883,13 +908,13 @@ onShow(() => {
 .welcome-card {
   overflow: visible;
   border: 1px solid #b8c8d8;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+  box-shadow: var(--shadow-sm);
 }
 
 .is-dark .chat-nav,
 .is-dark .input-bar {
   background: #0f172a;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .welcome-card,
@@ -897,12 +922,12 @@ onShow(() => {
 .is-dark .bot-avatar,
 .is-dark .input-row {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .persona-chip {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .is-dark .persona-label {
@@ -911,27 +936,27 @@ onShow(() => {
 
 .chat-page.is-dark .input-bar {
   background: rgba(15, 23, 42, 0.96);
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
 }
 
 .chat-page.is-dark .chat-nav {
   background: #0f172a;
-  border-bottom-color: #334155;
+  border-bottom-color: var(--text-secondary, #64748b);
 }
 
 .chat-page.is-dark .input-row {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
   box-shadow: none;
 }
 
 .chat-list {
-  background-color: #f5f5f7;
+  background-color: var(--surface-1, #ffffff);
 }
 
 .chat-page.is-dark .chat-list,
 .chat-page.is-dark .chat-list-surface {
-  background-color: #0f172a;
+  background-color: var(--text-primary, #0f172a);
 }
 
 .chat-page.theme-green .chat-list,

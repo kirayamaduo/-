@@ -29,10 +29,11 @@ const emit = defineEmits<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--border-strong, #e2e8f0);
-  border-radius: 16px;
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border-strong, #9aafc5);
+  border-radius: var(--radius-md, 16px);
   padding: 14px 16px;
+  box-sizing: border-box;
 }
 
 .sl-list-item__left {
@@ -47,8 +48,8 @@ const emit = defineEmits<{
 }
 
 .sl-list-item__title {
-  font-size: 15px;
-  color: #1e293b;
+  font-size: var(--font-body, 15px);
+  color: var(--text-primary, #0f172a);
   font-weight: 600;
 }
 
@@ -56,7 +57,7 @@ const emit = defineEmits<{
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 .sl-list-item__right {

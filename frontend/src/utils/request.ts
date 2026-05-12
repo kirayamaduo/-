@@ -1,4 +1,7 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
+import { translate } from '@/locales';
+
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
 let _redirectingToLogin = false;
 
 interface Result<T> {
@@ -17,34 +20,75 @@ const isResultEnvelope = <T>(value: unknown): value is Result<T> => {
 const isBlockedHtmlResponse = (payload: unknown): boolean => {
   if (typeof payload !== 'string') return false;
   const s = payload.toLowerCase();
-  return (s.includes('<html') || s.includes('<!doctype html'))
-    && (s.includes('dnspod.qcloud.com/static/webblock.html') || s.includes('webblock'));
+  return s.includes('<html') || s.includes('<!doctype html') || s.includes('dnspod.qcloud.com/static/webblock.html') || s.includes('webblock');
 };
 
 const handleUnauthorized = (silent?: boolean) => {
-  uni.removeStorageSync('token');
-  uni.removeStorageSync('userId');
+  clearAuthState();
   if (_redirectingToLogin) return;
   _redirectingToLogin = true;
   if (!silent) {
-    uni.showToast({ title: '登录已过期，请重新登录', icon: 'none', duration: 2000 });
+    uni.showToast({ title: translate('common.unauthorized'), icon: 'none', duration: 2000 });
   }
   setTimeout(() => {
     _redirectingToLogin = false;
-    uni.reLaunch({ url: '/pages/login/index' });
+    uni.reLaunch({ url: LOGIN_PAGE });
   }, 1500);
 };
 
 type RequestOptions = UniApp.RequestOptions & {
   silent?: boolean;   // suppress error toasts when true
   _retried?: boolean; // F21: internal flag to prevent double-retry
+  params?: Record<string, unknown>;
+};
+
+type UploadOptions = {
+  url: string;
+  filePath: string;
+  name: string;
+  formData?: Record<string, unknown>;
+  header?: Record<string, string>;
+  silent?: boolean;
+};
+
+const appendQuery = (url: string, params?: Record<string, unknown>) => {
+  if (!params) return url;
+  const query = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  if (!query) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}${query}`;
+};
+
+const buildUrl = (url: string, params?: Record<string, unknown>) => {
+  const target = /^https?:\/\//i.test(url) ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  return appendQuery(target, params);
+};
+
+const parsePayload = (payload: unknown) => {
+  if (typeof payload !== 'string') return payload;
+  const trimmed = payload.trim();
+  if (!trimmed) return payload;
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try { return JSON.parse(trimmed); } catch { return payload; }
+  }
+  return payload;
+};
+
+const getEnvelopeCode = (value: Result<unknown>) => Number(value.code);
+
+const showError = (message: string, silent?: boolean, duration = 2500) => {
+  if (!silent) {
+    uni.showToast({ title: message, icon: 'none', duration });
+  }
 };
 
 /**
  * Generic Request Function — with F21 global error handling:
  *   - 401: clear token, redirect to login
  *   - 5xx: one auto-retry after 1.5 s, then show toast
- *   - Network fail: friendly Chinese toast + reject
+ *   - Network fail: friendly localized toast + reject
  */
 const request = <T>(options: RequestOptions): Promise<T> => {
   return new Promise((resolve, reject) => {
@@ -60,19 +104,17 @@ const request = <T>(options: RequestOptions): Promise<T> => {
       // AI endpoints can take up to 2 min — keep this floor high
       timeout: 120_000,
       ...options,
-      url: `${BASE_URL}${options.url}`,
+      url: buildUrl(options.url, options.params),
       header,
       success: (res) => {
         const statusCode = res.statusCode;
-        const data = res.data;
+        const data = parsePayload(res.data);
         const finalUrl = (res as any)?.errMsg || '';
 
         // ICP/domain interception usually serves an HTML block page.
-        if (isBlockedHtmlResponse(data) || /dnspod|webblock/i.test(finalUrl)) {
-          const blockedMsg = '接口被拦截（疑似备案/域名拦截），请切换 IP 地址测试';
-          if (!options.silent) {
-            uni.showToast({ title: blockedMsg, icon: 'none', duration: 3000 });
-          }
+        if (isBlockedHtmlResponse(res.data) || /dnspod|webblock/i.test(finalUrl)) {
+          const blockedMsg = translate('common.apiBlocked');
+          showError(blockedMsg, options.silent, 3000);
           reject(new Error(blockedMsg));
           return;
         }
@@ -81,20 +123,19 @@ const request = <T>(options: RequestOptions): Promise<T> => {
           if (isResultEnvelope<T>(data)) {
             // Some backend handlers return HTTP 200 with business code 401.
             // silent:true 时完全不触发全局处理（不清 token、不跳转），由调用方 catch 处理。
-            if (data.code === 401) {
+            const code = getEnvelopeCode(data);
+            if (code === 401) {
               if (!options.silent) handleUnauthorized(false);
               reject(new Error('Unauthorized'));
               return;
             }
-            if (data.code === 200) {
+            if (code === 200) {
               resolve(data.data);
               return;
             }
 
-            const errorMsg = data.message || `请求失败 (${statusCode})`;
-            if (!options.silent) {
-              uni.showToast({ title: errorMsg, icon: 'none', duration: 2500 });
-            }
+            const errorMsg = data.message || translate('common.requestFailed', { status: statusCode });
+            showError(errorMsg, options.silent);
             reject(new Error(errorMsg));
             return;
           }
@@ -123,17 +164,78 @@ const request = <T>(options: RequestOptions): Promise<T> => {
 
         const errorMsg = isResultEnvelope<T>(data) && data.message
           ? data.message
-          : `请求失败 (${statusCode})`;
-        if (!options.silent) {
-          uni.showToast({ title: errorMsg, icon: 'none', duration: 2500 });
-        }
+          : translate('common.requestFailed', { status: statusCode });
+        showError(errorMsg, options.silent);
         reject(new Error(errorMsg));
       },
       fail: (_err) => {
-        if (!options.silent) {
-          uni.showToast({ title: '网络异常，请检查网络连接', icon: 'none', duration: 2500 });
+        const message = translate('common.networkError');
+        showError(message, options.silent);
+        reject(new Error(message));
+      },
+    });
+  });
+};
+
+export const uploadFileRequest = <T>(options: UploadOptions): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const token = uni.getStorageSync('token');
+    const header: Record<string, string> = {
+      'ngrok-skip-browser-warning': '1',
+      ...(options.header || {}),
+    };
+    if (token) header.Authorization = `Bearer ${token}`;
+
+    uni.uploadFile({
+      url: buildUrl(options.url),
+      filePath: options.filePath,
+      name: options.name,
+      formData: options.formData as Record<string, any>,
+      header,
+      success: (res) => {
+        const body = parsePayload(res.data);
+        if (isBlockedHtmlResponse(res.data)) {
+          const blockedMsg = translate('common.apiBlocked');
+          showError(blockedMsg, options.silent, 3000);
+          reject(new Error(blockedMsg));
+          return;
         }
-        reject(new Error('网络异常，请检查网络连接'));
+
+        if (res.statusCode === 401) {
+          if (!options.silent) handleUnauthorized(false);
+          reject(new Error('Unauthorized'));
+          return;
+        }
+
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          if (isResultEnvelope<T>(body)) {
+            const code = getEnvelopeCode(body);
+            if (code === 401) {
+              if (!options.silent) handleUnauthorized(false);
+              reject(new Error('Unauthorized'));
+              return;
+            }
+            if (code === 200) {
+              resolve(body.data);
+              return;
+            }
+            reject(new Error(body.message || translate('common.uploadCodeFailed', { code: body.code })));
+            return;
+          }
+          resolve(body as T);
+          return;
+        }
+
+        const errorMsg = isResultEnvelope<T>(body) && body.message
+          ? body.message
+          : translate('common.uploadFailed', { status: res.statusCode });
+        showError(errorMsg, options.silent);
+        reject(new Error(errorMsg));
+      },
+      fail: (err) => {
+        const message = (err as any)?.errMsg || translate('common.uploadNetworkError');
+        showError(message, options.silent);
+        reject(new Error(message));
       },
     });
   });

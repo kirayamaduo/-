@@ -29,6 +29,8 @@ export interface HomeArticle {
   title: string;
   summary?: string;
   imageUrl?: string;
+  thumbnailUrl?: string;
+  sourceIconUrl?: string;
   url?: string;
   sourceUrl?: string;
   category?: string;

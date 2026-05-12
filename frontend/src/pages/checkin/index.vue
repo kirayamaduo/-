@@ -1,83 +1,78 @@
 <template>
-  <view class="checkin-page" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar :title="t('checkin.navTitle')" show-back @back="goBack" :safe-top="topSafeHeight" />
 
-    <view class="nav-row">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-        <text class="back-text">{{ t('common.back') }}</text>
-      </view>
-      <text class="nav-title">{{ t('checkin.navTitle') }}</text>
-      <view class="nav-spacer"></view>
-    </view>
-
-    <view class="hero-card">
-      <view class="hero-row">
-        <view class="hero-streak">
-          <text class="streak-num">{{ status?.streakDays || 0 }}</text>
-          <text class="streak-label">{{ t('checkin.dayStreakLabel') }}</text>
-        </view>
-        <view class="hero-progress">
-          <text class="hero-progress-text">{{ status?.todayCompleted || 0 }}/{{ status?.todayTotal || 3 }}</text>
-          <text class="hero-progress-label">{{ t('checkin.tasksDoneToday') }}</text>
-        </view>
-      </view>
-      <view class="hero-bar">
-        <view class="hero-bar-fill" :style="{ width: progressPercent + '%' }"></view>
-      </view>
-      <text class="hero-tip">{{ heroTip }}</text>
-    </view>
-
-    <view class="actions-card">
-      <text class="actions-title">{{ t('checkin.todayTasksTitle') }}</text>
-      <view class="action-list">
-        <view
-          v-for="a in actionItems"
-          :key="a.code"
-          :class="['action-row', a.done ? 'action-done' : '']"
-          @click="navTo(a.target)"
-        >
-          <view class="action-icon" :class="a.tone">{{ a.icon }}</view>
-          <view class="action-body">
-            <text class="action-name">{{ a.label }}</text>
-            <text class="action-desc">{{ a.done ? t('checkin.completedToday') : a.cta }}</text>
+    <view class="checkin-content">
+      <view class="hero-card">
+        <view class="hero-row">
+          <view class="hero-streak">
+            <text class="streak-num">{{ status?.streakDays || 0 }}</text>
+            <text class="streak-label">{{ t('checkin.dayStreakLabel') }}</text>
           </view>
-          <text class="action-arrow">›</text>
+          <view class="hero-progress">
+            <text class="hero-progress-text">{{ status?.todayCompleted || 0 }}/{{ status?.todayTotal || 3 }}</text>
+            <text class="hero-progress-label">{{ t('checkin.tasksDoneToday') }}</text>
+          </view>
+        </view>
+        <view class="hero-bar">
+          <view class="hero-bar-fill" :style="{ width: progressPercent + '%' }"></view>
+        </view>
+        <text class="hero-tip">{{ heroTip }}</text>
+      </view>
+
+      <view class="actions-card app-card-soft app-surface">
+        <text class="actions-title">{{ t('checkin.todayTasksTitle') }}</text>
+        <view class="action-list">
+          <view
+            v-for="a in actionItems"
+            :key="a.code"
+            :class="['action-row', 'ui-list-item', a.done ? 'action-done' : '']"
+            @click="navTo(a.target)"
+          >
+            <text class="action-icon" :class="[a.tone, a.icon]"></text>
+            <view class="action-body">
+              <text class="action-name">{{ a.label }}</text>
+              <text class="action-desc">{{ a.done ? t('checkin.completedToday') : a.cta }}</text>
+            </view>
+            <text class="action-arrow">›</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="week-card">
-      <text class="week-title">{{ t('checkin.last7Title') }}</text>
-      <view class="week-grid">
-        <view
-          v-for="(d, idx) in last7Days"
-          :key="idx"
-          :class="['week-cell', d.active ? 'week-cell-active' : '', d.isToday ? 'week-cell-today' : '']"
-        >
-          <text class="week-cell-dow">{{ d.dow }}</text>
-          <text class="week-cell-day">{{ d.dayLabel }}</text>
-          <view class="week-cell-dot" v-if="d.active"></view>
+      <view class="week-card app-card-soft app-surface">
+        <text class="week-title">{{ t('checkin.last7Title') }}</text>
+        <view class="week-grid">
+          <view
+            v-for="(d, idx) in last7Days"
+            :key="idx"
+            :class="['week-cell', d.active ? 'week-cell-active' : '', d.isToday ? 'week-cell-today' : '']"
+          >
+            <text class="week-cell-dow">{{ d.dow }}</text>
+            <text class="week-cell-day">{{ d.dayLabel }}</text>
+            <text class="week-cell-icon ri-check-line" v-if="d.active"></text>
+          </view>
+        </view>
+        <text class="week-meta">{{ t('checkin.weekMeta', { n: status?.weeklyDays || 0 }) }}</text>
+        <view class="badge-row" v-if="status?.badgeEarnedThisWeek">
+          <text class="badge-icon ri-trophy-line"></text>
+          <text class="badge-text">{{ t('checkin.weeklyBadge') }}</text>
         </view>
       </view>
-      <text class="week-meta">{{ t('checkin.weekMeta', { n: status?.weeklyDays || 0 }) }}</text>
-      <view class="badge-row" v-if="status?.badgeEarnedThisWeek">
-        <text class="badge-icon">🏆</text>
-        <text class="badge-text">{{ t('checkin.weeklyBadge') }}</text>
-      </view>
-    </view>
 
-    <view class="bottom-safe"></view>
-  </view>
+      <view class="bottom-safe"></view>
+    </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getCheckInStatusApi, getCheckInCalendarApi, type CheckInStatus, type CheckInDay } from '@/api/checkin';
 import { useTheme } from '@/utils/theme';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
@@ -117,7 +112,7 @@ const actionItems = computed<ActionItem[]>(() => {
       code: 'ASSESSMENT',
       label: t('checkin.actionAssessmentLabel'),
       cta: t('checkin.actionAssessmentCta'),
-      icon: '�',
+      icon: 'ri-brain-line',
       tone: 'tone-blue',
       target: '/pages/assessment/index',
       done: done.has('ASSESSMENT'),
@@ -126,7 +121,7 @@ const actionItems = computed<ActionItem[]>(() => {
       code: 'INTERVIEW',
       label: t('checkin.actionInterviewLabel'),
       cta: t('checkin.actionInterviewCta'),
-      icon: '🎤',
+      icon: 'ri-mic-2-line',
       tone: 'tone-orange',
       target: '/pages/interview/start',
       done: done.has('INTERVIEW'),
@@ -135,7 +130,7 @@ const actionItems = computed<ActionItem[]>(() => {
       code: 'SKILL_NODE',
       label: t('checkin.actionSkillLabel'),
       cta: t('checkin.actionSkillCta'),
-      icon: '🗺',
+      icon: 'ri-map-2-line',
       tone: 'tone-violet',
       target: '/pages/map/index',
       done: done.has('SKILL_NODE'),
@@ -181,13 +176,13 @@ const load = async () => {
     status.value = s;
     calendar.value = c || [];
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to load check-in', icon: 'none' });
+    uni.showToast({ title: e?.message || t('checkin.loadFailed'), icon: 'none' });
   }
 };
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  topSafeHeight.value = getMpSafeAreaMetrics().topSafeHeight;
 });
 
 onShow(() => {
@@ -197,88 +192,83 @@ onShow(() => {
 </script>
 
 <style scoped>
-.checkin-page {
-  min-height: 100vh;
-  background-color: var(--page-ios-gray);
-  padding: 0 20px 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+.checkin-content {
+  padding: 8px var(--page-gutter, 20px) 24px;
   box-sizing: border-box;
 }
-.status-spacer { width: 100%; }
-.nav-row { display: flex; align-items: center; height: 44px; padding: 0 2px; margin-bottom: 4px; }
-.back-btn { display: inline-flex; align-items: center; gap: 2px; color: #2563eb; width: 64px; }
-.back-icon { font-size: 24px; font-weight: 300; line-height: 1; }
-.back-text { font-size: 16px; font-weight: 500; }
-.nav-title { flex: 1; text-align: center; font-size: 17px; font-weight: 600; color: #0f172a; letter-spacing: -0.3px; }
-.nav-spacer { width: 64px; }
 
 .hero-card {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border-radius: var(--radius-lg);
-  padding: 22px 20px;
+  border-radius: var(--radius-lg, 20px);
+  padding: 22px var(--space-xl, 20px);
   color: #fff;
-  margin-top: 8px;
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.32);
+  margin-top: var(--space-sm, 8px);
+  box-shadow: var(--shadow-card);
 }
 .hero-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
 .hero-streak { display: flex; align-items: baseline; gap: 6px; }
 .streak-num { font-size: 44px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-.streak-label { font-size: 13px; opacity: 0.85; }
+.streak-label { font-size: var(--font-caption, 13px); opacity: 0.85; }
 .hero-progress { text-align: right; display: flex; flex-direction: column; gap: 2px; }
-.hero-progress-text { font-size: 18px; font-weight: 700; }
+.hero-progress-text { font-size: var(--font-title, 18px); font-weight: 700; }
 .hero-progress-label { font-size: 11px; opacity: 0.85; }
 .hero-bar { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.25); border-radius: 999px; overflow: hidden; }
-.hero-bar-fill { height: 100%; background: #f8fafc; border-radius: 999px; transition: width 0.3s; }
-.hero-tip { display: block; margin-top: 14px; font-size: 13px; opacity: 0.92; line-height: 1.5; }
+.hero-bar-fill { height: 100%; background: var(--surface-2, #f8fafc); border-radius: 999px; transition: width 0.3s; }
+.hero-tip { display: block; margin-top: 14px; font-size: var(--font-caption, 13px); opacity: 0.92; line-height: var(--line-height-body, 1.5); }
 
-.actions-card { margin-top: 20px; background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); }
-.actions-title { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 14px; }
+.actions-card { margin-top: var(--space-xl, 20px); border-radius: var(--radius-lg, 20px); padding: 18px; }
+.actions-title { font-size: var(--font-caption, 13px); font-weight: 700; color: var(--text-secondary, #64748b); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 14px; }
 .action-list { display: flex; flex-direction: column; gap: 10px; }
 .action-row {
   display: flex; align-items: center; gap: 14px;
-  background: #f8fafc; border: 1px solid var(--border-color);
-  border-radius: 14px; padding: 12px 14px;
+  background: var(--surface-2, #f8fafc); border-color: var(--border-color, #b8c8d8);
+  border-radius: var(--btn-radius, 14px); padding: 12px 14px;
   transition: transform 0.15s;
 }
 .action-row:active { transform: scale(0.99); }
-.action-done { background: #ecfdf5; border-color: #86efac; }
+.action-done { background: var(--success-soft, #dcfce7); border-color: #86efac; }
 .action-icon {
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 40px; height: 40px; border-radius: var(--radius-sm, 12px);
   display: flex; align-items: center; justify-content: center;
   font-size: 18px;
 }
-.tone-blue { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-.tone-orange { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+.tone-blue { background: linear-gradient(135deg, var(--primary-soft, #eff6ff), #bfdbfe); }
+.tone-orange { background: linear-gradient(135deg, var(--accent-soft, #fff7ed), #fed7aa); }
 .tone-violet { background: linear-gradient(135deg, #ede9fe, #c4b5fd); }
 .action-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.action-name { font-size: 14px; font-weight: 700; color: #0f172a; }
-.action-desc { font-size: 12px; color: #64748b; }
-.action-done .action-desc { color: #047857; font-weight: 600; }
-.action-arrow { font-size: 18px; color: #c7c7cc; line-height: 1; }
+.action-name { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.action-desc { font-size: 12px; color: var(--text-secondary, #64748b); }
+.action-done .action-desc { color: var(--success-color, #059669); font-weight: 600; }
+.action-arrow { font-size: 18px; color: var(--text-tertiary, #8e8e93); line-height: 1; }
 
-.week-card { margin-top: 20px; background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); }
-.week-title { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 14px; }
-.week-grid { display: flex; gap: 8px; }
+.week-card { margin-top: var(--space-xl, 20px); border-radius: var(--radius-lg, 20px); padding: 18px; }
+.week-title { font-size: var(--font-caption, 13px); font-weight: 700; color: var(--text-secondary, #64748b); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 14px; }
+.week-grid { display: flex; gap: var(--space-sm, 8px); }
 .week-cell {
   flex: 1; aspect-ratio: 1 / 1.1;
-  background: #f1f5f9; border-radius: 12px;
+  background: var(--surface-3, #f1f5f9); border-radius: var(--radius-sm, 12px);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; position: relative;
 }
-.week-cell-active { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-.week-cell-today { border: 2px solid #2563eb; }
-.week-cell-dow { font-size: 11px; color: #64748b; font-weight: 600; }
-.week-cell-day { font-size: 14px; color: #0f172a; font-weight: 700; }
-.week-cell-dot { width: 6px; height: 6px; border-radius: 3px; background: #2563eb; position: absolute; bottom: 6px; }
-.week-meta { display: block; margin-top: 12px; font-size: 12px; color: #64748b; }
-.badge-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; background: #fef3c7; border-radius: 10px; }
+.week-cell-active { background: var(--primary-color, #2563eb); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+.week-cell-today { border: 2px solid var(--primary-color, #2563eb); }
+.week-cell-active.week-cell-today { border-color: rgba(255, 255, 255, 0.3); }
+
+.week-cell-dow { font-size: 11px; color: var(--text-tertiary, #8e8e93); font-weight: 600; }
+.week-cell-day { font-size: 14px; color: var(--text-secondary, #64748b); font-weight: 700; }
+.week-cell-today:not(.week-cell-active) .week-cell-day { color: var(--text-primary, #0f172a); }
+
+.week-cell-active .week-cell-dow { color: rgba(255, 255, 255, 0.85); }
+.week-cell-active .week-cell-day { color: #ffffff; }
+.week-cell-icon { font-size: 14px; color: #ffffff; position: absolute; bottom: 3px; font-weight: 800; }
+.week-meta { display: block; margin-top: var(--space-md, 12px); font-size: 12px; color: var(--text-secondary, #64748b); }
+.badge-row { display: flex; align-items: center; gap: var(--space-sm, 8px); margin-top: var(--space-md, 12px); padding: 10px 12px; background: #fef3c7; border-radius: 10px; }
 .badge-icon { font-size: 18px; }
 .badge-text { font-size: 12.5px; color: #92400e; font-weight: 600; line-height: 1.4; }
 
 .bottom-safe { height: calc(env(safe-area-inset-bottom, 0px) + 24px); }
 
-.is-dark { background-color: #0f172a; }
-.is-dark .nav-title { color: #f8fafc; }
+/* Dark mode */
 .is-dark .actions-card,
 .is-dark .week-card { background: #1e293b; box-shadow: none; border-color: #334155; }
 .is-dark .actions-title,
@@ -290,6 +280,10 @@ onShow(() => {
 .is-dark .action-done { background: rgba(16, 185, 129, 0.16); border-color: #34d399; }
 .is-dark .action-done .action-desc { color: #6ee7b7; }
 .is-dark .week-cell { background: #0f172a; }
-.is-dark .week-cell-day { color: #f8fafc; }
-.is-dark .week-cell-dow { color: #94a3b8; }
+.is-dark .week-cell-day { color: #64748b; }
+.is-dark .week-cell-today:not(.week-cell-active) .week-cell-day { color: #f8fafc; }
+.is-dark .week-cell-dow { color: #475569; }
+.is-dark .week-cell-active { background: var(--primary-color, #2563eb); box-shadow: none; }
+.is-dark .week-cell-active .week-cell-day,
+.is-dark .week-cell-active .week-cell-dow { color: #ffffff; }
 </style>
