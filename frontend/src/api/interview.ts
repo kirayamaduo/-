@@ -1,4 +1,4 @@
-import request from '@/utils/request';
+import request, { uploadFileRequest } from '@/utils/request';
 
 export interface Interview {
   interviewId?: number;
@@ -145,36 +145,11 @@ export const voiceTurnApi = (
   format: 'mp3' | 'aac' | 'wav' = 'mp3',
   language = 'en'
 ): Promise<VoiceTurnResponse> => {
-  return new Promise((resolve, reject) => {
-    const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080';
-    const token = uni.getStorageSync('token');
-    uni.uploadFile({
-      url: `${BASE_URL}/api/interviews/${interviewId}/voice-turn`,
-      filePath,
-      name: 'audio',
-      formData: { format, language },
-      // ngrok-free.dev shows an HTML interstitial unless this header is
-      // present (any value); without it the upload returns ngrok HTML and
-      // our JSON parser throws "Invalid voice-turn response". Harmless on
-      // a real domain.
-      header: {
-        'ngrok-skip-browser-warning': '1',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      success: (res) => {
-        try {
-          const body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-          if (res.statusCode === 200 && body && body.code === 200 && body.data) {
-            resolve(body.data as VoiceTurnResponse);
-          } else {
-            reject(new Error(body?.message || `Voice turn failed (HTTP ${res.statusCode})`));
-          }
-        } catch {
-          reject(new Error('Invalid voice-turn response'));
-        }
-      },
-      fail: (err: any) => reject(new Error(err?.errMsg || 'Voice upload network error')),
-    });
+  return uploadFileRequest<VoiceTurnResponse>({
+    url: `/api/interviews/${interviewId}/voice-turn`,
+    filePath,
+    name: 'audio',
+    formData: { format, language },
   });
 };
 

@@ -1,16 +1,21 @@
 <template>
-  <view class="hub-page">
-    <!-- header -->
-    <view class="hub-header">
-      <view class="hub-back" @click="goBack"><text class="hub-back-icon">←</text></view>
-      <text class="hub-title">{{ t('agent.hub.title') }}</text>
-      <view class="hub-refresh" @click="loadAll"><text class="hub-refresh-icon">↻</text></view>
-    </view>
+  <SlPage class="hub-page app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar
+      :title="t('agent.hub.title')"
+      show-back
+      @back="goBack"
+      :safe-top="topSafeHeight"
+      :right-avoid-width="rightAvoidWidth"
+    >
+      <template #right>
+        <view class="hub-refresh" @click="loadAll"><text class="hub-refresh-icon">↻</text></view>
+      </template>
+    </SlNavBar>
 
     <scroll-view scroll-y class="hub-scroll">
 
       <!-- ① Profile completeness -->
-      <view class="hub-section" @click="navTo('/pages/agent/profile')">
+      <view class="hub-section app-card-soft" @click="navTo('/pages/agent/profile')">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.profileSection') }}</text>
           <text class="hub-section-arrow">›</text>
@@ -38,7 +43,7 @@
       </view>
 
       <!-- ② Today -->
-      <view v-if="agentToday" class="hub-section">
+      <view v-if="agentToday" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.todaySection') }}</text>
           <view class="hub-stage-pill"><text class="hub-stage-text">{{ stageLabel }}</text></view>
@@ -63,7 +68,7 @@
       </view>
 
       <!-- ③ Tasks -->
-      <view class="hub-section">
+      <view class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.tasksSection') }}</text>
           <text class="hub-task-count">{{ t('agent.hub.tasksOpen', { n: openTasks.length }) }}</text>
@@ -120,7 +125,7 @@
               </view>
               <text class="hub-subtask-title">{{ sub.title }}</text>
               <view v-if="sub.status !== 'DONE'" class="hub-subtask-done-btn" @click="completeTask(sub.taskId)">
-                <text class="hub-subtask-done-text">✓</text>
+                <text class="hub-subtask-done-text ri-check-line"></text>
               </view>
             </view>
           </view>
@@ -128,7 +133,7 @@
       </view>
 
       <!-- ④ Risk Watch -->
-      <view v-if="agentRisk" class="hub-section">
+      <view v-if="agentRisk" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.riskSection') }}</text>
           <view class="hub-risk-pill" :class="'risk-' + agentRisk.overallLevel.toLowerCase()">
@@ -152,7 +157,7 @@
       </view>
 
       <!-- ⑤ Plan -->
-      <view v-if="agentPlan" class="hub-section">
+      <view v-if="agentPlan" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.planSection') }}</text>
           <text class="hub-plan-health" :class="'health-' + (agentPlan.planHealth || 'missing').toLowerCase()">
@@ -176,7 +181,7 @@
       </view>
 
       <!-- ⑥ Weekly Review -->
-      <view v-if="weeklyReview" class="hub-section">
+      <view v-if="weeklyReview" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.reviewSection') }}</text>
           <text class="hub-review-date">{{ weeklyReviewDate }}</text>
@@ -201,7 +206,7 @@
       </view>
 
       <!-- ⑦ Agent State stats -->
-      <view v-if="agentState" class="hub-section hub-state-section">
+      <view v-if="agentState" class="hub-section hub-state-section app-card-soft">
         <text class="hub-section-title">{{ t('agent.hub.stateSection') }}</text>
         <view class="hub-state-stats">
           <view class="hub-stat">
@@ -220,7 +225,7 @@
       </view>
 
       <!-- ⑧ Recent Activity (Events Timeline) -->
-      <view class="hub-section hub-state-section">
+      <view class="hub-section hub-state-section app-surface">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.activitySection') }}</text>
         </view>
@@ -240,12 +245,14 @@
 
       <view class="hub-bottom-spacer" />
     </scroll-view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from '@/locales';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
+import SlPage from '@/style-library/components/SlPage.vue';
 import {
   completeAgentTaskApi,
   decomposeTaskApi,
@@ -267,9 +274,14 @@ import {
   type CareerAgentRiskWatch,
   type CareerAgentToday,
 } from '@/api/agent';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
+const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(16);
 const agentProfile = ref<AgentUserProfile | null>(null);
 const agentToday = ref<CareerAgentToday | null>(null);
 const agentRisk = ref<CareerAgentRiskWatch | null>(null);
@@ -330,13 +342,13 @@ const reviewPayload = computed(() => {
 });
 
 const EVENT_ICONS: Record<string, string> = {
-  TASK_COMPLETED: '✓',
+  TASK_COMPLETED: 'ri-check-line',
   TASK_DISMISSED: '–',
-  RISK_CHANGED: '⚠',
-  PLAN_GENERATED: '📋',
-  RESUME_SCORE_CHANGED: '📄',
-  INTERVIEW_SCORE_CHANGED: '🎤',
-  WEEKLY_REVIEW_COMPLETED: '📊',
+  RISK_CHANGED: 'ri-alert-line',
+  PLAN_GENERATED: 'ri-clipboard-line',
+  RESUME_SCORE_CHANGED: 'ri-file-text-line',
+  INTERVIEW_SCORE_CHANGED: 'ri-mic-2-line',
+  WEEKLY_REVIEW_COMPLETED: 'ri-bar-chart-2-line',
 };
 const EVENT_COLORS: Record<string, string> = {
   TASK_COMPLETED: 'green',
@@ -437,28 +449,31 @@ const ensurePlan = async () => {
 const navTo = (path: string) => uni.navigateTo({ url: path });
 const goBack = () => uni.navigateBack();
 
-onMounted(loadAll);
+onMounted(() => {
+  refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+  loadAll();
+});
 </script>
 
 <style scoped>
-.hub-page { min-height: 100vh; background: #f5f7fa; }
-.hub-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 56rpx 28rpx 20rpx; background: #fff;
+.hub-page {
+  display: flex; flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
 }
-.hub-back, .hub-refresh {
+.hub-refresh {
   width: 64rpx; height: 64rpx; display: flex; align-items: center;
-  justify-content: center; border-radius: 50%; background: #f1f5f9;
+  justify-content: center; border-radius: 50%; background: var(--surface-3, #f1f5f9);
 }
-.hub-back-icon, .hub-refresh-icon { font-size: 20px; color: #374151; }
-.hub-title { font-size: 17px; font-weight: 700; color: #111827; }
+.hub-refresh-icon { font-size: 20px; color: var(--text-secondary, #64748b); }
 
-.hub-scroll { height: calc(100vh - 120rpx); }
+.hub-scroll { flex: 1; min-height: 0; }
 
 .hub-section {
-  margin: 16rpx 24rpx 0;
-  background: #fff; border-radius: 18rpx;
-  padding: 24rpx;
+  margin: 16rpx 24rpx; padding: 24rpx; margin-bottom: 24rpx;
 }
 .hub-state-section { margin-bottom: 0; }
 .hub-bottom-spacer { height: 48rpx; }
@@ -467,17 +482,17 @@ onMounted(loadAll);
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 16rpx;
 }
-.hub-section-title { font-size: 13px; font-weight: 700; color: #374151; }
-.hub-section-arrow { font-size: 16px; color: #9ca3af; }
-.hub-task-count { font-size: 12px; color: #6b7280; }
-.hub-review-date { font-size: 11px; color: #9ca3af; }
+.hub-section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b); }
+.hub-section-arrow { font-size: 16px; color: var(--text-tertiary, #8e8e93); }
+.hub-task-count { font-size: 12px; color: var(--text-secondary, #64748b); }
+.hub-review-date { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
 
 /* profile */
 .hub-pct-wrap { display: flex; align-items: center; gap: 12rpx; margin-bottom: 12rpx; }
 .hub-pct-bar { flex: 1; height: 8rpx; background: #e5e7eb; border-radius: 4rpx; overflow: hidden; }
 .hub-pct-fill { height: 100%; border-radius: 4rpx; transition: width .4s; }
 .pct-low { background: #94a3b8; } .pct-medium { background: #38bdf8; } .pct-high { background: #34d399; }
-.hub-pct-label { font-size: 11.5px; color: #6b7280; white-space: nowrap; }
+.hub-pct-label { font-size: 11.5px; color: var(--text-secondary, #64748b); white-space: nowrap; }
 .hub-missing-row { display: flex; flex-wrap: wrap; gap: 8rpx; }
 .hub-missing-chip {
   border-radius: 999rpx; padding: 6rpx 14rpx;
@@ -485,29 +500,29 @@ onMounted(loadAll);
 }
 .chip-high { border-color: #ef4444; background: #fef2f2; }
 .chip-medium { border-color: #f59e0b; background: #fffbeb; }
-.chip-low { border-color: #d1d5db; background: #f9fafb; }
-.hub-missing-chip-text { font-size: 11px; color: #374151; }
+.chip-low { border-color: #d1d5db; background: var(--surface-2, #f8fafc); }
+.hub-missing-chip-text { font-size: 11px; color: var(--text-secondary, #64748b); }
 
 /* today */
-.hub-stage-pill { background: #eff6ff; border-radius: 999rpx; padding: 4rpx 14rpx; }
-.hub-stage-text { font-size: 11px; color: #1d4ed8; font-weight: 600; }
-.hub-headline { font-size: 15px; font-weight: 700; color: #111827; line-height: 1.4; margin-bottom: 6rpx; }
-.hub-focus { font-size: 12.5px; color: #4b5563; margin-bottom: 14rpx; }
+.hub-stage-pill { background: var(--primary-soft, #eff6ff); border-radius: 999rpx; padding: 4rpx 14rpx; }
+.hub-stage-text { font-size: 11px; color: var(--primary-hover, #1d4ed8); font-weight: 600; }
+.hub-headline { font-size: 15px; font-weight: 700; color: var(--text-primary, #0f172a); line-height: 1.4; margin-bottom: 6rpx; }
+.hub-focus { font-size: 12.5px; color: var(--text-secondary, #64748b); margin-bottom: 14rpx; }
 .hub-progress-bar { height: 6rpx; background: #e5e7eb; border-radius: 3rpx; overflow: hidden; margin-bottom: 6rpx; }
 .hub-progress-fill { height: 100%; background: linear-gradient(90deg,#1d4ed8,#6366f1); border-radius: 3rpx; }
-.hub-progress-text { font-size: 11px; color: #9ca3af; margin-bottom: 14rpx; }
+.hub-progress-text { font-size: 11px; color: var(--text-tertiary, #8e8e93); margin-bottom: 14rpx; }
 .hub-actions { display: flex; flex-wrap: wrap; gap: 10rpx; }
 .hub-action {
   border: 1.5rpx solid #d1d5db; border-radius: 999rpx;
-  padding: 8rpx 18rpx; background: #f9fafb;
+  padding: 8rpx 18rpx; background: var(--surface-2, #f8fafc);
 }
-.hub-action-primary { border-color: #1d4ed8; background: #eff6ff; }
-.hub-action-text { font-size: 12px; color: #374151; }
-.hub-action-primary .hub-action-text { color: #1d4ed8; font-weight: 600; }
+.hub-action-primary { border-color: var(--primary-hover, #1d4ed8); background: var(--primary-soft, #eff6ff); }
+.hub-action-text { font-size: 12px; color: var(--text-secondary, #64748b); }
+.hub-action-primary .hub-action-text { color: var(--primary-hover, #1d4ed8); font-weight: 600; }
 
 /* tasks */
 .hub-empty { padding: 20rpx 0; }
-.hub-empty-text { font-size: 12.5px; color: #9ca3af; }
+.hub-empty-text { font-size: 12.5px; color: var(--text-tertiary, #8e8e93); }
 .hub-task { border-top: 1rpx solid #f3f4f6; padding-top: 16rpx; margin-top: 12rpx; }
 .hub-task:first-child { border-top: none; margin-top: 0; }
 .hub-task-header { display: flex; gap: 12rpx; }
@@ -522,24 +537,24 @@ onMounted(loadAll);
 .hub-badge-time { background: #ede9fe; }
 .hub-badge-time .hub-badge-text { color: #5b21b6; }
 .hub-badge-text { font-size: 10px; font-weight: 600; }
-.hub-task-title { font-size: 13px; font-weight: 600; color: #111827; }
-.hub-task-desc { font-size: 11.5px; color: #6b7280; margin-top: 4rpx; }
+.hub-task-title { font-size: 13px; font-weight: 600; color: var(--text-primary, #0f172a); }
+.hub-task-desc { font-size: 11.5px; color: var(--text-secondary, #64748b); margin-top: 4rpx; }
 .hub-task-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; }
 .hub-task-actions { display: flex; gap: 8rpx; }
 .hub-task-btn {
   border: 1.5rpx solid #d1d5db; border-radius: 999rpx;
-  padding: 6rpx 14rpx; background: #f9fafb;
+  padding: 6rpx 14rpx; background: var(--surface-2, #f8fafc);
 }
-.hub-task-done { border-color: #1d4ed8; background: #eff6ff; }
-.hub-task-btn-text { font-size: 11.5px; color: #374151; }
-.hub-task-done .hub-task-btn-text { color: #1d4ed8; font-weight: 600; }
-.hub-expand-btn { border-radius: 999rpx; padding: 4rpx 12rpx; background: #f1f5f9; }
-.hub-expand-text { font-size: 11px; color: #6b7280; }
+.hub-task-done { border-color: var(--primary-hover, #1d4ed8); background: var(--primary-soft, #eff6ff); }
+.hub-task-btn-text { font-size: 11.5px; color: var(--text-secondary, #64748b); }
+.hub-task-done .hub-task-btn-text { color: var(--primary-hover, #1d4ed8); font-weight: 600; }
+.hub-expand-btn { border-radius: 999rpx; padding: 4rpx 12rpx; background: var(--surface-3, #f1f5f9); }
+.hub-expand-text { font-size: 11px; color: var(--text-secondary, #64748b); }
 
 /* subtasks */
 .hub-subtasks { margin-top: 12rpx; padding-left: 16rpx; border-left: 3rpx solid #e0e7ff; }
 .hub-subtask-loading { padding: 8rpx 0; }
-.hub-subtask-loading-text { font-size: 12px; color: #9ca3af; }
+.hub-subtask-loading-text { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 .hub-subtask {
   display: flex; align-items: flex-start; gap: 8rpx;
   padding: 10rpx 0; border-bottom: 1rpx solid #f3f4f6;
@@ -547,7 +562,7 @@ onMounted(loadAll);
 .hub-subtask:last-child { border-bottom: none; }
 .hub-subtask-done { opacity: .45; }
 .hub-subtask-badges { display: flex; gap: 4rpx; margin-bottom: 4rpx; flex-wrap: wrap; }
-.hub-subtask-title { font-size: 12px; color: #374151; flex: 1; }
+.hub-subtask-title { font-size: 12px; color: var(--text-secondary, #64748b); flex: 1; }
 .hub-subtask-done-btn {
   width: 40rpx; height: 40rpx; border-radius: 50%;
   background: #d1fae5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -560,26 +575,26 @@ onMounted(loadAll);
 .risk-medium { background: #fef3c7; } .risk-medium .hub-risk-pill-text { color: #92400e; }
 .risk-low { background: #d1fae5; } .risk-low .hub-risk-pill-text { color: #065f46; }
 .hub-risk-pill-text { font-size: 11px; font-weight: 600; }
-.hub-risk-primary { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 6rpx; }
-.hub-risk-summary { font-size: 12px; color: #4b5563; margin-bottom: 14rpx; }
+.hub-risk-primary { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); margin-bottom: 6rpx; }
+.hub-risk-summary { font-size: 12px; color: var(--text-secondary, #64748b); margin-bottom: 14rpx; }
 .hub-risks-list { display: flex; flex-direction: column; gap: 10rpx; }
 .hub-risk-row { display: flex; align-items: center; justify-content: space-between; }
 .hub-risk-row-left { display: flex; align-items: center; gap: 10rpx; }
 .hub-risk-dot { width: 10rpx; height: 10rpx; border-radius: 50%; }
 .dot-high { background: #ef4444; } .dot-medium { background: #f59e0b; } .dot-low { background: #10b981; }
-.hub-risk-row-title { font-size: 12px; color: #374151; }
+.hub-risk-row-title { font-size: 12px; color: var(--text-secondary, #64748b); }
 .hub-risk-row-right { display: flex; align-items: center; gap: 10rpx; }
 .hub-risk-trend { font-size: 11px; }
-.trend-rising { color: #ef4444; } .trend-stable { color: #6b7280; } .trend-decreasing { color: #10b981; }
-.hub-risk-score { font-size: 11px; color: #9ca3af; }
+.trend-rising { color: #ef4444; } .trend-stable { color: var(--text-secondary, #64748b); } .trend-decreasing { color: #10b981; }
+.hub-risk-score { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
 
 /* plan */
 .hub-plan-health { font-size: 12px; font-weight: 600; }
 .health-on_track { color: #10b981; } .health-needs_refresh { color: #f59e0b; } .health-missing { color: #ef4444; }
-.hub-plan-role { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 6rpx; }
-.hub-plan-milestone { font-size: 12px; color: #6b7280; margin-bottom: 10rpx; }
+.hub-plan-role { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); margin-bottom: 6rpx; }
+.hub-plan-milestone { font-size: 12px; color: var(--text-secondary, #64748b); margin-bottom: 10rpx; }
 .hub-focus-list { display: flex; flex-direction: column; gap: 6rpx; margin-bottom: 12rpx; }
-.hub-focus-item { font-size: 12px; color: #4b5563; }
+.hub-focus-item { font-size: 12px; color: var(--text-secondary, #64748b); }
 .hub-plan-btn {
   background: linear-gradient(135deg, #1d4ed8, #6366f1);
   border-radius: 999rpx; padding: 14rpx 0; text-align: center; margin-top: 8rpx;
@@ -591,10 +606,10 @@ onMounted(loadAll);
   display: flex; gap: 0; margin-bottom: 14rpx;
 }
 .hub-stat { flex: 1; text-align: center; }
-.hub-stat-val { font-size: 16px; font-weight: 700; color: #111827; display: block; }
-.hub-stat-label { font-size: 11px; color: #9ca3af; display: block; margin-top: 4rpx; }
+.hub-stat-val { font-size: 16px; font-weight: 700; color: var(--text-primary, #0f172a); display: block; }
+.hub-stat-label { font-size: 11px; color: var(--text-tertiary, #8e8e93); display: block; margin-top: 4rpx; }
 .hub-review-highlights { display: flex; flex-direction: column; gap: 6rpx; }
-.hub-review-highlight { font-size: 12px; color: #4b5563; }
+.hub-review-highlight { font-size: 12px; color: var(--text-secondary, #64748b); }
 
 /* events timeline */
 .hub-event-row {
@@ -608,12 +623,12 @@ onMounted(loadAll);
   flex-shrink: 0;
 }
 .ev-green  { background: #d1fae5; }
-.ev-gray   { background: #f1f5f9; }
+.ev-gray   { background: var(--surface-3, #f1f5f9); }
 .ev-orange { background: #fef3c7; }
 .ev-blue   { background: #dbeafe; }
 .ev-purple { background: #ede9fe; }
 .hub-event-icon { font-size: 14px; }
 .hub-event-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
-.hub-event-label { font-size: 12.5px; color: #374151; font-weight: 600; }
-.hub-event-time { font-size: 11px; color: #9ca3af; }
+.hub-event-label { font-size: 12.5px; color: var(--text-secondary, #64748b); font-weight: 600; }
+.hub-event-time { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
 </style>

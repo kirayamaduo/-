@@ -1,118 +1,113 @@
 <template>
-  <view class="memory-page" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafe + 'px' }"></view>
-
+  <SlPage class="app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
     <!-- Custom nav bar -->
-    <view class="nav-bar">
-      <view class="nav-back" @click="goBack">
-        <text class="nav-back-icon">‹</text>
-        <text class="nav-back-text">{{ t('common.back') }}</text>
+    <SlNavBar :title="t('memory.navTitle')" show-back @back="goBack" :safe-top="topSafe" />
+
+    <view class="memory-page">
+      <!-- Header -->
+      <view class="page-header">
+        <text class="page-title">{{ t('memory.title') }}</text>
+        <text class="page-subtitle">{{ t('memory.subtitle') }}</text>
       </view>
-      <text class="nav-title">{{ t('memory.navTitle') }}</text>
-      <view class="nav-right-placeholder"></view>
-    </view>
 
-    <!-- Header -->
-    <view class="page-header">
-      <text class="page-title">{{ t('memory.title') }}</text>
-      <text class="page-subtitle">{{ t('memory.subtitle') }}</text>
-    </view>
-
-    <view v-if="!loading" class="context-section">
-      <view class="context-card">
-        <view class="context-head">
-          <text class="context-icon">👤</text>
-          <text class="context-title">{{ t('memory.profileTitle') }}</text>
-        </view>
-        <view v-if="profileItems.length === 0" class="context-empty">
-          <text class="context-empty-text">{{ t('memory.profileEmpty') }}</text>
-        </view>
-        <view v-else class="context-list">
-          <view v-for="item in profileItems" :key="item.label" class="context-row">
-            <text class="context-label">{{ item.label }}</text>
-            <text class="context-value">{{ item.value }}</text>
+      <view v-if="!loading" class="context-section">
+        <view class="context-card app-card-soft app-surface">
+          <view class="context-head">
+            <text class="context-icon ri-user-line"></text>
+            <text class="context-title">{{ t('memory.profileTitle') }}</text>
+          </view>
+          <view v-if="profileItems.length === 0" class="context-empty app-empty">
+            <text class="context-empty-text">{{ t('memory.profileEmpty') }}</text>
+          </view>
+          <view v-else class="context-list">
+            <view v-for="item in profileItems" :key="item.label" class="context-row">
+              <text class="context-label">{{ item.label }}</text>
+              <text class="context-value">{{ item.value }}</text>
+            </view>
           </view>
         </view>
-      </view>
 
-      <view class="context-card">
-        <view class="context-head">
-          <text class="context-icon">🧭</text>
-          <text class="context-title">{{ t('memory.snapshotTitle') }}</text>
-        </view>
-        <view v-if="snapshotItems.length === 0" class="context-empty">
-          <text class="context-empty-text">{{ t('memory.snapshotEmpty') }}</text>
-        </view>
-        <view v-else class="context-list">
-          <view v-for="item in snapshotItems" :key="item.label" class="context-row">
-            <text class="context-label">{{ item.label }}</text>
-            <text class="context-value">{{ item.value }}</text>
+        <view class="context-card app-card-soft app-surface">
+          <view class="context-head">
+            <text class="context-icon ri-compass-3-line"></text>
+            <text class="context-title">{{ t('memory.snapshotTitle') }}</text>
           </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- Loading skeleton -->
-    <view v-if="loading" class="skeleton-wrap">
-      <view v-for="i in 5" :key="i" class="skeleton-card"></view>
-    </view>
-
-    <!-- Empty state -->
-    <view v-else-if="facts.length === 0" class="empty-state">
-      <text class="empty-icon">🧠</text>
-      <text class="empty-title">{{ t('memory.noFacts') }}</text>
-      <text class="empty-desc">{{ t('memory.noFactsDesc') }}</text>
-    </view>
-
-    <!-- Facts grouped by category -->
-    <view v-else>
-      <view v-for="(group, cat) in grouped" :key="cat" class="group-section">
-        <view class="group-header">
-          <text class="group-icon">{{ categoryIcon(cat) }}</text>
-          <text class="group-label">{{ categoryLabel(cat) }}</text>
-          <text class="group-count">{{ group.length }}</text>
-        </view>
-        <view class="facts-card">
-          <view
-            v-for="(fact, idx) in group"
-            :key="fact.id"
-            class="fact-row"
-            :class="{ 'fact-row-last': idx === group.length - 1 }"
-          >
-            <view class="fact-body">
-              <text class="fact-key">{{ formatKey(fact.factKey) }}</text>
-              <text class="fact-value">{{ fact.factValue }}</text>
-            </view>
-            <view class="fact-conf-badge" :class="confClass(fact.confidence)">
-              <text class="fact-conf-text">{{ confLabel(fact.confidence) }}</text>
-            </view>
-            <view class="fact-delete-btn" @click="confirmDelete(fact)">
-              <text class="fact-delete-icon">✕</text>
+          <view v-if="snapshotItems.length === 0" class="context-empty app-empty">
+            <text class="context-empty-text">{{ t('memory.snapshotEmpty') }}</text>
+          </view>
+          <view v-else class="context-list">
+            <view v-for="item in snapshotItems" :key="item.label" class="context-row">
+              <text class="context-label">{{ item.label }}</text>
+              <text class="context-value">{{ item.value }}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- Clear all -->
-      <view class="clear-all-row">
-        <view class="btn-clear-all" @click="confirmClearAll">
-          <text class="btn-clear-all-text">{{ t('memory.clearAll') }}</text>
+      <!-- Loading skeleton -->
+      <view v-if="loading" class="skeleton-wrap">
+        <view v-for="i in 5" :key="i" class="skeleton-card app-card-soft app-surface"></view>
+      </view>
+
+      <!-- Empty state -->
+      <view v-else-if="facts.length === 0" class="empty-state app-empty app-surface">
+        <text class="empty-icon ri-brain-line"></text>
+        <text class="empty-title">{{ t('memory.noFacts') }}</text>
+        <text class="empty-desc">{{ t('memory.noFactsDesc') }}</text>
+      </view>
+
+      <!-- Facts grouped by category -->
+      <view v-else>
+        <view v-for="(group, cat) in grouped" :key="cat" class="group-section">
+          <view class="group-header">
+            <text class="group-icon">{{ categoryIcon(cat) }}</text>
+            <text class="group-label">{{ categoryLabel(cat) }}</text>
+            <text class="group-count">{{ group.length }}</text>
+          </view>
+          <view class="facts-card app-card-soft app-surface">
+            <view
+              v-for="(fact, idx) in group"
+              :key="fact.id"
+              class="fact-row"
+              :class="{ 'fact-row-last': idx === group.length - 1 }"
+            >
+              <view class="fact-body">
+                <text class="fact-key">{{ formatKey(fact.factKey) }}</text>
+                <text class="fact-value">{{ fact.factValue }}</text>
+              </view>
+              <view class="fact-conf-badge" :class="confClass(fact.confidence)">
+                <text class="fact-conf-text">{{ confLabel(fact.confidence) }}</text>
+              </view>
+              <view class="fact-delete-btn" @click="confirmDelete(fact)">
+                <text class="fact-delete-icon ri-close-line"></text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- Clear all -->
+        <view class="clear-all-row">
+          <view class="btn-clear-all" @click="confirmClearAll">
+            <text class="btn-clear-all-text">{{ t('memory.clearAll') }}</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="bottom-safe"></view>
-  </view>
+      <view class="bottom-safe"></view>
+    </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import request from '@/utils/request';
 import { useTheme } from '@/utils/theme';
 import { getProfileSnapshotApi, getUserInfoApi, type User, type UserProfileSnapshot } from '@/api/user';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 interface UserFact {
   id: number;
@@ -134,7 +129,7 @@ const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 onMounted(async () => {
   refreshTheme();
-  topSafe.value = getTopSafeHeight();
+  topSafe.value = getMpSafeAreaMetrics().topSafeHeight;
   await loadFacts();
 });
 
@@ -155,7 +150,7 @@ const loadFacts = async () => {
     userProfile.value = profile;
     profileSnapshot.value = snapshot;
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to load memories', icon: 'none' });
+    uni.showToast({ title: e?.message || t('memory.loadFailed'), icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -165,10 +160,10 @@ const profileItems = computed(() => {
   const u = userProfile.value;
   if (!u) return [];
   return [
-    { label: 'Nickname', value: u.nickname },
-    { label: 'School', value: u.school },
-    { label: 'Major', value: u.major },
-    { label: 'Graduation', value: u.graduationYear ? String(u.graduationYear) : '' },
+    { label: t('memory.profileNickname'), value: u.nickname },
+    { label: t('memory.profileSchool'), value: u.school },
+    { label: t('memory.profileMajor'), value: u.major },
+    { label: t('memory.profileGraduation'), value: u.graduationYear ? String(u.graduationYear) : '' },
   ].filter((item) => item.value);
 });
 
@@ -179,27 +174,27 @@ const snapshotItems = computed(() => {
   if (s.assessment) {
     const roles = s.assessment.suggestedRoles?.join(', ');
     items.push({
-      label: 'Assessment',
+      label: t('memory.snapshotAssessment'),
       value: [s.assessment.scaleTitle, s.assessment.summary, roles].filter(Boolean).join(' · '),
     });
   }
   if (s.resume) {
     items.push({
-      label: 'Resume',
+      label: t('memory.snapshotResume'),
       value: [s.resume.title, s.resume.targetJob, s.resume.diagnosisScore ? `${s.resume.diagnosisScore}/100` : ''].filter(Boolean).join(' · '),
     });
   }
   if (s.interview) {
     items.push({
-      label: 'Interview',
+      label: t('memory.snapshotInterview'),
       value: [s.interview.positionName, s.interview.difficulty, s.interview.lastScore ? `${s.interview.lastScore}/100` : ''].filter(Boolean).join(' · '),
     });
   }
   if (s.preferences?.targetRole) {
-    items.push({ label: 'Target role', value: s.preferences.targetRole });
+    items.push({ label: t('memory.snapshotTargetRole'), value: s.preferences.targetRole });
   }
   if (s.preferences?.interviewMode) {
-    items.push({ label: 'Interview mode', value: s.preferences.interviewMode });
+    items.push({ label: t('memory.snapshotInterviewMode'), value: s.preferences.interviewMode });
   }
   return items.filter((item) => item.value);
 });
@@ -216,35 +211,35 @@ const grouped = computed(() => {
 
 const categoryLabel = (cat: string) => {
   const labels: Record<string, string> = {
-    PERSONALITY: 'Personality',
-    CAREER_GOAL: 'Career Goals',
-    SKILL: 'Skills',
-    PREFERENCE: 'Preferences',
-    EXPERIENCE: 'Experience',
-    GENERAL: 'General',
+    PERSONALITY: t('memory.categoryPersonality'),
+    CAREER_GOAL: t('memory.categoryCareerGoal'),
+    SKILL: t('memory.categorySkill'),
+    PREFERENCE: t('memory.categoryPreference'),
+    EXPERIENCE: t('memory.categoryExperience'),
+    GENERAL: t('memory.categoryGeneral'),
   };
   return labels[cat] || cat;
 };
 
 const categoryIcon = (cat: string) => {
   const icons: Record<string, string> = {
-    PERSONALITY: '🧬',
-    CAREER_GOAL: '🎯',
-    SKILL: '⚡',
-    PREFERENCE: '💡',
-    EXPERIENCE: '🗂️',
-    GENERAL: '📌',
+    PERSONALITY: 'ri-dna-line',
+    CAREER_GOAL: 'ri-focus-2-line',
+    SKILL: 'ri-flashlight-line',
+    PREFERENCE: 'ri-lightbulb-line',
+    EXPERIENCE: 'ri-folder-2-line',
+    GENERAL: 'ri-pushpin-line',
   };
-  return icons[cat] || '📌';
+  return icons[cat] || 'ri-pushpin-line';
 };
 
 const formatKey = (key: string) =>
   key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const confLabel = (conf: number) => {
-  if (conf >= 0.9) return 'High';
-  if (conf >= 0.6) return 'Med';
-  return 'Low';
+  if (conf >= 0.9) return t('memory.confidenceHigh');
+  if (conf >= 0.6) return t('memory.confidenceMed');
+  return t('memory.confidenceLow');
 };
 
 const confClass = (conf: number) => {
@@ -255,18 +250,18 @@ const confClass = (conf: number) => {
 
 const confirmDelete = (fact: UserFact) => {
   uni.showModal({
-    title: 'Delete Memory',
-    content: `Remove "${formatKey(fact.factKey)}: ${fact.factValue}"?`,
-    confirmText: 'Delete',
+    title: t('memory.deleteTitle'),
+    content: t('memory.deleteContent', { label: formatKey(fact.factKey), value: fact.factValue }),
+    confirmText: t('common.delete'),
     confirmColor: '#ef4444',
     success: async (res) => {
       if (!res.confirm) return;
       try {
         await request({ url: `/api/facts/me/${fact.id}`, method: 'DELETE' });
         facts.value = facts.value.filter((f) => f.id !== fact.id);
-        uni.showToast({ title: 'Deleted', icon: 'success' });
+        uni.showToast({ title: t('memory.deleted'), icon: 'success' });
       } catch (e: any) {
-        uni.showToast({ title: e?.message || 'Failed', icon: 'none' });
+        uni.showToast({ title: e?.message || t('memory.deleteFailed'), icon: 'none' });
       }
     },
   });
@@ -274,9 +269,9 @@ const confirmDelete = (fact: UserFact) => {
 
 const confirmClearAll = () => {
   uni.showModal({
-    title: 'Clear All Memories',
-    content: 'This will permanently delete all AI-extracted facts about you. This cannot be undone.',
-    confirmText: 'Clear All',
+    title: t('memory.clearAllTitle'),
+    content: t('memory.clearAllContent'),
+    confirmText: t('memory.clearAllConfirm'),
     confirmColor: '#ef4444',
     success: async (res) => {
       if (!res.confirm) return;
@@ -284,9 +279,9 @@ const confirmClearAll = () => {
         const ids = facts.value.map((f) => f.id);
         await Promise.all(ids.map((id) => request({ url: `/api/facts/me/${id}`, method: 'DELETE' })));
         facts.value = [];
-        uni.showToast({ title: 'All memories cleared', icon: 'success' });
+        uni.showToast({ title: t('memory.clearAllSuccess'), icon: 'success' });
       } catch {
-        uni.showToast({ title: 'Some items could not be deleted', icon: 'none' });
+        uni.showToast({ title: t('memory.clearAllPartialFailed'), icon: 'none' });
       }
     },
   });
@@ -297,30 +292,9 @@ const goBack = () => uni.navigateBack();
 
 <style scoped>
 .memory-page {
-  min-height: 100vh;
-  background: #e8eef5;
-  padding: 0 16px 0;
+  padding: 0 var(--page-gutter, 20px) 0;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
-
-.status-spacer { width: 100%; }
-
-/* Nav bar */
-.nav-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 44px; padding: 0 4px;
-}
-
-.nav-back {
-  display: flex; align-items: center; gap: 2px;
-  padding: 8px; min-width: 64px;
-}
-
-.nav-back-icon { font-size: 22px; color: #2563eb; line-height: 1; }
-.nav-back-text { font-size: 16px; color: #2563eb; font-weight: 500; }
-.nav-title { font-size: 17px; font-weight: 700; color: #0f172a; }
-.nav-right-placeholder { min-width: 64px; }
 
 /* Header */
 .page-header { padding: 8px 4px 20px; }
@@ -329,31 +303,31 @@ const goBack = () => uni.navigateBack();
 
 .context-section { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
 .context-card {
-  background: #ffffff; border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+  background: var(--surface-1, #ffffff); border-radius: var(--radius-md, 16px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
   padding: 14px;
 }
 .context-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .context-icon { font-size: 17px; }
-.context-title { font-size: 15px; font-weight: 800; color: #0f172a; }
+.context-title { font-size: 15px; font-weight: 800; color: var(--text-primary, #0f172a); }
 .context-list { display: flex; flex-direction: column; gap: 8px; }
 .context-row { display: flex; gap: 12px; align-items: flex-start; }
-.context-label { width: 92px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #64748b; }
-.context-value { flex: 1; font-size: 13px; line-height: 1.45; color: #1e293b; word-break: break-word; }
-.context-empty { background: #f8fafc; border-radius: 12px; padding: 10px; }
-.context-empty-text { font-size: 12px; line-height: 1.5; color: #64748b; }
+.context-label { width: 92px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-secondary, #64748b); }
+.context-value { flex: 1; font-size: 13px; line-height: 1.45; color: var(--text-primary, #0f172a); word-break: break-word; }
+.context-empty { background: var(--surface-2, #f8fafc); border-radius: 12px; padding: 10px; }
+.context-empty-text { font-size: 12px; line-height: 1.5; color: var(--text-secondary, #64748b); }
 
 /* Skeleton */
 .skeleton-wrap { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.skeleton-card { height: 72px; border-radius: 14px; background: #e2e8f0; animation: pulse 1.5s ease-in-out infinite; }
+.skeleton-card { height: 72px; border-radius: 14px; background: var(--surface-3, #f1f5f9); animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* Empty */
-.empty-state { padding: 60px 20px 40px; text-align: center; }
+.empty-state { padding: 60px 0 40px; text-align: center; }
 .empty-icon { font-size: 52px; display: block; margin-bottom: 12px; }
-.empty-title { display: block; font-size: 17px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
-.empty-desc { display: block; font-size: 13px; line-height: 1.55; color: #64748b; max-width: 280px; margin: 0 auto; }
+.empty-title { display: block; font-size: 17px; font-weight: 700; color: var(--text-primary, #0f172a); margin-bottom: 8px; }
+.empty-desc { display: block; font-size: 13px; line-height: 1.55; color: var(--text-secondary, #64748b); max-width: 280px; margin: 0 auto; }
 
 /* Group */
 .group-section { margin-bottom: 20px; }
@@ -362,17 +336,17 @@ const goBack = () => uni.navigateBack();
   margin-bottom: 8px; padding: 0 4px;
 }
 .group-icon { font-size: 16px; }
-.group-label { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+.group-label { font-size: 12px; font-weight: 700; color: var(--text-secondary, #64748b); text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
 .group-count {
-  font-size: 11px; color: #94a3b8; background: #e2e8f0;
+  font-size: 11px; color: var(--text-tertiary, #8e8e93); background: var(--surface-3, #f1f5f9);
   border-radius: 10px; padding: 2px 7px; font-weight: 600;
 }
 
 /* Facts card */
 .facts-card {
-  background: #ffffff; border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+  background: var(--surface-1, #ffffff); border-radius: var(--radius-md, 16px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -384,11 +358,11 @@ const goBack = () => uni.navigateBack();
 }
 
 .fact-row-last { border-bottom: none; }
-.fact-row:active { background: #f8fafc; }
+.fact-row:active { background: var(--surface-2, #f8fafc); }
 
 .fact-body { flex: 1; min-width: 0; }
-.fact-key { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 2px; }
-.fact-value { display: block; font-size: 14px; font-weight: 500; color: #1e293b; word-break: break-word; }
+.fact-key { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary, #64748b); margin-bottom: 2px; }
+.fact-value { display: block; font-size: 14px; font-weight: 500; color: var(--text-primary, #0f172a); word-break: break-word; }
 
 /* Confidence badges */
 .fact-conf-badge {
@@ -405,11 +379,11 @@ const goBack = () => uni.navigateBack();
 /* Delete button */
 .fact-delete-btn {
   flex-shrink: 0; width: 28px; height: 28px;
-  border-radius: 50%; background: #f1f5f9;
+  border-radius: 50%; background: var(--surface-3, #f1f5f9);
   display: flex; align-items: center; justify-content: center;
 }
 .fact-delete-btn:active { background: #fee2e2; }
-.fact-delete-icon { font-size: 12px; color: #94a3b8; font-weight: 700; }
+.fact-delete-icon { font-size: 12px; color: var(--text-tertiary, #8e8e93); font-weight: 700; }
 
 /* Clear all */
 .clear-all-row { padding: 8px 0 16px; display: flex; justify-content: center; }
@@ -417,12 +391,10 @@ const goBack = () => uni.navigateBack();
   padding: 10px 24px; border-radius: 12px;
   border: 1px solid #fca5a5;
 }
-.btn-clear-all-text { font-size: 13px; color: #ef4444; font-weight: 600; }
+.btn-clear-all-text { font-size: 13px; color: var(--danger-color, #ef4444); font-weight: 600; }
 
 .bottom-safe { height: 80px; }
 
-.is-dark.memory-page { background: #0f172a; }
-.is-dark .nav-title,
 .is-dark .empty-title,
 .is-dark .fact-value,
 .is-dark .context-title,
@@ -432,7 +404,7 @@ const goBack = () => uni.navigateBack();
 .is-dark .group-label,
 .is-dark .fact-key,
 .is-dark .context-label,
-.is-dark .context-empty-text { color: #94a3b8; }
+.is-dark .context-empty-text { color: var(--text-tertiary, #8e8e93); }
 .is-dark .facts-card,
 .is-dark .context-card { background: #1e293b; border-color: #334155; box-shadow: none; }
 .is-dark .context-empty { background: #334155; }

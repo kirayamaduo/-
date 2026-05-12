@@ -1,15 +1,16 @@
 <template>
-  <view class="resume-page" :class="[themeClass, fontClass]">
+  <view class="resume-page app-soft-bg" :class="[themeClass, fontClass]">
+    <SlScrollTopBar :title="t('resume.hubTitle')" :opacity="topBarOpacity" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
     <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
 
-    <view class="page-header">
+    <view class="page-header" :style="{ paddingRight: rightAvoidWidth + 'px' }">
       <text class="page-title">{{ t('resume.hubTitle') }}</text>
       <text class="page-subtitle">{{ t('resume.hubSubtitle') }}</text>
     </view>
 
     <!-- Skeleton -->
     <view class="skeleton-list" v-if="isLoading && resumeList.length === 0">
-      <view class="skel-card" v-for="i in 3" :key="i">
+      <view class="skel-card app-card-soft" v-for="i in 3" :key="i">
         <view class="skel-square"></view>
         <view class="skel-lines">
           <view class="skel-line skel-w70"></view>
@@ -30,7 +31,7 @@
         </view>
       </view>
       <view class="resume-list">
-        <view class="resume-card" v-for="(item, idx) in originalResumes" :key="item.resumeId">
+        <view class="resume-card app-card-soft" v-for="(item, idx) in originalResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon" :class="'rc-icon-' + (idx % 2)">
               <text class="rc-icon-text">PDF</text>
@@ -55,7 +56,7 @@
           </view>
         </view>
         <!-- Add new resume -->
-        <view class="add-card" @click="handleUploadClick">
+        <view class="add-card app-card-feature" @click="handleUploadClick">
           <view class="add-icon"><text class="add-plus">+</text></view>
           <view class="add-info">
             <text class="add-title">{{ t('resume.newResume') }}</text>
@@ -75,7 +76,7 @@
         </view>
       </view>
       <view class="resume-list" v-if="tailoredResumes.length > 0">
-        <view class="resume-card resume-card-ai" v-for="(item, idx) in tailoredResumes" :key="item.resumeId">
+        <view class="resume-card resume-card-ai app-card-soft" v-for="(item, idx) in tailoredResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon rc-icon-ai">
               <text class="rc-icon-text">AI</text>
@@ -102,11 +103,11 @@
       </view>
     </view>
 
-    <view class="empty-state" v-else-if="!isLoading">
-      <text class="empty-icon">📄</text>
+    <view class="empty-state app-empty" v-else-if="!isLoading">
+      <text class="empty-icon ri-file-text-line"></text>
       <text class="empty-title">{{ t('resume.noResumes') }}</text>
       <text class="empty-desc">{{ t('resume.noResumesDesc2') }}</text>
-      <view class="add-card" @click="handleUploadClick">
+      <view class="add-card app-card-feature" @click="handleUploadClick">
         <view class="add-icon"><text class="add-plus">+</text></view>
         <view class="add-info">
           <text class="add-title">{{ t('resume.addFirst') }}</text>
@@ -124,13 +125,13 @@
         <text class="sheet-title">{{ t('resume.chooseOption') }}</text>
       </view>
       <view class="sheet-option" @click="selectAction('template')">
-        <text class="sheet-option-icon">📝</text>
+        <text class="sheet-option-icon ri-edit-box-line"></text>
         <text class="sheet-option-text">{{ t('resume.useTemplateBtn') }}</text>
       </view>
       <view class="sheet-option" @click="selectAction('upload')">
         <view class="sheet-option-col">
           <view class="sheet-option-row">
-            <text class="sheet-option-icon">📎</text>
+            <text class="sheet-option-icon ri-attachment-line"></text>
             <text class="sheet-option-text">{{ t('resume.uploadPDF') }}</text>
           </view>
           <text class="sheet-option-hint">{{ t('resume.uploadHint') }}</text>
@@ -146,8 +147,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/locales';
-import { onShow } from '@dcloudio/uni-app';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { onShow, onPageScroll } from '@dcloudio/uni-app';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
   getUserResumesApi,
   createResumeApi,
@@ -157,6 +158,7 @@ import {
   type Resume,
 } from '@/api/resume';
 import { useTheme } from '@/utils/theme';
+import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 
 interface ResumeItem {
   resumeId?: number;
@@ -232,9 +234,9 @@ const loadResumes = async () => {
     // Common causes: stale token after a rebuild (signature mismatch),
     // userId in storage doesn't match the JWT subject, or backend down.
     resumeList.value = [];
-    const msg = e?.message || 'Failed to load resumes';
+    const msg = e?.message || t('resume.loadFailed');
     if (msg.toLowerCase().includes('forbidden') || msg.includes('未登录') || msg.toLowerCase().includes('unauthor')) {
-      uni.showToast({ title: 'Session expired, please log in again', icon: 'none' });
+      uni.showToast({ title: t('resume.sessionExpired'), icon: 'none' });
       uni.removeStorageSync('token');
       uni.removeStorageSync('userId');
     } else {
@@ -247,8 +249,11 @@ const loadResumes = async () => {
 
 const showSheet = ref(false);
 const topSafeHeight = ref(88);
+const rightAvoidWidth = ref(20);
+const scrollTopValue = ref(0);
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
 const handleUploadClick = () => {
   showSheet.value = true;
@@ -271,18 +276,18 @@ const selectAction = (type: string) => {
       type: 'file',
       success: async (fileRes) => {
         const file = fileRes.tempFiles?.[0];
-        const fileName = file?.name || 'Untitled_Resume.pdf';
+        const fileName = file?.name || t('resume.untitledPdf');
         const filePath = file?.path;
         if (!filePath) {
-          uni.showToast({ title: 'No file selected', icon: 'none' });
+          uni.showToast({ title: t('resume.noFileSelected'), icon: 'none' });
           return;
         }
         if (!/\.pdf$/i.test(fileName)) {
-          uni.showToast({ title: 'Please select a PDF file', icon: 'none' });
+          uni.showToast({ title: t('resume.pdfOnly'), icon: 'none' });
           return;
         }
 
-        uni.showLoading({ title: 'Uploading...' });
+        uni.showLoading({ title: t('profile.uploading') });
         try {
           const fileUrl = await uploadResumeFile(filePath, 'resumes');
           const created = await createResumeApi({
@@ -296,20 +301,21 @@ const selectAction = (type: string) => {
           resumeList.value.unshift({
             resumeId: created.resumeId,
             name: created.title || fileName,
-            date: 'Just now',
+            date: t('resume.justNow'),
             status: 'recent',
-            statusLabel: 'Active',
+            statusLabel: t('resume.active'),
             fileUrl: created.fileUrl,
             fileViewUrl: created.fileViewUrl,
+            isTailored: false,
           });
-          uni.showToast({ title: 'Upload successful', icon: 'success' });
+          uni.showToast({ title: t('resume.uploadSuccessful'), icon: 'success' });
         } catch (e: any) {
           uni.hideLoading();
-          uni.showToast({ title: e?.message || 'Upload failed', icon: 'none' });
+          uni.showToast({ title: e?.message || t('resume.uploadFailed'), icon: 'none' });
         }
       },
       fail: () => {
-        uni.showToast({ title: 'No file selected', icon: 'none' });
+        uni.showToast({ title: t('resume.noFileSelected'), icon: 'none' });
       }
     });
   } else if (type === 'template') {
@@ -319,7 +325,7 @@ const selectAction = (type: string) => {
 
 const handlePreview = (item: ResumeItem) => {
   if (!item.resumeId) {
-    uni.showToast({ title: 'File not available yet', icon: 'none' });
+    uni.showToast({ title: t('resume.fileUnavailable'), icon: 'none' });
     return;
   }
   // Use authenticated backend proxy instead of the raw OSS URL.
@@ -327,7 +333,7 @@ const handlePreview = (item: ResumeItem) => {
   // and enforces owner-only access on the server side.
   const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
   const token = uni.getStorageSync('token');
-  uni.showLoading({ title: 'Opening...' });
+  uni.showLoading({ title: t('resume.opening') });
   uni.downloadFile({
     url: `${BASE_URL}/api/resumes/${item.resumeId}/download`,
     header: {
@@ -348,21 +354,21 @@ const handlePreview = (item: ResumeItem) => {
             // openDocument is unreliable in the WeChat DevTools simulator;
             // works on real devices. Hint the user instead of being mysterious.
             uni.showModal({
-              title: 'Cannot preview here',
-              content: 'PDF preview is not supported in the DevTools simulator. Please use the "Preview" button at the top of WeChat DevTools to scan and test on a real phone.',
+              title: t('resume.cannotPreviewTitle'),
+              content: t('resume.cannotPreviewContent'),
               showCancel: false,
-              confirmText: 'OK',
+              confirmText: t('resume.ok'),
             });
           },
         });
       } else {
         uni.hideLoading();
-        uni.showToast({ title: `Download failed (${dl.statusCode})`, icon: 'none' });
+        uni.showToast({ title: t('resume.downloadFailed', { status: dl.statusCode }), icon: 'none' });
       }
     },
     fail: () => {
       uni.hideLoading();
-      uni.showToast({ title: 'Network error', icon: 'none' });
+      uni.showToast({ title: t('resume.networkError'), icon: 'none' });
     },
   });
 };
@@ -371,7 +377,7 @@ const handleMore = (idx: number) => {
   if (!resumeList.value[idx]) return;
 
   uni.showActionSheet({
-    itemList: ['Rename', 'Share', 'Delete'],
+    itemList: [t('resume.actionRename'), t('resume.actionShare'), t('resume.actionDelete')],
     success: (res) => {
       if (res.tapIndex === 0) {
         const item = resumeList.value[idx];
@@ -379,9 +385,9 @@ const handleMore = (idx: number) => {
         const dotIndex = oldName.lastIndexOf('.pdf');
         const base = dotIndex > 0 ? oldName.slice(0, dotIndex) : oldName;
         uni.showModal({
-          title: 'Rename Resume',
+          title: t('resume.renameTitle'),
           editable: true,
-          placeholderText: 'New name',
+          placeholderText: t('resume.renamePlaceholder'),
           content: base,
           success: async (mr) => {
             if (!mr.confirm) return;
@@ -392,12 +398,12 @@ const handleMore = (idx: number) => {
               try {
                 await updateResumeApi(item.resumeId, { title: newBase });
               } catch (e: any) {
-                uni.showToast({ title: e?.message || 'Rename failed', icon: 'none' });
+                uni.showToast({ title: e?.message || t('resume.renameFailed'), icon: 'none' });
                 return;
               }
             }
             item.name = newName;
-            uni.showToast({ title: 'Renamed', icon: 'success' });
+            uni.showToast({ title: t('resume.renamed'), icon: 'success' });
           },
         });
       } else if (res.tapIndex === 1) {
@@ -407,18 +413,18 @@ const handleMore = (idx: number) => {
         // after that they'll need a fresh link.
         const shareUrl = item.fileViewUrl;
         if (!shareUrl) {
-          uni.showToast({ title: 'File URL not available', icon: 'none' });
+          uni.showToast({ title: t('resume.fileUrlUnavailable'), icon: 'none' });
           return;
         }
         uni.setClipboardData({
           data: shareUrl,
-          success: () => uni.showToast({ title: 'Share link copied (valid 15 min)', icon: 'none' }),
-          fail: () => uni.showToast({ title: 'Copy failed, please retry', icon: 'none' })
+          success: () => uni.showToast({ title: t('resume.shareCopied'), icon: 'none' }),
+          fail: () => uni.showToast({ title: t('resume.copyFailed'), icon: 'none' })
         });
       } else if (res.tapIndex === 2) {
         uni.showModal({
-          title: 'Confirm Delete',
-          content: 'Are you sure you want to delete this resume?',
+          title: t('resume.confirmDeleteTitle'),
+          content: t('resume.confirmDeleteContent'),
           success: async (r) => {
             if (!r.confirm) return;
             const item = resumeList.value[idx];
@@ -426,12 +432,12 @@ const handleMore = (idx: number) => {
               try {
                 await deleteResumeApi(item.resumeId);
               } catch (e: any) {
-                uni.showToast({ title: e?.message || 'Delete failed', icon: 'none' });
+                uni.showToast({ title: e?.message || t('resume.deleteFailed'), icon: 'none' });
                 return;
               }
             }
             resumeList.value.splice(idx, 1);
-            uni.showToast({ title: 'Deleted', icon: 'success' });
+            uni.showToast({ title: t('resume.deleted'), icon: 'success' });
           },
         });
       }
@@ -441,7 +447,9 @@ const handleMore = (idx: number) => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getTopSafeHeight();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
 });
 
 // Tab pages are kept alive across navigation; onShow re-fires every time
@@ -450,13 +458,15 @@ onShow(() => {
   refreshTheme();
   loadResumes();
 });
+
+onPageScroll(({ scrollTop }) => {
+  scrollTopValue.value = scrollTop;
+});
 </script>
 
 <style scoped>
 .resume-page {
-  min-height: 100vh;
-  background: var(--page-ios-gray);
-  padding: 0 20px;
+  padding: 0 var(--page-gutter, 20px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
@@ -468,18 +478,17 @@ onShow(() => {
 
 .page-title {
   display: block;
-  font-size: var(--font-title);
+  font-size: var(--font-hero, 28px);
   font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.35px;
+  color: var(--text-primary, #0f172a);
 }
 
 .page-subtitle {
   display: block;
-  font-size: var(--font-caption);
-  color: var(--text-tertiary);
+  font-size: var(--font-caption, 13px);
+  color: var(--text-tertiary, #8e8e93);
   margin-top: 4px;
-  line-height: var(--line-height-caption);
+  line-height: var(--line-height-caption, 1.45);
 }
 
 .section-bar {
@@ -490,29 +499,27 @@ onShow(() => {
 }
 .section-titles { display: flex; flex-direction: column; gap: 2px; }
 .section-title {
-  font-size: var(--font-section);
+  font-size: var(--font-section, 17px);
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-primary, #0f172a);
 }
-.section-sub { font-size: 12px; color: var(--text-tertiary); }
+.section-sub { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 
 .section-action {
   padding: 6px 12px;
-  background: #eff6ff;
+  background: var(--primary-soft, #eff6ff);
   border-radius: 999px;
   border: 1px solid #dbeafe;
 }
-.section-action:active { background: #dbeafe; }
-.section-action-text { font-size: 13px; color: #2563eb; font-weight: 600; }
+.section-action:active { background: var(--primary-soft, #eff6ff); }
+.section-action-text { font-size: 13px; color: var(--primary-color, #2563eb); font-weight: 600; }
 
 /* Skeleton placeholders shown during initial load.
    HCI: visibility of system status -- a shimmering layout previews
    what's coming, which feels much faster than a centered spinner. */
 .skeleton-list { display: flex; flex-direction: column; gap: 10px; }
 .skel-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
   display: flex; align-items: center; gap: 14px;
 }
@@ -547,11 +554,8 @@ onShow(() => {
 .resume-card {
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
 .rc-icon-wrap { margin-right: 14px; flex-shrink: 0; }
@@ -571,7 +575,7 @@ onShow(() => {
 .rc-icon-text {
   font-size: 11px;
   font-weight: 800;
-  color: #2563eb;
+  color: var(--primary-color, #2563eb);
   letter-spacing: 0.5px;
 }
 
@@ -580,7 +584,7 @@ onShow(() => {
 .rc-name {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary, #0f172a);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -595,12 +599,12 @@ onShow(() => {
   flex-wrap: wrap;
 }
 
-.rc-time { font-size: 12px; color: #94a3b8; }
+.rc-time { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 
 .rc-badge { padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
 
-.badge-recent { background: #dbeafe; }
-.badge-recent .rc-badge-text { color: #2563eb; }
+.badge-recent { background: var(--primary-soft, #eff6ff); }
+.badge-recent .rc-badge-text { color: var(--primary-color, #2563eb); }
 
 .badge-normal { background: #eef2ff; }
 .badge-normal .rc-badge-text { color: #4f46e5; }
@@ -609,31 +613,30 @@ onShow(() => {
 
 .rc-actions { display: flex; align-items: center; gap: 8px; margin-left: 10px; }
 
-.rc-action-btn { padding: 6px 14px; border-radius: 10px; background: #eff6ff; }
+.rc-action-btn { padding: 6px 14px; border-radius: 10px; background: var(--primary-soft, #eff6ff); }
 
-.rc-action-btn:active { background: #dbeafe; }
+.rc-action-btn:active { background: var(--primary-soft, #eff6ff); }
 
-.rc-action-text { font-size: 13px; font-weight: 500; color: #2563eb; }
+.rc-action-text { font-size: 13px; font-weight: 500; color: var(--primary-color, #2563eb); }
 
 .rc-more { padding: 6px 4px; }
 
-.rc-more-dots { font-size: 16px; color: #94a3b8; font-weight: 700; letter-spacing: 1px; }
+.rc-more-dots { font-size: 16px; color: var(--text-tertiary, #8e8e93); font-weight: 700; letter-spacing: 1px; }
 
 .add-card {
   display: flex;
   align-items: center;
   border: 1.5px dashed #93c5fd;
-  background: #ffffff;
-  border-radius: 16px;
+  border-radius: var(--radius-md, 16px);
   padding: 16px;
   gap: 14px;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0,0,0,0.08), 0 1px 8px rgba(0,0,0,0.05));
   transition: all 0.2s;
 }
 
 .add-card:active {
   border-color: #93c5fd;
-  background: #eff6ff;
+  background: var(--primary-soft, #eff6ff);
   transform: scale(0.98);
 }
 
@@ -641,20 +644,20 @@ onShow(() => {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: #eff6ff;
+  background: var(--primary-soft, #eff6ff);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.add-plus { font-size: 22px; color: #2563eb; font-weight: 300; }
+.add-plus { font-size: 22px; color: var(--primary-color, #2563eb); font-weight: 300; }
 
 .add-info { display: flex; flex-direction: column; }
 
-.add-title { font-size: 15px; font-weight: 600; color: #1e3a8a; margin-bottom: 3px; }
+.add-title { font-size: 15px; font-weight: 600; color: var(--primary-hover, #1d4ed8); margin-bottom: 3px; }
 
-.add-desc { font-size: 12px; color: #64748b; }
+.add-desc { font-size: 12px; color: var(--text-secondary, #64748b); }
 
 .bottom-safe {
   height: calc(var(--tab-bar-height, 50px) + 20px);
@@ -674,7 +677,7 @@ onShow(() => {
   display: block;
   font-size: 17px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-primary, #0f172a);
 }
 
 .empty-desc {
@@ -682,7 +685,7 @@ onShow(() => {
   margin: 8px 0 18px;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
 }
 
 /* ---- Action sheet ---- */
@@ -760,7 +763,7 @@ onShow(() => {
 .is-dark .page-subtitle,
 .is-dark .section-count,
 .is-dark .rc-time,
-.is-dark .add-desc { color: #94a3b8; }
+.is-dark .add-desc { color: var(--text-tertiary, #8e8e93); }
 
 .is-dark .resume-card,
 .is-dark .add-card,
@@ -783,7 +786,7 @@ onShow(() => {
 .is-dark .add-card:active { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.3); }
 .is-dark .add-icon { background: rgba(37, 99, 235, 0.15); }
 .is-dark .add-plus { color: #60a5fa; }
-.is-dark .rc-more-dots { color: #64748b; }
+.is-dark .rc-more-dots { color: var(--text-secondary, #64748b); }
 
 /* ================================================================
  *  MP-WEIXIN parity overrides (scoped to resume hub page)
@@ -814,7 +817,7 @@ onShow(() => {
 }
 
 .resume-page.is-dark .sheet-title {
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 
 .resume-page.is-dark .sheet-option-text {
@@ -822,7 +825,7 @@ onShow(() => {
 }
 
 .resume-page.is-dark .sheet-option-hint {
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
 }
 
 .resume-page.is-dark .sheet-cancel {

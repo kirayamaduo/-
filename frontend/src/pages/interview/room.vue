@@ -1,9 +1,9 @@
 <template>
-  <view class="room-page">
+  <view class="room-page app-soft-bg" :class="[themeClass, fontClass]">
     <!-- ========== Top bar ==========
          Custom header so we can sit flush over the camera preview without
          the WeChat default white nav bar reducing contrast. -->
-    <view class="top-bar" :style="{ paddingTop: statusTopPx + 'px' }">
+    <view class="top-bar" :style="{ paddingTop: statusTopPx + 'px', paddingRight: rightAvoidWidth + 'px' }">
       <view class="back-btn" @click="confirmExit">
         <text class="back-icon">‹</text>
       </view>
@@ -24,14 +24,15 @@
     <camera
       v-if="cameraReady"
       class="camera-pip"
+      :style="{ top: cameraTopPx + 'px', right: cameraRightPx + 'px' }"
       device-position="front"
       flash="off"
       :resolution="'medium'"
       id="bodyLangCamera"
       @error="onCameraError"
     />
-    <view v-else class="camera-pip camera-pip-fallback">
-      <text class="camera-fallback-icon">📷</text>
+    <view v-else class="camera-pip camera-pip-fallback" :style="{ top: cameraTopPx + 'px', right: cameraRightPx + 'px' }">
+      <text class="camera-fallback-icon ri-camera-line"></text>
       <text class="camera-fallback-text">{{ cameraError || t('interviewRoom.tapToEnable') }}</text>
       <view class="camera-enable-btn" @click="requestCamera">
         <text class="camera-enable-text">{{ t('interviewRoom.enableCamera') }}</text>
@@ -39,8 +40,8 @@
     </view>
     <!-- #endif -->
     <!-- #ifndef MP-WEIXIN -->
-    <view class="camera-pip camera-pip-fallback">
-      <text class="camera-fallback-icon">📷</text>
+    <view class="camera-pip camera-pip-fallback" :style="{ top: cameraTopPx + 'px', right: cameraRightPx + 'px' }">
+      <text class="camera-fallback-icon ri-camera-line"></text>
       <text class="camera-fallback-text">{{ t('interviewRoom.cameraOnly') }}</text>
     </view>
     <!-- #endif -->
@@ -116,7 +117,7 @@
           <view class="pulse-ring delay-1" />
           <view class="pulse-ring delay-2" />
         </view>
-        <text class="record-icon">🎤</text>
+        <text class="record-icon ri-mic-2-line"></text>
         <text v-if="isRecording" class="record-timer">{{ recordTimerText }}</text>
       </view>
 
@@ -131,17 +132,14 @@
       </view>
     </view>
 
-    <!-- ========== Toast ========== -->
-    <view v-if="toast.visible" class="toast" :class="['toast-' + toast.type]">
-      <text>{{ toast.message }}</text>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useI18n } from '@/locales';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { useTheme } from '@/utils/theme';
 import {
   endInterviewApi,
   getInterviewByIdApi,
@@ -153,9 +151,13 @@ import {
 import { submitBodyLanguageFrameApi } from '@/api/bodyLanguage';
 
 const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 // ───────────────────────── State ─────────────────────────
 const statusTopPx = ref(52);
+const rightAvoidWidth = ref(16);
+const cameraTopPx = ref(90);
+const cameraRightPx = ref(16);
 const interviewId = ref<number>(0);
 const interviewLang = (uni.getStorageSync('interview_language') as string) || 'en';
 const interview = ref<Interview | null>(null);
@@ -176,9 +178,6 @@ const cameraReady = ref(false);
 const cameraError = ref('');
 let bodyLangTimer: ReturnType<typeof setInterval> | null = null;
 const BODY_LANG_INTERVAL_MS = 3000;
-
-const toast = reactive({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Holds the recorder manager and audio context. Both are mini-program /
 // uni-app singletons that live as long as the page does — we lazily
@@ -218,14 +217,19 @@ const recordHint = computed(() => {
 
 // ───────────────────────── Lifecycle ─────────────────────────
 onMounted(async () => {
-  statusTopPx.value = getTopSafeHeight();
+  refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  statusTopPx.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+  cameraTopPx.value = safeMetrics.contentTop + 8;
+  cameraRightPx.value = Math.max(16, safeMetrics.rightAvoidWidth);
 
   const pages = getCurrentPages();
   const currentPage = pages[pages.length - 1] as any;
   interviewId.value = parseInt(currentPage.options?.interviewId || '0');
 
   if (!interviewId.value) {
-    showToast('Missing interview ID', 'error');
+    showToast(t('interviewRoom.missingInterviewId'), 'error');
     setTimeout(() => uni.navigateBack(), 1200);
     return;
   }
@@ -233,7 +237,7 @@ onMounted(async () => {
   try {
     interview.value = await getInterviewByIdApi(interviewId.value);
   } catch (e: any) {
-    showToast(e?.message || 'Failed to load interview', 'error');
+    showToast(e?.message || t('interviewRoom.loadFailed'), 'error');
     return;
   }
 
@@ -442,8 +446,8 @@ const fetchAndPlayGreeting = async () => {
     const res = await voiceGreetingApi(interviewId.value, interviewLang);
     applyVoiceResponse(res);
   } catch (e: any) {
-    lastAiText.value = '语音合成暂时失败，请先切换到文字模式继续面试。';
-    showToast(e?.message || 'Failed to load greeting', 'error');
+    lastAiText.value = t('interviewRoom.voiceFallback');
+    showToast(e?.message || t('interviewRoom.greetingFailed'), 'error');
   } finally {
     isThinking.value = false;
   }
@@ -455,8 +459,8 @@ const sendVoiceTurn = async (filePath: string) => {
     const res = await voiceTurnApi(interviewId.value, filePath, 'mp3', interviewLang);
     applyVoiceResponse(res);
   } catch (e: any) {
-    lastAiText.value = '语音合成暂时失败，请先切换到文字模式继续面试。';
-    showToast(e?.message || 'Voice turn failed', 'error');
+    lastAiText.value = t('interviewRoom.voiceFallback');
+    showToast(e?.message || t('interviewRoom.voiceTurnFailed'), 'error');
   } finally {
     isThinking.value = false;
   }
@@ -483,16 +487,16 @@ const replayAudio = () => {
 // ───────────────────────── Exit / End ─────────────────────────
 const confirmExit = () => {
   uni.showModal({
-    title: 'Leave interview?',
-    content: 'You can come back to this session from the home page.',
+    title: t('interviewRoom.leaveTitle'),
+    content: t('interviewRoom.leaveContent'),
     success: (m) => { if (m.confirm) uni.navigateBack(); },
   });
 };
 
 const endInterview = () => {
   uni.showModal({
-    title: 'End interview',
-    content: 'We\'ll generate your AI-graded report next. Continue?',
+    title: t('interviewRoom.endTitle'),
+    content: t('interviewRoom.endContent'),
     confirmColor: '#ef4444',
     success: async (m) => {
       if (!m.confirm) return;
@@ -500,7 +504,7 @@ const endInterview = () => {
         await endInterviewApi(interviewId.value);
         uni.redirectTo({ url: `/pages/interview/report?interviewId=${interviewId.value}` });
       } catch (e: any) {
-        showToast(e?.message || 'Failed to end interview', 'error');
+        showToast(e?.message || t('interviewRoom.endFailed'), 'error');
       }
     },
   });
@@ -512,11 +516,11 @@ const switchToTextMode = () => {
 
 // ───────────────────────── Toast ─────────────────────────
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-  if (toastTimer) clearTimeout(toastTimer);
-  toast.message = message;
-  toast.type = type;
-  toast.visible = true;
-  toastTimer = setTimeout(() => { toast.visible = false; }, 2400);
+  uni.showToast({
+    title: message,
+    icon: type === 'success' ? 'success' : 'none',
+    duration: 2000
+  });
 };
 </script>
 
@@ -552,15 +556,15 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 /* ========== Camera PiP ========== */
 .camera-pip {
   position: absolute;
-  top: 90px;
-  right: 16px;
+  right: 20px;
+  top: 108px;
   width: 96px;
   height: 128px;
   border-radius: 14px;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.25);
   background: #000;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-card);
   z-index: 5;
 }
 .camera-pip-fallback {
@@ -617,7 +621,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
   align-items: center;
   justify-content: center;
   gap: 18px;
-  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.55), inset 0 -12px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-lg);
   animation: breathe 4s ease-in-out infinite;
 }
 .is-talking .avatar-face { animation: talking 0.45s ease-in-out infinite; }
@@ -639,7 +643,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 .eye {
   width: 14px; height: 14px; border-radius: 50%;
   background: #f8fafc;
-  box-shadow: 0 0 12px rgba(248, 250, 252, 0.6);
+  box-shadow: var(--shadow-xs);
   animation: blink 4s ease-in-out infinite;
 }
 @keyframes blink {
@@ -666,7 +670,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
 .dot-idle { background: #64748b; }
-.dot-talking { background: #34d399; box-shadow: 0 0 10px rgba(52, 211, 153, 0.7); }
+.dot-talking { background: #34d399; box-shadow: var(--shadow-xs); }
 .dot-listening { background: #f87171; animation: pulse-dot 0.9s infinite; }
 .dot-thinking { background: #fbbf24; animation: pulse-dot 1.4s infinite; }
 @keyframes pulse-dot { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
@@ -707,7 +711,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 
 /* ========== Action zone ========== */
 .action-zone {
-  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   z-index: 2;
 }
@@ -723,7 +727,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
   width: 96px; height: 96px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.45);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -737,7 +741,7 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 
 .record-btn.is-recording {
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-  box-shadow: 0 16px 36px rgba(248, 113, 113, 0.6);
+  box-shadow: var(--shadow-lg);
 }
 .record-btn.is-disabled {
   background: rgba(100, 116, 139, 0.7);
@@ -791,18 +795,4 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info')
 .end-btn-bottom:active { background: rgba(239, 68, 68, 1); }
 .end-btn-bottom-text { color: #fff; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
 
-/* ========== Toast ========== */
-.toast {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 80px);
-  left: 16px; right: 16px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  z-index: 99;
-  text-align: center;
-  font-size: 13px; font-weight: 600;
-}
-.toast-info { background: rgba(96, 165, 250, 0.95); color: #fff; }
-.toast-success { background: rgba(52, 211, 153, 0.95); color: #022c22; }
-.toast-error { background: rgba(239, 68, 68, 0.95); color: #fff; }
 </style>

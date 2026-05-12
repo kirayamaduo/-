@@ -1,4 +1,4 @@
-import request from '@/utils/request';
+import request, { uploadFileRequest } from '@/utils/request';
 
 /**
  * Resume Detail Interface (Stored in MongoDB)
@@ -144,32 +144,11 @@ export const tailorResumeApi = (data: { userId: number; resumeId: number; jobDes
  * `Resume.fileUrl`. Use the entity's `fileViewUrl` for browser display.
  */
 export const uploadResumeFile = (filePath: string, folder: string = 'resumes'): Promise<string> => {
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-  const token = uni.getStorageSync('token');
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url: `${BASE_URL}/api/files/upload`,
-      filePath,
-      name: 'file',
-      formData: { folder },
-      header: {
-        'ngrok-skip-browser-warning': '1',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      success: (res) => {
-        try {
-          const body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-          if (body && body.code === 200 && body.data) {
-            resolve(body.data as string);
-          } else {
-            reject(new Error(body?.message || 'Upload failed'));
-          }
-        } catch (e) {
-          reject(new Error('Invalid upload response'));
-        }
-      },
-      fail: () => reject(new Error('Upload network error')),
-    });
+  return uploadFileRequest<string>({
+    url: '/api/files/upload',
+    filePath,
+    name: 'file',
+    formData: { folder },
   });
 };
 

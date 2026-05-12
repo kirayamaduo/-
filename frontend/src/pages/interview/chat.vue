@@ -1,5 +1,19 @@
 <template>
-  <view class="chat-container" :class="[themeClass, fontClass]">
+  <SlPage class="app-soft-bg" :custom-class="['chat-container', themeClass, fontClass].join(' ')">
+    <SlNavBar
+      :title="t('interviewChat.navTitle')"
+      show-back
+      @back="goBack"
+      :safe-top="topSafeHeight"
+      :right-avoid-width="rightAvoidWidth"
+    >
+      <template #right>
+        <view class="end-link" @click="endInterview">
+          <text class="end-link-text">{{ t('interviewChat.endBtn') }}</text>
+        </view>
+      </template>
+    </SlNavBar>
+
     <view class="interview-info" v-if="interview">
       <view class="session-copy">
         <text class="position">{{ interview.positionName }}</text>
@@ -7,9 +21,6 @@
       </view>
       <view class="info-actions">
         <text class="difficulty">{{ interview.difficulty }}</text>
-        <view class="end-link" @click="endInterview">
-          <text class="end-link-text">{{ t('interviewChat.endBtn') }}</text>
-        </view>
       </view>
     </view>
 
@@ -35,7 +46,7 @@
 
     <view class="input-area">
       <input 
-        class="chat-input" 
+        class="chat-input ui-input" 
         v-model="inputText" 
         :placeholder="t('interviewChat.inputPlaceholder')" 
         placeholder-class="ph"
@@ -49,7 +60,7 @@
         <text class="send-label">{{ t('interviewChat.sendBtn') }}</text>
       </view>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
@@ -65,6 +76,9 @@ import {
 } from '@/api/interview';
 import type { Interview, InterviewMessage } from '@/api/interview';
 import { useTheme } from '@/utils/theme';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import SlPage from '@/style-library/components/SlPage.vue';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const interviewId = ref<number>(0);
 const interview = ref<Interview | null>(null);
@@ -76,6 +90,8 @@ let typingTimer: any = null;
 const { t } = useI18n();
 const interviewLang = (uni.getStorageSync('interview_language') as string) || 'en';
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(20);
 
 const startTypingTimer = () => {
   typingElapsed.value = 0;
@@ -94,6 +110,9 @@ const stopTypingTimer = () => {
 };
 onMounted(async () => {
   refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   const pages = getCurrentPages();
   const currentPage = pages[pages.length - 1] as any;
   interviewId.value = parseInt(currentPage.options?.interviewId || '0');
@@ -121,7 +140,7 @@ onMounted(async () => {
       }
     } catch (error: any) {
       console.error('Failed to load interview:', error);
-      uni.showToast({ title: error?.message || 'Failed to load interview', icon: 'none' });
+      uni.showToast({ title: error?.message || t('interviewRoom.loadFailed'), icon: 'none' });
     }
   }
 });
@@ -170,26 +189,27 @@ const endInterview = () => {
           }, 800);
         } catch (error: any) {
           console.error('Failed to end interview:', error);
-          uni.showToast({ title: error?.message || 'Failed to end', icon: 'none' });
+          uni.showToast({ title: error?.message || t('interviewChat.endFailed'), icon: 'none' });
         }
       }
     }
   });
 };
+
+const goBack = () => {
+  uni.navigateBack({ delta: 1 });
+};
 </script>
 
 <style scoped>
-.chat-container {
+.sl-page :deep(.chat-container) {
   height: 100vh;
-  background-color: #f5f5f7;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
 .interview-info {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--gradient-primary);
   padding: 16px 20px;
   display: flex; justify-content: space-between; align-items: center;
   flex-shrink: 0;
@@ -227,28 +247,26 @@ const endInterview = () => {
    can't accidentally hit it during fast typing in the bottom half of the screen. */
 .end-link {
   min-width: 44px; min-height: 44px;
-  padding: 8px 12px;
+  padding: 0 12px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 10px;
 }
 .end-link:active { background: rgba(255,255,255,0.12); }
 .end-link-text {
   font-size: 14px; font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: #ef4444;
 }
 
 .chat-area {
   flex: 1;
   min-height: 0;
   max-height: calc(100vh - 200px);
-  background-color: #f5f5f7;
 }
 
 .chat-area-surface {
   min-height: 100%;
   padding: 16px;
   box-sizing: border-box;
-  background-color: #f5f5f7;
 }
 
 .message { margin-bottom: 16px; display: flex; }
@@ -263,17 +281,17 @@ const endInterview = () => {
 }
 
 .message.user .msg-content {
-  background: #2563eb; color: #fff;
+  background: var(--primary-color, #2563eb); color: #fff;
   border-radius: 20px 4px 20px 20px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 .message.ai .msg-content {
   background: #fff;
-  border: 1px solid var(--border-color);
-  color: #1e293b;
+  border: 1px solid var(--border-color, #b8c8d8);
+  color: var(--text-primary, #0f172a);
   border-radius: 4px 20px 20px 20px;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0,0,0,0.08), 0 1px 8px rgba(0,0,0,0.05));
 }
 
 /* Typing dots */
@@ -281,7 +299,7 @@ const endInterview = () => {
 .typing-dots { display: flex; gap: 5px; padding: 4px 6px; align-items: center; }
 .typing-timer {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
   font-variant-numeric: tabular-nums;
 }
 
@@ -299,7 +317,7 @@ const endInterview = () => {
 }
 
 .input-area {
-  display: flex; padding: 10px 16px; gap: 10px;
+  display: flex; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 10px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);
@@ -308,29 +326,29 @@ const endInterview = () => {
 
 .chat-input {
   flex: 1; border: 1.5px solid #e2e8f0; border-radius: 22px;
-  padding: 10px 18px; font-size: 15px; background: #f8fafc;
-  color: #0f172a; height: 44px;
+  padding: 10px 18px; font-size: 15px; background: var(--surface-2, #f8fafc);
+  color: var(--text-primary, #0f172a); height: 44px;
 }
 
-.ph { color: #94a3b8; }
+.ph { color: var(--text-tertiary, #8e8e93); }
 
 .send-btn {
   min-width: 64px; height: 38px; padding: 0 14px;
   border-radius: 19px;
-  background: #e5e5ea; display: flex;
+  background: var(--surface-3, #f1f5f9); display: flex;
   align-items: center; justify-content: center;
   flex-shrink: 0; transition: background 0.2s;
 }
 
-.send-active { background: #2563eb; }
+.send-active { background: var(--primary-color, #2563eb); }
 
 .send-label {
-  color: #94a3b8; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--text-tertiary, #8e8e93); font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
 }
 .send-active .send-label { color: #ffffff; }
 
 /* Dark mode */
-.is-dark { background-color: #0f172a; }
+.is-dark { background-color: var(--text-primary, #0f172a); }
 
 .is-dark .message.ai .msg-content { background: #1e293b; color: #f8fafc; box-shadow: none; }
 
@@ -338,13 +356,27 @@ const endInterview = () => {
 
 .is-dark .chat-input { background: #1e293b; border-color: #334155; color: #f8fafc; }
 
-.is-dark .chat-area,
-.is-dark .chat-area-surface {
-  background-color: #0f172a;
+/* #ifdef MP-WEIXIN */
+.input-area {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface-1, #ffffff);
 }
 
-.theme-green .chat-area,
-.theme-green .chat-area-surface {
-  background-color: #f0fdf4;
+.message.ai .msg-content {
+  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-xs);
 }
+
+.chat-container.is-dark .input-area {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.chat-container.is-dark .message.ai .msg-content {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: none;
+}
+/* #endif */
 </style>

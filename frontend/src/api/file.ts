@@ -1,13 +1,4 @@
-import request from '@/utils/request';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-const isBlockedHtmlResponse = (payload: unknown): boolean => {
-  if (typeof payload !== 'string') return false;
-  const s = payload.toLowerCase();
-  return (s.includes('<html') || s.includes('<!doctype html'))
-    && (s.includes('dnspod.qcloud.com/static/webblock.html') || s.includes('webblock'));
-};
+import { uploadFileRequest } from '@/utils/request';
 
 /**
  * Upload a file to OSS via the backend.
@@ -23,46 +14,11 @@ const isBlockedHtmlResponse = (payload: unknown): boolean => {
  * @returns OSS object key
  */
 export const uploadFileApi = (filePath: string, folder: string = 'resumes'): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const token = uni.getStorageSync('token');
-
-    uni.uploadFile({
-      url: `${BASE_URL}/api/files/upload`,
-      filePath: filePath,
-      name: 'file',
-      formData: { folder },
-      header: {
-        Authorization: token ? `Bearer ${token}` : '',
-        // Required when the backend is behind ngrok-free.dev (otherwise we
-        // get the abuse interstitial HTML instead of the JSON envelope).
-        'ngrok-skip-browser-warning': '1',
-      },
-      success: (res) => {
-        console.log('Upload response:', res.statusCode, res.data);
-        if (isBlockedHtmlResponse(res.data)) {
-          reject(new Error('接口被拦截（疑似备案/域名拦截），请切换 IP 地址测试'));
-          return;
-        }
-        if (res.statusCode === 200) {
-          try {
-            const body = JSON.parse(res.data);
-            if (body.code === 200) {
-              resolve(body.data);
-            } else {
-              reject(new Error(body.message || `Upload failed (code: ${body.code})`));
-            }
-          } catch (e) {
-            reject(new Error(`Invalid upload response: ${res.data}`));
-          }
-        } else {
-          reject(new Error(`Upload failed (status: ${res.statusCode})`));
-        }
-      },
-      fail: (err) => {
-        console.error('Upload error:', err);
-        reject(err);
-      },
-    });
+  return uploadFileRequest<string>({
+    url: '/api/files/upload',
+    filePath,
+    name: 'file',
+    formData: { folder },
   });
 };
 

@@ -47,16 +47,18 @@ const onInput = (e: any) => {
   display: block;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
 }
 
 .sl-input {
+  width: 100%;
   height: 40px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid #dbe2ea;
+  border-radius: var(--radius-sm, 12px);
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border-color, #b8c8d8);
   padding: 0 12px;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
+  box-sizing: border-box;
 }
 </style>

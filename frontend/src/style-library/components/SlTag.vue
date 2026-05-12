@@ -29,27 +29,27 @@ withDefaults(
 }
 
 .sl-tag--default {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--surface-3, #f1f5f9);
+  color: var(--text-secondary, #64748b);
 }
 
 .sl-tag--primary {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--primary-soft, #eff6ff);
+  color: var(--primary-hover, #1d4ed8);
 }
 
 .sl-tag--success {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--success-soft, #dcfce7);
+  color: var(--success-color, #059669);
 }
 
 .sl-tag--warning {
-  background: #ffedd5;
-  color: #c2410c;
+  background: var(--accent-soft, #fff7ed);
+  color: var(--accent-hover, #ea580c);
 }
 
 .sl-tag--danger {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--danger-soft, #fef2f2);
+  color: var(--danger-color, #ef4444);
 }
 </style>

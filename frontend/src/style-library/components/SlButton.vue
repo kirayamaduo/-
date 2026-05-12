@@ -25,33 +25,37 @@ const emit = defineEmits<{
 
 <style scoped>
 .sl-button {
-  border: none;
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--btn-radius, 14px);
   height: 40px;
   line-height: 40px;
   font-size: 14px;
   font-weight: 600;
   padding: 0 16px;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .sl-button--primary {
-  background: #2563eb;
+  background: var(--primary-color, #2563eb);
   color: #fff;
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08));
 }
 
 .sl-button--secondary {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--surface-2, #f8fafc);
+  color: var(--text-primary, #0f172a);
+  border-color: var(--border-color, #b8c8d8);
 }
 
 .sl-button--ghost {
   background: transparent;
-  color: #2563eb;
-  border: 1px solid #93c5fd;
+  color: var(--primary-color, #2563eb);
+  border-color: var(--primary-mid, #3b82f6);
 }
 
 .sl-button--danger {
-  background: #ef4444;
+  background: var(--danger-color, #ef4444);
   color: #fff;
 }
 

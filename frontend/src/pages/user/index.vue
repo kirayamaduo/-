@@ -1,8 +1,9 @@
 <template>
-  <view class="user-page" :class="[themeClass, fontClass]">
+  <view class="user-page app-soft-bg" :class="[themeClass, fontClass]">
+    <SlScrollTopBar :title="t('profile.title')" :opacity="topBarOpacity" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
     <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
 
-    <view class="page-header">
+    <view class="page-header" :style="{ paddingRight: rightAvoidWidth + 'px' }">
       <text class="page-title">{{ t('profile.title') }}</text>
       <text class="page-subtitle">{{ t('profile.subtitle') }}</text>
     </view>
@@ -17,11 +18,11 @@
         />
       </view>
       <view class="header-info">
-        <text class="header-name">{{ userInfo.nickname || 'User' }}</text>
+        <text class="header-name">{{ userInfo.nickname || t('profile.defaultUser') }}</text>
         <text class="header-school" v-if="userInfo.school">{{ userInfo.school }}</text>
       </view>
       <view class="header-edit" @click.stop="openProfileEdit">
-        <text class="header-edit-text">{{ userInfo.school ? 'Edit' : 'Complete' }}</text>
+        <text class="header-edit-text">{{ userInfo.school ? t('profile.edit') : t('profile.complete') }}</text>
         <text class="header-edit-arrow">›</text>
       </view>
     </view>
@@ -34,7 +35,7 @@
     </view>
 
     <!-- Stats bar -->
-    <view class="stats-bar" v-if="isLoggedIn">
+    <view class="stats-bar app-surface" v-if="isLoggedIn">
       <view class="stat-item">
         <text class="stat-val">{{ statsInterviews }}</text>
         <text class="stat-label">{{ t('profile.interviews') }}</text>
@@ -48,24 +49,24 @@
 
     <!-- Menu group 1: My Assets -->
     <text class="group-label">{{ t('profile.assets') }}</text>
-    <view class="menu-card">
+    <view class="menu-card app-card-soft">
       <view class="menu-item" @click="goResumes">
-        <text class="menu-icon">📄</text>
+        <view class="app-icon-tile app-icon-tile--cyan menu-icon-wrap"><text class="menu-icon ri-file-text-line"></text></view>
         <text class="menu-text">{{ t('profile.resumeHub') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="navTo('/pages/assessment/index')">
-        <text class="menu-icon">📝</text>
+        <view class="app-icon-tile app-icon-tile--violet menu-icon-wrap"><text class="menu-icon ri-edit-box-line"></text></view>
         <text class="menu-text">{{ t('profile.myAssessments') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="navTo('/pages/interview/history')">
-        <text class="menu-icon">💼</text>
+        <view class="app-icon-tile app-icon-tile--warning menu-icon-wrap"><text class="menu-icon ri-briefcase-line"></text></view>
         <text class="menu-text">{{ t('profile.interviewRecords') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" v-if="isLoggedIn" @click="navTo('/pages/user/memory')">
-        <text class="menu-icon">🧠</text>
+        <view class="app-icon-tile app-icon-tile--candy menu-icon-wrap"><text class="menu-icon ri-brain-line"></text></view>
         <text class="menu-text">{{ t('profile.aiMemory') }}</text>
         <text class="menu-arrow">›</text>
       </view>
@@ -73,45 +74,21 @@
 
     <!-- Menu group 2: Appearance & Accessibility -->
     <text class="group-label">{{ t('profile.appearance') }}</text>
-    <view class="menu-card">
+    <view class="menu-card app-card-soft">
       <view class="menu-item">
-        <text class="menu-icon">🎨</text>
+        <view class="app-icon-tile menu-icon-wrap"><text class="menu-icon ri-palette-line"></text></view>
         <text class="menu-text">{{ t('profile.theme') }}</text>
         <view class="theme-pills">
           <view class="pill" :class="{ 'pill-active': theme === 'light' }" @click="applyTheme('light')">
-            <text>☀️</text>
+            <text class="ri-sun-line"></text>
           </view>
           <view class="pill" :class="{ 'pill-active': theme === 'dark' }" @click="applyTheme('dark')">
-            <text>🌙</text>
-          </view>
-          <view class="pill" :class="{ 'pill-active': theme === 'green' }" @click="applyTheme('green')">
-            <text>🌿</text>
+            <text class="ri-moon-line"></text>
           </view>
         </view>
       </view>
       <view class="menu-item">
-        <text class="menu-icon">🔤</text>
-        <text class="menu-text">{{ t('profile.fontSize') }}</text>
-        <view class="font-pills">
-          <view
-            class="pill"
-            :class="{ 'pill-active': font === 'compact' }"
-            @click="applyFont('compact')"
-          ><text>{{ t('profile.fontSmall') }}</text></view>
-          <view
-            class="pill"
-            :class="{ 'pill-active': font === 'standard' }"
-            @click="applyFont('standard')"
-          ><text>{{ t('profile.fontMedium') }}</text></view>
-          <view
-            class="pill"
-            :class="{ 'pill-active': font === 'large' }"
-            @click="applyFont('large')"
-          ><text>{{ t('profile.fontLarge') }}</text></view>
-        </view>
-      </view>
-      <view class="menu-item">
-        <text class="menu-icon">🌐</text>
+        <view class="app-icon-tile app-icon-tile--violet menu-icon-wrap"><text class="menu-icon ri-global-line"></text></view>
         <text class="menu-text">{{ t('profile.language') }}</text>
         <view class="font-pills">
           <view
@@ -130,64 +107,61 @@
 
     <!-- Menu group 3: Legal & Support -->
     <text class="group-label">{{ t('profile.legalAndSupport') }}</text>
-    <view class="menu-card">
+    <view class="menu-card app-card-soft">
       <view class="menu-item" @click="navTo('/pages/user/feedback')">
-        <text class="menu-icon">💬</text>
+        <view class="app-icon-tile app-icon-tile--candy menu-icon-wrap"><text class="menu-icon ri-chat-3-line"></text></view>
         <text class="menu-text">{{ t('profile.feedback') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="openConsent('privacy')">
-        <text class="menu-icon">🔒</text>
+        <view class="app-icon-tile app-icon-tile--warning menu-icon-wrap"><text class="menu-icon ri-lock-line"></text></view>
         <text class="menu-text">{{ t('profile.privacyPolicy') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @click="openConsent('terms')">
-        <text class="menu-icon">📋</text>
+        <view class="app-icon-tile app-icon-tile--cyan menu-icon-wrap"><text class="menu-icon ri-clipboard-line"></text></view>
         <text class="menu-text">{{ t('profile.termsOfService') }}</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item menu-item-danger" v-if="isLoggedIn" @click="handleDeleteAccount">
-        <text class="menu-icon">🗑️</text>
+        <view class="app-icon-tile menu-icon-wrap"><text class="menu-icon ri-delete-bin-line"></text></view>
         <text class="menu-text menu-text-danger">{{ t('profile.deleteAccount') }}</text>
         <text class="menu-arrow menu-arrow-danger">›</text>
       </view>
     </view>
 
-    <!-- Spacer to push content to bottom -->
-    <view class="flex-spacer"></view>
-
     <view class="bottom-section">
       <!-- Logout -->
-      <button class="btn-logout" v-if="isLoggedIn" @click="handleLogout">{{ t('profile.signOut') }}</button>
+      <button class="btn-logout app-card-soft" v-if="isLoggedIn" @click="handleLogout">{{ t('profile.signOut') }}</button>
       <view class="bottom-safe"></view>
     </view>
 
     <!-- Profile Edit Modal -->
     <view class="modal-overlay" v-if="showProfileEdit" @click="showProfileEdit = false">
-      <view class="modal-content bottom-sheet" @click.stop>
+      <view class="modal-content bottom-sheet app-surface" @click.stop>
         <view class="sheet-handle"></view>
-        <text class="modal-title">Edit Profile</text>
+        <text class="modal-title">{{ t('profile.editProfile') }}</text>
         
         <view class="form-group">
-          <text class="field-label">Nickname</text>
-          <input class="field-input" v-model="editForm.nickname" placeholder="E.g. Kira" maxlength="64" />
+          <text class="field-label">{{ t('profile.nickname') }}</text>
+          <input class="field-input ui-input" v-model="editForm.nickname" :placeholder="t('profile.nicknamePlaceholder')" maxlength="64" />
         </view>
         <view class="form-group">
-          <text class="field-label">School / University</text>
-          <input class="field-input" v-model="editForm.school" placeholder="E.g. Stanford University" />
+          <text class="field-label">{{ t('profile.schoolUniversity') }}</text>
+          <input class="field-input ui-input" v-model="editForm.school" :placeholder="t('profile.schoolPlaceholder')" />
         </view>
         <view class="form-group">
-          <text class="field-label">Major</text>
-          <input class="field-input" v-model="editForm.major" placeholder="E.g. Computer Science" />
+          <text class="field-label">{{ t('profile.major') }}</text>
+          <input class="field-input ui-input" v-model="editForm.major" :placeholder="t('profile.majorPlaceholder')" />
         </view>
         <view class="form-group">
-          <text class="field-label">Graduation Year</text>
-          <input class="field-input" v-model="editForm.gradYear" type="number" placeholder="E.g. 2026" />
+          <text class="field-label">{{ t('profile.graduationYear') }}</text>
+          <input class="field-input ui-input" v-model="editForm.gradYear" type="number" :placeholder="t('profile.gradYearPlaceholder')" />
         </view>
 
         <view class="modal-actions">
-          <button class="btn-secondary" @click="showProfileEdit = false">Cancel</button>
-          <button class="btn-primary" @click="saveProfile">Save</button>
+          <button class="btn-secondary" @click="showProfileEdit = false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" @click="saveProfile">{{ t('common.save') }}</button>
         </view>
       </view>
     </view>
@@ -196,35 +170,32 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { useI18n } from '@/locales';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
-import { getTopSafeHeight } from '@/utils/safeArea';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getUserInterviewsApi } from '@/api/interview';
 import { getUserResumesApi } from '@/api/resume';
 import { updateUserApi, getUserInfoApi, requestDeletionApi } from '@/api/user';
 import { uploadFileApi } from '@/api/file';
-import { useTheme, type ThemeKey, type FontKey } from '@/utils/theme';
+import { useTheme, type ThemeKey } from '@/utils/theme';
 import { setLocale, currentLocale, type LangCode } from '@/locales/index';
+import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 
 const { t } = useI18n();
-const { theme, font, themeClass, fontClass, setTheme, setFont } = useTheme();
+const { theme, themeClass, fontClass, setTheme } = useTheme();
 const currentLang = ref<LangCode>(currentLocale());
 
 const applyTheme = (themeKey: ThemeKey) => {
   setTheme(themeKey);
-  uni.showToast({ title: themeKey === 'dark' ? '深色模式' : themeKey === 'green' ? '护眼绿主题' : '亮色模式', icon: 'none' });
-};
-
-const applyFont = (f: FontKey) => {
-  setFont(f);
-  uni.showToast({ title: '字号已更新', icon: 'none' });
+  uni.showToast({ title: themeKey === 'dark' ? t('profile.themeDarkToast') : t('profile.themeLightToast'), icon: 'none' });
 };
 
 const applyLang = (lang: LangCode) => {
   if (lang === currentLang.value) return;
   setLocale(lang);
   currentLang.value = lang;
-  const toastTitle = lang === 'zh-CN' ? '已切换为中文' : 'Switched to English';
+  const toastTitle = lang === 'zh-CN' ? t('profile.languageZhToast') : t('profile.languageEnToast');
   uni.showToast({ title: toastTitle, icon: 'none' });
   // 微信小程序 tabBar 页面常驻内存，切换语言后不会自动重渲染。
   // reLaunch 销毁所有页面栈并重建，确保所有页面以新语言重新加载。
@@ -258,9 +229,12 @@ const avatarSrc = computed(() => {
   return '/static/default-avatar.png';
 });
 const topSafeHeight = ref(44);
+const scrollTopValue = ref(0);
+const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
 const statsInterviews = ref(0);
 const statsResumes = ref(0);
+const rightAvoidWidth = ref(20);
 
 const showProfileEdit = ref(false);
 const editForm = ref({ nickname: '', school: '', major: '', gradYear: '' });
@@ -317,7 +291,7 @@ const saveProfile = async () => {
     } catch { /* localStorage already updated, best-effort backend sync */ }
   }
 
-  uni.showToast({ title: 'Profile saved', icon: 'success' });
+  uni.showToast({ title: t('profile.profileSaved'), icon: 'success' });
 };
 
 /**
@@ -332,7 +306,7 @@ const saveProfile = async () => {
  */
 const handleAvatarClick = () => {
   if (!isLoggedIn.value) {
-    uni.showToast({ title: 'Please sign in first', icon: 'none' });
+    uni.showToast({ title: t('profile.signInFirst'), icon: 'none' });
     return;
   }
   uni.chooseImage({
@@ -342,7 +316,7 @@ const handleAvatarClick = () => {
     success: async (res) => {
       const filePath = res.tempFilePaths[0];
       if (!filePath) return;
-      uni.showLoading({ title: 'Uploading...', mask: true });
+      uni.showLoading({ title: t('profile.uploading'), mask: true });
       try {
         const objectKey = await uploadFileApi(filePath, 'avatars');
         const numericId = Number(userId.value);
@@ -352,10 +326,10 @@ const handleAvatarClick = () => {
         userInfo.value.avatarViewUrl = updated.avatarViewUrl || '';
         uni.setStorageSync('userInfo', userInfo.value);
         uni.hideLoading();
-        uni.showToast({ title: 'Avatar updated', icon: 'success' });
+        uni.showToast({ title: t('profile.avatarUpdated'), icon: 'success' });
       } catch (e: any) {
         uni.hideLoading();
-        uni.showToast({ title: e?.message || 'Update failed', icon: 'none' });
+        uni.showToast({ title: e?.message || t('profile.updateFailed'), icon: 'none' });
       }
     },
   });
@@ -367,41 +341,41 @@ const openConsent = (type: 'privacy' | 'terms') => {
 
 const handleDeleteAccount = () => {
   uni.showModal({
-    title: '⚠️ 注销账号',
-    content: '注销后账号将进入 30 天冷静期，期间可重新登录恢复。期满后所有数据将被永久删除且不可恢复。',
-    confirmText: '继续',
-    cancelText: '取消',
+    title: t('profile.deleteAccountTitle'),
+    content: t('profile.deleteAccountContent'),
+    confirmText: t('profile.deleteAccountContinue'),
+    cancelText: t('common.cancel'),
     confirmColor: '#ef4444',
     success: (res) => {
       if (!res.confirm) return;
       uni.showModal({
-        title: '请输入确认信息',
-        content: '在下方输入"确认注销"以继续',
+        title: t('profile.deleteConfirmTitle'),
+        content: t('profile.deleteConfirmContent', { phrase: t('profile.deleteConfirmPhrase') }),
         editable: true,
-        placeholderText: '确认注销',
-        confirmText: '确认注销',
-        cancelText: '取消',
+        placeholderText: t('profile.deleteConfirmPhrase'),
+        confirmText: t('profile.deleteConfirmPhrase'),
+        cancelText: t('common.cancel'),
         confirmColor: '#ef4444',
         success: async (res2) => {
           if (!res2.confirm) return;
-          if ((res2 as any).content?.trim() !== '确认注销') {
-            uni.showToast({ title: '输入内容不正确，注销已取消', icon: 'none', duration: 2500 });
+          if ((res2 as any).content?.trim() !== t('profile.deleteConfirmPhrase')) {
+            uni.showToast({ title: t('profile.deleteConfirmWrong'), icon: 'none', duration: 2500 });
             return;
           }
           try {
-            uni.showLoading({ title: '处理中…', mask: true });
+            uni.showLoading({ title: t('profile.processing'), mask: true });
             await requestDeletionApi();
             uni.hideLoading();
             clearAuthState();
             uni.showModal({
-              title: '注销申请已提交',
-              content: '账号已进入 30 天冷静期。如需恢复，请在 30 天内重新登录。',
+              title: t('profile.deleteSubmittedTitle'),
+              content: t('profile.deleteSubmittedContent'),
               showCancel: false,
               success: () => { uni.reLaunch({ url: LOGIN_PAGE }); }
             });
           } catch (e: any) {
             uni.hideLoading();
-            uni.showToast({ title: e?.message || '操作失败，请重试', icon: 'none' });
+            uni.showToast({ title: e?.message || t('profile.operationFailed'), icon: 'none' });
           }
         }
       });
@@ -454,7 +428,15 @@ const refreshUserFromBackend = async (numericId: number) => {
   } catch { /* offline or token invalid — keep cached values, page still renders */ }
 };
 
-onMounted(() => {
+onShow(() => {
+  loadProfile();
+});
+
+onPageScroll(({ scrollTop }) => {
+  scrollTopValue.value = scrollTop;
+});
+
+const loadProfile = async () => {
   userId.value = uni.getStorageSync('userId') || '';
   const info = uni.getStorageSync('userInfo');
   if (info) {
@@ -465,30 +447,31 @@ onMounted(() => {
     editForm.value.gradYear = userInfo.value.gradYear || '';
   }
 
-  topSafeHeight.value = getTopSafeHeight();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
 
   const numericId = Number(userId.value);
   if (userId.value && !isNaN(numericId) && numericId > 0) {
     loadStats(numericId);
     refreshUserFromBackend(numericId);
   }
-});
+};
 </script>
 
 <style scoped>
 .user-page {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--page-ios-gray);
-  padding: 0 20px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 28px);
+  padding: 0 var(--page-gutter, 20px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .bottom-section {
-  margin-top: auto;
+  margin-top: 32px;
 }
 
 .status-spacer { width: 100%; }
@@ -499,17 +482,17 @@ onMounted(() => {
 
 .page-title {
   display: block;
-  font-size: var(--font-hero);
+  font-size: var(--font-hero, 28px);
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--text-primary, #0f172a);
 }
 
 .page-subtitle {
   display: block;
-  margin-top: 8px;
-  font-size: var(--font-body);
+  margin-top: 4px;
+  font-size: var(--font-caption, 13px);
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #64748b);
 }
 
 /* Edit/Complete chip on the header card — affords tappability with both
@@ -528,10 +511,10 @@ onMounted(() => {
 
 /* Header card */
 .header-card {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%);
-  border-radius: 20px; padding: 24px 20px; margin: 12px 0 16px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-lg, 20px); padding: 24px 20px; margin: 12px 0 16px;
   display: flex; align-items: center; gap: 16px;
-  box-shadow: 0 10px 28px rgba(37,99,235,0.38), 0 4px 10px rgba(37,99,235,0.22);
+  box-shadow: var(--shadow-card);
 }
 
 .header-guest {
@@ -545,8 +528,8 @@ onMounted(() => {
 .btn-login {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.3);
-  font-size: 14px; font-weight: 600; border-radius: 12px;
-  padding: 0 20px; height: 36px; line-height: 36px;
+  font-size: 14px; font-weight: 600; border-radius: var(--radius-sm, 12px);
+  padding: 0 var(--page-gutter, 20px); height: 36px; line-height: 36px;
 }
 
 .header-avatar {
@@ -568,21 +551,22 @@ onMounted(() => {
 .header-info { flex: 1; }
 
 .header-name {
-  font-size: var(--font-title); font-weight: 700; color: #ffffff;
+  font-size: var(--font-title, 18px); font-weight: 700; color: #ffffff;
   display: block; margin-bottom: 4px;
 }
 
-.header-school { font-size: var(--font-caption); color: rgba(255, 255, 255, 0.9); }
+.header-school { font-size: var(--font-caption, 13px); color: rgba(255, 255, 255, 0.9); }
 
 .edit-btn { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 8px; display: inline-block; margin-top: 4px; }
 
 /* Stats */
 .stats-bar {
   display: flex; align-items: center;
-  background: #ffffff; border-radius: 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-md, 16px);
+  box-shadow: var(--shadow-sm);
   padding: 16px 0; margin-bottom: 24px;
-  border: 1px solid #b8c8d8;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07);
 }
 
 .stat-item {
@@ -590,17 +574,17 @@ onMounted(() => {
   align-items: center; gap: 4px;
 }
 
-.stat-val { font-size: var(--font-title); font-weight: 800; color: #0f172a; }
+.stat-val { font-size: var(--font-title, 18px); font-weight: 800; color: var(--text-primary, #0f172a); }
 
-.stat-label { font-size: var(--font-micro); color: #94a3b8; font-weight: 500; }
+.stat-label { font-size: var(--font-micro, 11px); color: var(--text-tertiary, #8e8e93); font-weight: 500; }
 
-.stat-divider { width: 1px; height: 24px; background: var(--border-color); }
+.stat-divider { width: 1px; height: 24px; background: var(--border-color, #b8c8d8); }
 
 /* Menu */
 .group-label {
-  font-size: var(--font-caption);
+  font-size: var(--font-caption, 13px);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #8e8e93);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
@@ -609,29 +593,35 @@ onMounted(() => {
 }
 
 .menu-card {
-  background: #ffffff; border-radius: 16px;
+  border-radius: var(--radius-md, 16px);
   overflow: hidden; margin-bottom: 24px;
-  border: 1px solid #b8c8d8;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07);
 }
 
 .menu-item {
-  display: flex; align-items: center; padding: 15px 16px;
+  display: flex; align-items: center; padding: 12px 12px;
   position: relative;
 }
 
 .menu-item:not(:last-child)::after {
   content: ''; position: absolute;
-  bottom: 0; left: 48px; right: 0;
-  height: 1px; background: var(--border-color);
+  bottom: 0; left: 52px; right: 0;
+  height: 1px; background: var(--border-color, #e2e8f0);
 }
 
-.menu-icon { font-size: 20px; margin-right: 14px; }
+.menu-icon-wrap {
+  margin-right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.menu-icon { font-size: 16px; margin: 0; display: block; }
 
 .menu-text {
   flex: 1;
-  font-size: var(--font-body);
-  color: #1e293b;
+  font-size: var(--font-body, 15px);
+  color: var(--text-primary, #0f172a);
   font-weight: 500;
   min-width: 0;
   overflow: hidden;
@@ -646,28 +636,30 @@ onMounted(() => {
 .font-pills { display: flex; gap: 6px; }
 .theme-pills { display: flex; gap: 6px; }
 
-/* Each pill needs >=44pt for thumb access (HCI: Apple HIG / WCAG 2.5.5).
-   Inner <text> stays small for visual rhythm. */
+/* Reduced pill size for more compact layout */
 .pill {
-  min-width: 44px; min-height: 44px;
-  padding: 6px 14px; border-radius: 10px;
-  font-size: var(--font-caption); font-weight: 600; color: #64748b;
-  background: #f1f5f9;
+  min-width: 36px; min-height: 36px;
+  padding: 4px 12px; border-radius: 8px;
+  font-size: var(--font-caption, 13px); font-weight: 600; color: var(--text-secondary, #64748b);
+  background: var(--surface-3, #f1f5f9);
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s, color 0.15s;
 }
 
-.pill-active { background: #2563eb; color: #ffffff; }
+.pill-active { background: var(--primary-color, #2563eb); color: #ffffff; }
 
 /* Logout */
 .btn-logout {
-  width: 100%; height: 48px; background: #ffffff;
-  color: #ef4444; font-size: var(--font-body); font-weight: 600;
-  border-radius: 16px; line-height: 48px; border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-xs);
+  width: 100%; height: 48px; background: var(--danger-color, #ef4444);
+  color: #ffffff; font-size: var(--font-body, 15px); font-weight: 600;
+  border-radius: var(--radius-md, 16px); border: none;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  box-shadow: var(--shadow-xs, 0 1px 3px rgba(0,0,0,0.08), 0 1px 8px rgba(0,0,0,0.05));
 }
 
-.btn-logout:active { background: #fef2f2; }
+.btn-logout::after { border: none; }
+
+.btn-logout:active { background: #dc2626; }
 
 .bottom-safe {
   height: calc(var(--tab-bar-height, 50px) + 16px);
@@ -682,10 +674,10 @@ onMounted(() => {
 }
 
 .modal-content.bottom-sheet {
-  width: 100%; background: #ffffff;
+  width: 100%; background: var(--card-bg, #ffffff);
   border-radius: 24px 24px 0 0; padding: 16px 20px 32px;
   box-sizing: border-box;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
 .sheet-handle {
@@ -693,19 +685,18 @@ onMounted(() => {
   margin: 0 auto 16px;
 }
 
-.modal-title { font-size: var(--font-title); font-weight: 700; color: #0f172a; display: block; margin-bottom: 24px; text-align: center; }
+.modal-title { font-size: var(--font-title, 18px); font-weight: 700; color: var(--text-primary, #0f172a); display: block; margin-bottom: 24px; text-align: center; }
 
 .form-group { margin-bottom: 16px; }
-.field-label { font-size: var(--font-caption); font-weight: 600; color: #334155; margin-bottom: 8px; display: block; }
-.field-input { width: 100%; height: 48px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0 16px; font-size: var(--font-body); box-sizing: border-box; background: #f8fafc; }
+.field-label { font-size: var(--font-caption, 13px); font-weight: 600; color: var(--text-secondary, #64748b); margin-bottom: 8px; display: block; }
+.field-input { width: 100%; height: 48px; border: 1px solid #e2e8f0; border-radius: var(--radius-sm, 12px); padding: 0 16px; font-size: var(--font-body, 15px); box-sizing: border-box; background: var(--surface-2, #f8fafc); }
 
 .modal-actions { display: flex; gap: 12px; margin-top: 32px; }
-.btn-secondary { flex: 1; height: 48px; background: #f1f5f9; color: #475569; font-weight: 600; border-radius: 12px; border: none; line-height: 48px; }
-.btn-primary { flex: 2; height: 48px; background: #2563eb; color: #fff; font-weight: 600; border-radius: 12px; border: none; line-height: 48px; }
+.btn-secondary { flex: 1; height: 48px; background: var(--surface-3, #f1f5f9); color: var(--text-secondary, #64748b); font-weight: 600; border-radius: var(--radius-sm, 12px); border: none; line-height: 48px; }
+.btn-primary { flex: 2; height: 48px; background: var(--primary-color, #2563eb); color: #fff; font-weight: 600; border-radius: var(--radius-sm, 12px); border: none; line-height: 48px; }
 
 /* Danger row (Delete Account) */
-.menu-item-danger { }
-.menu-text-danger { color: #ef4444 !important; }
+.menu-text-danger { color: var(--danger-color, #ef4444) !important; }
 .menu-arrow-danger { color: #ef4444 !important; }
 .menu-item-danger:active { background: #fff1f2; }
 
@@ -713,26 +704,27 @@ onMounted(() => {
 .is-dark { background: #0f172a; }
 
 .is-dark .stats-bar,
-.is-dark .menu-card,
-.is-dark .btn-logout { background: #1e293b; box-shadow: none; }
+.is-dark .menu-card { background: #1e293b; box-shadow: none; }
+
+.is-dark .btn-logout { background: #b91c1c; border: none; box-shadow: none; }
 
 .is-dark .stat-val,
 .is-dark .menu-text { color: #f8fafc; }
 
 .is-dark .group-label,
-.is-dark .stat-label { color: #64748b; }
+.is-dark .stat-label { color: var(--text-secondary, #64748b); }
 
-.is-dark .btn-logout { color: #f87171; }
+.is-dark .btn-logout { color: #ffffff; }
 
-.is-dark .pill { background: #334155; color: #94a3b8; }
+.is-dark .pill { background: #334155; color: var(--text-tertiary, #8e8e93); }
 
-.is-dark .pill-active { background: #2563eb; color: #ffffff; }
+.is-dark .pill-active { background: var(--primary-color, #2563eb); color: #ffffff; }
 
 .is-dark .modal-content { background: #1e293b; }
 .is-dark .sheet-handle { background: #334155; }
 .is-dark .modal-title { color: #f8fafc; }
 .is-dark .field-label { color: #e2e8f0; }
-.is-dark .field-input { background: #0f172a; border-color: #334155; color: #f8fafc; }
+.is-dark .field-input { background: #0f172a; border-color: var(--text-secondary, #64748b); color: #f8fafc; }
 .is-dark .btn-secondary { background: #334155; color: #e2e8f0; }
 
 /* ================================================================
@@ -740,43 +732,34 @@ onMounted(() => {
  * ================================================================ */
 /* #ifdef MP-WEIXIN */
 
-.user-page {
-  background-color: #eaeff5;
-}
-
 .header-card {
   overflow: visible;
-  box-shadow: 0 10px 30px rgba(37,99,235,0.40),
-              0 4px 12px  rgba(37,99,235,0.24);
+  border: none;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  box-shadow: var(--shadow-card);
 }
 
 .stats-bar {
   overflow: visible;
   border: 1.5px solid #b0bfd0;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.18),
-              0 1px 5px  rgba(0,0,0,0.10);
+  box-shadow: var(--shadow-sm);
 }
 
 .menu-card {
   overflow: hidden;
   box-shadow: none;
-  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.18));
+  filter: none;
 }
 
 .menu-item:not(:last-child)::after {
   background: #c0ccd8;
 }
 
-.is-dark.user-page {
-  background-color: #0f172a;
-}
-
 .is-dark .stats-bar,
 .is-dark .menu-card,
-.is-dark .btn-logout,
 .is-dark .modal-content.bottom-sheet {
   background: #1e293b;
-  border-color: #334155;
+  border-color: var(--text-secondary, #64748b);
   filter: none;
 }
 

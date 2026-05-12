@@ -1,6 +1,6 @@
 <template>
   <view class="sl-search-bar">
-    <view class="sl-search-bar__icon"><text>🔍</text></view>
+    <view class="sl-search-bar__icon"><text class="ri-search-line"></text></view>
     <input
       class="sl-search-bar__input"
       :value="modelValue"
@@ -41,10 +41,11 @@ const clear = () => emit('update:modelValue', '');
   height: 38px;
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--surface-1, #ffffff);
   border-radius: 19px;
   padding: 0 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #b8c8d8);
+  box-sizing: border-box;
 }
 
 .sl-search-bar__icon {
@@ -56,12 +57,13 @@ const clear = () => emit('update:modelValue', '');
   flex: 1;
   height: 38px;
   font-size: 14px;
+  color: var(--text-primary, #0f172a);
 }
 
 .sl-search-bar__clear {
   width: 20px;
   text-align: center;
   font-size: 18px;
-  color: #94a3b8;
+  color: var(--text-tertiary, #8e8e93);
 }
 </style>

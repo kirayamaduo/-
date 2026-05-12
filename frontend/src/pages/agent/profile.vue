@@ -1,12 +1,12 @@
 <template>
-  <view class="profile-page">
-    <!-- header -->
-    <view class="profile-header">
-      <view class="profile-back" @click="goBack">
-        <text class="profile-back-icon">←</text>
-      </view>
-      <text class="profile-header-title">{{ t('agent.profile.title') }}</text>
-    </view>
+  <SlPage class="profile-page app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
+    <SlNavBar
+      :title="t('agent.profile.title')"
+      show-back
+      @back="goBack"
+      :safe-top="topSafeHeight"
+      :right-avoid-width="rightAvoidWidth"
+    />
 
     <!-- completeness banner -->
     <view v-if="agentProfile" class="profile-banner">
@@ -25,14 +25,14 @@
 
     <!-- form -->
     <view class="profile-form">
-      <view class="profile-section">
+      <view class="profile-section app-card-soft">
         <text class="profile-section-title">{{ t('agent.profile.sectionGoal') }}</text>
 
         <view class="profile-field">
           <text class="profile-label">{{ t('agent.profile.targetCity') }}</text>
           <input
             v-model="form.targetCity"
-            class="profile-input"
+            class="profile-input ui-input"
             :placeholder="t('agent.profile.targetCityPlaceholder')"
             maxlength="30"
           />
@@ -42,7 +42,7 @@
           <text class="profile-label">{{ t('agent.profile.targetIndustry') }}</text>
           <input
             v-model="form.targetIndustry"
-            class="profile-input"
+            class="profile-input ui-input"
             :placeholder="t('agent.profile.targetIndustryPlaceholder')"
             maxlength="30"
           />
@@ -54,7 +54,7 @@
             <view
               v-for="opt in timelineOptions"
               :key="opt.val"
-              class="profile-chip"
+              class="profile-chip ui-list-item"
               :class="{ 'profile-chip-active': form.timeline === opt.val }"
               @click="form.timeline = opt.val"
             >
@@ -67,14 +67,14 @@
           <text class="profile-label">{{ t('agent.profile.careerGoalNote') }}</text>
           <textarea
             v-model="form.careerGoalNote"
-            class="profile-textarea"
+            class="profile-textarea ui-input"
             :placeholder="t('agent.profile.careerGoalNotePlaceholder')"
             maxlength="200"
           />
         </view>
       </view>
 
-      <view class="profile-section">
+      <view class="profile-section app-card-soft">
         <text class="profile-section-title">{{ t('agent.profile.sectionLearning') }}</text>
 
         <view class="profile-field">
@@ -83,7 +83,7 @@
             <view
               v-for="opt in weeklyOptions"
               :key="opt.val"
-              class="profile-chip"
+              class="profile-chip ui-list-item"
               :class="{ 'profile-chip-active': form.weeklyHours === opt.val }"
               @click="form.weeklyHours = opt.val"
             >
@@ -98,7 +98,7 @@
             <view
               v-for="opt in difficultyOptions"
               :key="opt.val"
-              class="profile-chip"
+              class="profile-chip ui-list-item"
               :class="{ 'profile-chip-active': form.preferredDifficulty === opt.val }"
               @click="form.preferredDifficulty = opt.val"
             >
@@ -108,18 +108,18 @@
         </view>
       </view>
 
-      <view class="profile-section">
+      <view class="profile-section app-card-soft">
         <text class="profile-section-title">{{ t('agent.profile.sectionStudy') }}</text>
         <view class="profile-toggle-row">
           <text class="profile-label">{{ t('agent.profile.gradSchool') }}</text>
           <view class="profile-toggle-group">
             <view
-              class="profile-toggle-btn"
+              class="profile-toggle-btn ui-list-item"
               :class="{ 'profile-toggle-active': form.considerGradSchool === true }"
               @click="form.considerGradSchool = true"
             ><text class="profile-toggle-text">{{ t('agent.profile.yes') }}</text></view>
             <view
-              class="profile-toggle-btn"
+              class="profile-toggle-btn ui-list-item"
               :class="{ 'profile-toggle-active': form.considerGradSchool === false }"
               @click="form.considerGradSchool = false"
             ><text class="profile-toggle-text">{{ t('agent.profile.no') }}</text></view>
@@ -129,12 +129,12 @@
           <text class="profile-label">{{ t('agent.profile.studyAbroad') }}</text>
           <view class="profile-toggle-group">
             <view
-              class="profile-toggle-btn"
+              class="profile-toggle-btn ui-list-item"
               :class="{ 'profile-toggle-active': form.considerStudyAbroad === true }"
               @click="form.considerStudyAbroad = true"
             ><text class="profile-toggle-text">{{ t('agent.profile.yes') }}</text></view>
             <view
-              class="profile-toggle-btn"
+              class="profile-toggle-btn ui-list-item"
               :class="{ 'profile-toggle-active': form.considerStudyAbroad === false }"
               @click="form.considerStudyAbroad = false"
             ><text class="profile-toggle-text">{{ t('agent.profile.no') }}</text></view>
@@ -153,16 +153,23 @@
         <text class="profile-submit-text">{{ saving ? t('agent.profile.saving') : t('agent.profile.save') }}</text>
       </view>
     </view>
-  </view>
+  </SlPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from '@/locales';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
+import SlPage from '@/style-library/components/SlPage.vue';
 import { getAgentProfileApi, saveProfileInputsApi, type AgentUserProfile, type ProfileInputsRequest } from '@/api/agent';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
+const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(16);
 const agentProfile = ref<AgentUserProfile | null>(null);
 const saving = ref(false);
 
@@ -206,6 +213,10 @@ const levelLabel = computed(() => {
 });
 
 onMounted(async () => {
+  refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   try {
     agentProfile.value = await getAgentProfileApi();
   } catch { /* ignore */ }
@@ -241,24 +252,9 @@ const goBack = () => uni.navigateBack();
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-1, #ffffff);
   padding-bottom: 120rpx;
 }
-.profile-header {
-  display: flex;
-  align-items: center;
-  padding: 56rpx 28rpx 20rpx;
-  background: #fff;
-  gap: 16rpx;
-}
-.profile-back {
-  width: 64rpx; height: 64rpx;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; background: #f1f5f9;
-}
-.profile-back-icon { font-size: 20px; color: #374151; }
-.profile-header-title { font-size: 17px; font-weight: 700; color: #111827; }
-
 .profile-banner {
   margin: 16rpx 28rpx;
   background: linear-gradient(135deg, #1d4ed8 0%, #6366f1 100%);
@@ -278,30 +274,30 @@ const goBack = () => uni.navigateBack();
 
 .profile-form { padding: 16rpx 28rpx; display: flex; flex-direction: column; gap: 20rpx; }
 .profile-section {
-  background: #fff; border-radius: 18rpx; padding: 24rpx 24rpx 8rpx;
+  padding: 24rpx; margin-bottom: 24rpx;
   display: flex; flex-direction: column; gap: 20rpx;
 }
 .profile-section-title {
-  font-size: 13px; font-weight: 700; color: #374151;
+  font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);
   border-left: 4rpx solid #1d4ed8; padding-left: 10rpx;
 }
 .profile-field { display: flex; flex-direction: column; gap: 8rpx; }
-.profile-label { font-size: 12.5px; color: #6b7280; }
+.profile-label { font-size: 12.5px; color: var(--text-secondary, #64748b); }
 .profile-input {
   border: 1.5rpx solid #e5e7eb;
   border-radius: 10rpx;
   padding: 14rpx 16rpx;
   font-size: 13.5px;
-  color: #111827;
-  background: #f9fafb;
+  color: var(--text-primary, #0f172a);
+  background: var(--surface-2, #f8fafc);
 }
 .profile-textarea {
   border: 1.5rpx solid #e5e7eb;
   border-radius: 10rpx;
   padding: 14rpx 16rpx;
   font-size: 13px;
-  color: #111827;
-  background: #f9fafb;
+  color: var(--text-primary, #0f172a);
+  background: var(--surface-2, #f8fafc);
   height: 120rpx;
 }
 .profile-chips { display: flex; flex-wrap: wrap; gap: 10rpx; }
@@ -309,14 +305,14 @@ const goBack = () => uni.navigateBack();
   border: 1.5rpx solid #d1d5db;
   border-radius: 999rpx;
   padding: 8rpx 18rpx;
-  background: #f9fafb;
+  background: var(--surface-2, #f8fafc);
 }
 .profile-chip-active {
-  border-color: #1d4ed8;
-  background: #eff6ff;
+  border-color: var(--primary-hover, #1d4ed8);
+  background: var(--primary-soft, #eff6ff);
 }
-.profile-chip-text { font-size: 12.5px; color: #374151; }
-.profile-chip-active .profile-chip-text { color: #1d4ed8; font-weight: 700; }
+.profile-chip-text { font-size: 12.5px; color: var(--text-secondary, #64748b); }
+.profile-chip-active .profile-chip-text { color: var(--primary-hover, #1d4ed8); font-weight: 700; }
 
 .profile-toggle-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -326,18 +322,18 @@ const goBack = () => uni.navigateBack();
   border: 1.5rpx solid #d1d5db;
   border-radius: 999rpx;
   padding: 8rpx 22rpx;
-  background: #f9fafb;
+  background: var(--surface-2, #f8fafc);
 }
 .profile-toggle-active {
-  border-color: #1d4ed8; background: #eff6ff;
+  border-color: var(--primary-hover, #1d4ed8); background: var(--primary-soft, #eff6ff);
 }
-.profile-toggle-text { font-size: 12.5px; color: #374151; }
-.profile-toggle-active .profile-toggle-text { color: #1d4ed8; font-weight: 700; }
+.profile-toggle-text { font-size: 12.5px; color: var(--text-secondary, #64748b); }
+.profile-toggle-active .profile-toggle-text { color: var(--primary-hover, #1d4ed8); font-weight: 700; }
 
 .profile-submit-wrap {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 20rpx 28rpx 48rpx;
-  background: #fff;
+  padding: 20rpx 28rpx calc(32rpx + env(safe-area-inset-bottom, 0px));
+  background: var(--surface-1, #ffffff);
   border-top: 1rpx solid #f1f5f9;
 }
 .profile-submit-btn {

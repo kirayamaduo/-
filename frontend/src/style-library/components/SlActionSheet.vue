@@ -58,10 +58,10 @@ const onSelect = (index: number, value: string) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #f8fafc;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  background: var(--surface-2, #f8fafc);
+  border-top-left-radius: var(--radius-md, 16px);
+  border-top-right-radius: var(--radius-md, 16px);
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .sl-sheet__title-wrap {
@@ -71,19 +71,19 @@ const onSelect = (index: number, value: string) => {
 
 .sl-sheet__title {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
 }
 
 .sl-sheet__item,
 .sl-sheet__cancel {
-  background: #fff;
+  background: var(--surface-1, #ffffff);
   min-height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
 }
 
 .sl-sheet__item + .sl-sheet__item {

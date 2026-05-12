@@ -1,33 +1,32 @@
 <template>
-  <view class="map-page" :class="[themeClass, fontClass]">
-    <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
+  <view class="map-page app-soft-bg" :class="[themeClass, fontClass]">
+    <SlNavBar show-back @back="goBack" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth">
+      <template #title>
+        <view class="nav-title-wrap">
+          <text class="nav-title">{{ t('map.navTitle') }}</text>
+          <view class="nav-icon-btn" v-if="activeTab === 'map'" @click.stop="switchRole">
+            <text class="ri-swap-line"></text>
+          </view>
+        </view>
+      </template>
+    </SlNavBar>
 
-    <view class="nav-row">
-      <view class="back-btn" @click="goBack">
-        <text class="back-icon">‹</text>
-        <text class="back-text">{{ t('common.back') }}</text>
+    <view class="map-content">
+      <!-- Tab switcher -->
+      <view class="tab-bar">
+        <view class="tab-item" :class="{ 'tab-active': activeTab === 'map' }" @click="activeTab = 'map'">
+          <text class="tab-text">{{ t('map.tabMap') }}</text>
+        </view>
+        <view class="tab-item" :class="{ 'tab-active': activeTab === 'plan' }" @click="activeTab = 'plan'">
+          <text class="tab-text">{{ t('map.tabPlan') }}</text>
+          <view class="tab-badge" v-if="plan && plan.version && plan.version > 0"></view>
+        </view>
       </view>
-      <text class="nav-title">{{ t('map.navTitle') }}</text>
-      <view class="nav-right" @click="activeTab === 'map' ? switchRole() : null">
-        <text class="nav-action" v-if="activeTab === 'map'">{{ t('map.roleBtn') }}</text>
-      </view>
-    </view>
 
-    <!-- Tab switcher -->
-    <view class="tab-bar">
-      <view class="tab-item" :class="{ 'tab-active': activeTab === 'map' }" @click="activeTab = 'map'">
-        <text class="tab-text">{{ t('map.tabMap') }}</text>
-      </view>
-      <view class="tab-item" :class="{ 'tab-active': activeTab === 'plan' }" @click="activeTab = 'plan'">
-        <text class="tab-text">{{ t('map.tabPlan') }}</text>
-        <view class="tab-badge" v-if="plan && plan.version && plan.version > 0"></view>
-      </view>
-    </view>
-
-    <!-- ══════════════════════════════════════════
-         TAB: Skill Map (existing content)
-         ══════════════════════════════════════════ -->
-    <view v-if="activeTab === 'map'">
+      <!-- ══════════════════════════════════════════
+           TAB: Skill Map (existing content)
+           ══════════════════════════════════════════ -->
+      <view v-if="activeTab === 'map'">
     <view class="page-intro">
       <text class="intro-title">{{ t('map.intro') }}</text>
       <text class="intro-text">{{ t('map.introText') }}</text>
@@ -46,7 +45,7 @@
 
       <!-- Loading skeleton -->
       <view class="skeleton-list" v-if="loading">
-        <view class="skel-card" v-for="i in 4" :key="i">
+        <view class="skel-card app-surface" v-for="i in 4" :key="i">
           <view class="skel-line skel-w40"></view>
           <view class="skel-line skel-w70"></view>
           <view class="skel-line skel-w90"></view>
@@ -54,8 +53,8 @@
       </view>
 
       <!-- Empty state -->
-      <view class="empty-state" v-else-if="nodes.length === 0">
-        <text class="empty-icon">🗺️</text>
+      <view class="empty-state app-empty app-surface" v-else-if="nodes.length === 0">
+        <text class="empty-icon ri-map-2-line"></text>
         <text class="empty-text">{{ t('map.noRoadmap') }}</text>
         <text class="empty-sub">{{ t('map.noRoadmapSub') }}</text>
       </view>
@@ -69,8 +68,11 @@
           :key="node.nodeId"
           @click="openDetail(node)"
         >
-          <view class="tl-dot" :class="dotClass(node)">{{ dotIcon(node) }}</view>
-          <view class="tl-card" :class="cardClass(node)">
+          <view class="tl-dot" :class="dotClass(node)">
+            <text v-if="dotIcon(node).startsWith('ri-')" :class="dotIcon(node)"></text>
+            <text v-else>{{ dotIcon(node) }}</text>
+          </view>
+          <view class="tl-card app-surface" :class="cardClass(node)">
             <text class="tl-level">{{ t('map.stageLabel', { level: node.level, stage: idx + 1 }) }}</text>
             <text class="tl-title">{{ node.name }}</text>
             <text class="tl-desc" v-if="node.description">{{ node.description }}</text>
@@ -88,7 +90,7 @@
 
       <!-- Detail sheet -->
       <view class="sheet-mask" v-if="showDetail" @click="showDetail = false"></view>
-      <view class="detail-sheet" :class="{ 'sheet-open': showDetail }" v-if="selectedNode">
+      <view class="detail-sheet app-surface" :class="{ 'sheet-open': showDetail }" v-if="selectedNode">
         <view class="sheet-handle"></view>
         <view class="sheet-header">
           <text class="sheet-title">{{ selectedNode.name }}</text>
@@ -126,7 +128,7 @@
 
       <!-- No plan yet -->
       <view class="plan-empty" v-else-if="!plan">
-        <text class="plan-empty-icon">🗺</text>
+        <text class="plan-empty-icon ri-map-2-line"></text>
         <text class="plan-empty-title">{{ t('map.planEmpty') }}</text>
         <text class="plan-empty-sub">{{ t('map.planEmptySub') }}</text>
         <view class="plan-role-input-wrap">
@@ -160,7 +162,7 @@
         <view class="plan-section" v-if="weeklyFocus.length">
           <text class="plan-section-title">{{ t('map.planWeeklyFocus') }}</text>
           <view class="focus-list">
-            <view class="focus-item" v-for="(item, i) in weeklyFocus" :key="i">
+            <view class="focus-item app-card-soft" v-for="(item, i) in weeklyFocus" :key="i">
               <view class="focus-dot">{{ i + 1 }}</view>
               <text class="focus-text">{{ item }}</text>
             </view>
@@ -170,7 +172,7 @@
         <!-- Milestones -->
         <view class="plan-section" v-if="milestones.length">
           <text class="plan-section-title">{{ t('map.planMilestones') }}</text>
-          <view class="milestone-card" v-for="ms in milestones" :key="ms.horizon">
+          <view class="milestone-card app-card-soft" v-for="ms in milestones" :key="ms.horizon">
             <view class="ms-header">
               <view class="ms-horizon-badge">
                 <text class="ms-horizon-text">{{ horizonLabel(ms.horizon) }}</text>
@@ -210,6 +212,7 @@
       </view>
     </view><!-- end plan tab -->
 
+    </view><!-- end map-content -->
   </view>
 </template>
 
@@ -233,11 +236,14 @@ import {
 } from '@/api/career';
 import { getProfileSnapshotApi } from '@/api/user';
 import { useTheme } from '@/utils/theme';
+import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 // ── shared ─────────────────────────────────────────────────────────────────────────────────
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(44);
+const rightAvoidWidth = ref(20);
 const activeTab    = ref<'map' | 'plan'>('map');
 
 // ── skill-map tab ─────────────────────────────────────────────────────────────
@@ -294,9 +300,9 @@ const dotClass = (n: CareerNode) => {
 };
 const dotIcon = (n: CareerNode) => {
   const s = nodeStatus(n);
-  if (s === 'COMPLETED') return '✓';
+  if (s === 'COMPLETED') return 'ri-check-line';
   if (s === 'IN_PROGRESS') return '…';
-  if (s === 'LOCKED') return '🔒';
+  if (s === 'LOCKED') return 'ri-lock-line';
   return '●';
 };
 const cardClass = (n: CareerNode) => {
@@ -408,7 +414,7 @@ const loadPath = async (path: CareerPath) => {
     ]);
     nodes.value = nodeList || [];
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to load roadmap', icon: 'none' });
+    uni.showToast({ title: e?.message || t('map.loadRoadmapFailed'), icon: 'none' });
     nodes.value = [];
   } finally {
     loading.value = false;
@@ -450,15 +456,16 @@ const loadAll = async (preferredPathId?: number) => {
     }
     await loadPath(preferred || paths.value[0]);
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to load paths', icon: 'none' });
+    uni.showToast({ title: e?.message || t('map.loadPathsFailed'), icon: 'none' });
     loading.value = false;
   }
 };
 
 onMounted(() => {
   refreshTheme();
-  const systemInfo = uni.getSystemInfoSync();
-  topSafeHeight.value = (systemInfo.statusBarHeight || 20) + 8;
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any).options || {};
   const queryPathId = opts.pathId ? parseInt(opts.pathId) : undefined;
@@ -543,19 +550,13 @@ const formatDate = (iso?: string) => {
 <style scoped>
 .map-page {
   min-height: 100vh;
-  background: #f5f5f7;
+  background: var(--surface-1, #ffffff);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-  padding: 0 20px;
-  box-sizing: border-box;
 }
 
-.status-spacer { width: 100%; }
-
-.nav-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0 12px;
+.map-content {
+  padding: 12px 20px 0;
+  box-sizing: border-box;
 }
 
 .page-intro {
@@ -578,30 +579,33 @@ const formatDate = (iso?: string) => {
   color: #475569;
 }
 
-.back-btn {
-  display: inline-flex;
+.nav-right { display: flex; justify-content: flex-end; align-items: center; }
+
+.nav-title-wrap {
+  display: flex;
   align-items: center;
-  gap: 2px;
-  color: #2563eb;
-  width: var(--nav-back-width);
+  justify-content: center;
+  gap: 8px;
+  pointer-events: auto;
 }
 
-.back-icon { font-size: 22px; font-weight: 300; line-height: 1; }
+.nav-title {
+  font-size: var(--font-section, 17px);
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.3px;
+}
 
-.back-text { font-size: 16px; font-weight: 500; }
-
-.nav-title { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; }
-
-.nav-right { width: 64px; text-align: right; }
-
-.nav-action {
-  font-size: 13px;
-  color: #2563eb;
-  font-weight: 600;
-  background: #eff6ff;
-  border-radius: 999px;
-  padding: 4px 10px;
-  display: inline-block;
+.nav-icon-btn {
+  font-size: 16px;
+  color: var(--primary-color, #2563eb);
+  background: var(--primary-soft, #eff6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
 }
 
 .role-card {
@@ -609,7 +613,7 @@ const formatDate = (iso?: string) => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px; padding: 24px; color: #ffffff;
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 16px; box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14);
+  margin-bottom: 16px; box-shadow: var(--shadow-card);
 }
 
 .role-info { flex: 1; }
@@ -675,15 +679,15 @@ const formatDate = (iso?: string) => {
 
 .tl-card {
   background: #ffffff;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 16px;
   padding: 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08));
 }
 
 .card-done { border-left: 3px solid #22c55e; }
 
-.card-active { border-left: 3px solid #3b82f6; box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12); }
+.card-active { border-left: 3px solid #3b82f6; box-shadow: var(--shadow-sm); }
 
 .card-locked { opacity: 0.5; }
 
@@ -720,7 +724,7 @@ const formatDate = (iso?: string) => {
 .detail-sheet {
   position: fixed; left: 0; right: 0; bottom: -450px;
   background: #ffffff; border-radius: 24px 24px 0 0;
-  padding: 12px 24px calc(24px + env(safe-area-inset-bottom));
+  padding: 12px 24px calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 999; transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   max-height: 70vh; overflow-y: auto;
 }
@@ -756,7 +760,7 @@ const formatDate = (iso?: string) => {
   height: 48px;
   display: flex; align-items: center; justify-content: center;
   margin-top: 8px;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-card);
   transition: background 0.15s;
 }
 .sheet-btn-text { color: #ffffff; font-size: 16px; font-weight: 700; }
@@ -790,7 +794,7 @@ const formatDate = (iso?: string) => {
 /* Skeleton */
 .skeleton-list { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
 .skel-card {
-  background: #ffffff; border: 1px solid var(--border-color); border-radius: 16px;
+  background: #ffffff; border: 1px solid var(--border-color, #b8c8d8); border-radius: 16px;
   padding: 18px; display: flex; flex-direction: column; gap: 8px;
 }
 .skel-line {
@@ -810,7 +814,7 @@ const formatDate = (iso?: string) => {
 /* Empty state */
 .empty-state {
   text-align: center; padding: 60px 20px;
-  background: #ffffff; border: 1px solid var(--border-color);
+  background: #ffffff; border: 1px solid var(--border-color, #b8c8d8);
   border-radius: 20px;
 }
 .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
@@ -820,7 +824,6 @@ const formatDate = (iso?: string) => {
 /* Dark mode */
 .is-dark { background: #0f172a; }
 
-.is-dark .nav-title,
 .is-dark .intro-title,
 .is-dark .tl-title,
 .is-dark .sheet-title { color: #f8fafc; }
@@ -835,6 +838,11 @@ const formatDate = (iso?: string) => {
 
 .is-dark .demo-notice { background: #1e293b; }
 
+.is-dark .nav-icon-btn {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex; background: #f1f5f9; border-radius: 12px;
@@ -846,7 +854,7 @@ const formatDate = (iso?: string) => {
   transition: background 0.15s;
   position: relative;
 }
-.tab-active { background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.tab-active { background: #ffffff; box-shadow: var(--shadow-xs); }
 .tab-text { font-size: 14px; font-weight: 600; color: #64748b; }
 .tab-active .tab-text { color: #0f172a; }
 .tab-badge {
@@ -901,7 +909,7 @@ const formatDate = (iso?: string) => {
   background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
   border-radius: 14px; padding: 0 32px; height: 48px;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  box-shadow: var(--shadow-card);
 }
 .plan-gen-btn:active { opacity: 0.85; }
 .plan-gen-btn-dim { opacity: 0.55; box-shadow: none; }
@@ -911,7 +919,7 @@ const formatDate = (iso?: string) => {
 .plan-hero {
   background: linear-gradient(135deg, #1e293b 0%, #1e40af 100%);
   border-radius: 22px; padding: 24px; color: #fff; margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(30, 64, 175, 0.25);
+  box-shadow: var(--shadow-card);
 }
 .plan-hero-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.65; display: block; margin-bottom: 6px; }
 .plan-hero-role  { font-size: 22px; font-weight: 800; display: block; margin-bottom: 6px; line-height: 1.2; }

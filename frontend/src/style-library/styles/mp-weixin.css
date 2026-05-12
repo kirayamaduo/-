@@ -1,0 +1,112 @@
+/* #ifdef MP-WEIXIN */
+page {
+  background-color: var(--surface-1, #ffffff);
+}
+
+button {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: inherit;
+  border: none;
+}
+button::after {
+  border: none !important;
+  border-radius: 0 !important;
+  content: none !important;
+}
+
+.ui-card,
+.card,
+.panel,
+.section-card,
+.app-surface,
+.ui-card-strong,
+.sl-card,
+.sl-list-item,
+.sl-search-bar,
+.app-card-soft,
+.app-card-metric,
+.app-card-feature {
+  overflow: visible;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.app-card-gradient {
+  background: linear-gradient(135deg, #2563eb 0%, #8b5cf6 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.app-gradient-bg {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.app-soft-bg {
+  background: var(--surface-1, #ffffff);
+}
+
+.app-mp-nav,
+.app-mp-nav-row,
+.app-page-content {
+  box-sizing: border-box;
+}
+
+.app-bottom-safe {
+  height: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.app-icon-tile { background: #eff6ff; color: #2563eb; }
+.app-icon-tile--violet { background: #f5f3ff; color: #8b5cf6; }
+.app-icon-tile--cyan { background: #ecfeff; color: #06b6d4; }
+.app-icon-tile--candy { background: #fdf2f8; color: #ec4899; }
+.app-icon-tile--success { background: #d1fae5; color: #10b981; }
+.app-icon-tile--warning { background: #fef3c7; color: #f59e0b; }
+
+.ui-list-item,
+.list-item,
+.item {
+  border: 1px solid #e2e8f0;
+}
+
+.ui-input,
+.input,
+textarea.ui-input,
+.sl-input {
+  font-size: 14px;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+input,
+textarea {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.chat-nav,
+.sticky-cta,
+.bottom-bar,
+.bottom-action,
+.input-area,
+.input-bar,
+.header-bar,
+.toolbar,
+.nav-bar,
+.sheet-mask,
+.modal-mask,
+.doc-modal-mask {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.chat-nav,
+.header-bar { background: #ffffff; }
+.sticky-cta,
+.bottom-bar,
+.bottom-action,
+.input-area,
+.input-bar,
+.toolbar   { background: var(--surface-1, #ffffff); }
+
+/* #endif */
