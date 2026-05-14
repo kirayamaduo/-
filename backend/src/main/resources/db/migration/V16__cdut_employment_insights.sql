@@ -1,0 +1,21 @@
+CREATE TABLE `cdut_employment_records` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `source_year` INT NULL,
+  `source_title` VARCHAR(255) NOT NULL,
+  `source_url` VARCHAR(768) NOT NULL,
+  `source_type` VARCHAR(40) NOT NULL DEFAULT 'PUBLIC_WEB',
+  `major_keyword` VARCHAR(120) NULL,
+  `career_keyword` VARCHAR(120) NULL,
+  `employment_rate` DECIMAL(5,2) NULL,
+  `postgraduate_rate` DECIMAL(5,2) NULL,
+  `destination_summary` VARCHAR(1200) NULL,
+  `raw_excerpt` TEXT NULL,
+  `fetched_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_cdut_employment_source_url` (`source_url`),
+  KEY `idx_cdut_employment_year` (`source_year`),
+  KEY `idx_cdut_employment_major` (`major_keyword`),
+  KEY `idx_cdut_employment_career` (`career_keyword`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

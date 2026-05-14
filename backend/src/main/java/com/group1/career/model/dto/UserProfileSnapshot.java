@@ -43,6 +43,7 @@ public class UserProfileSnapshot {
     private ResumeBlock resume;
     private InterviewBlock interview;
     private PreferencesBlock preferences;
+    private OnboardingBlock onboarding;
 
     @Data
     @Builder
@@ -102,5 +103,19 @@ public class UserProfileSnapshot {
         private String targetRole;
         /** Last interview mode they picked, {@code "voice"} or {@code "text"}. */
         private String interviewMode;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class OnboardingBlock {
+        /** User self-selected career status: student, new_graduate, internship_seeker, career_switcher. */
+        private String identityType;
+        /** User self-reported resume state from onboarding. This is not proof that a resume exists in the system. */
+        private String hasResume;
+        /** ISO timestamp from the client when the onboarding setup was completed. */
+        private String onboardingCompletedAt;
     }
 }

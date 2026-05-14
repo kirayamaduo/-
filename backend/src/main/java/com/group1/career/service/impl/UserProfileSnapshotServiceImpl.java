@@ -117,6 +117,21 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
             }
         }
 
+        if (snap.getOnboarding() != null) {
+            UserProfileSnapshot.OnboardingBlock o = snap.getOnboarding();
+            StringBuilder sb = new StringBuilder("- Onboarding setup: ");
+            if (hasText(o.getIdentityType())) sb.append("identity ").append(o.getIdentityType());
+            if (hasText(o.getHasResume())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("self-reported resume state ").append(o.getHasResume());
+            }
+            if (hasText(o.getOnboardingCompletedAt())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("completed at ").append(o.getOnboardingCompletedAt());
+            }
+            if (sb.length() > "- Onboarding setup: ".length()) lines.add(sb.toString());
+        }
+
         return String.join("\n", lines);
     }
 
@@ -176,6 +191,23 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         persist(userId, current);
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void mergeOnboarding(Long userId, UserProfileSnapshot.OnboardingBlock block) {
+        if (userId == null || block == null) return;
+        UserProfileSnapshot current = read(userId);
+        UserProfileSnapshot.OnboardingBlock existing = current.getOnboarding();
+        if (existing == null) {
+            current.setOnboarding(block);
+        } else {
+            if (block.getIdentityType() != null) existing.setIdentityType(block.getIdentityType());
+            if (block.getHasResume() != null) existing.setHasResume(block.getHasResume());
+            if (block.getOnboardingCompletedAt() != null) existing.setOnboardingCompletedAt(block.getOnboardingCompletedAt());
+            current.setOnboarding(existing);
+        }
+        persist(userId, current);
+    }
+
     /**
      * Best-effort persistence — snapshot writes are never on the user's
      * critical path (they happen after the real assessment / resume /
@@ -214,7 +246,8 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         return s.getAssessment() == null
                 && s.getResume() == null
                 && s.getInterview() == null
-                && s.getPreferences() == null;
+                && s.getPreferences() == null
+                && s.getOnboarding() == null;
     }
 
     private boolean hasText(String value) {

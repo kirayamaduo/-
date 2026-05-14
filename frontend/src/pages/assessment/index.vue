@@ -548,12 +548,29 @@ onShow(() => {
   color: #93c5fd;
 }
 
+.assessment-container.is-dark .radar-placeholder {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: rgba(147, 197, 253, 0.36);
+}
+
+.assessment-container.is-dark .radar-icon {
+  background: rgba(37, 99, 235, 0.28);
+  color: #bfdbfe;
+}
+
 .assessment-container.is-dark .mbti-icon {
   background-color: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
 }
 
 .assessment-container.is-dark .holland-icon {
   background-color: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+.assessment-container.is-dark .icon-box.app-icon-tile--candy {
+  background-color: rgba(236, 72, 153, 0.18);
+  color: #f9a8d4;
 }
 
 /* #endif */

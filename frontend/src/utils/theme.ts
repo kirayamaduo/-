@@ -88,6 +88,7 @@ function _readFont(): FontKey {
 }
 
 function _applyTabBarStyle(t: ThemeKey) {
+  if (!_isTabBarPage()) return;
   try {
     if (t === 'dark') {
       uni.setTabBarStyle({
@@ -127,4 +128,20 @@ function _applyTabBarStyle(t: ThemeKey) {
       });
     }
   } catch { /* H5 / unsupported */ }
+}
+
+function _isTabBarPage() {
+  try {
+    const pages = getCurrentPages?.() || [];
+    const current = pages[pages.length - 1] as { route?: string } | undefined;
+    const route = current?.route ? `/${current.route}` : '';
+    return [
+      '/pages/home/index',
+      '/pages/assistant/index',
+      '/pages/resume/index',
+      '/pages/user/index',
+    ].includes(route);
+  } catch {
+    return false;
+  }
 }

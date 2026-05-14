@@ -12,49 +12,38 @@
       </template>
     </SlNavBar>
 
-    <scroll-view scroll-y class="hub-scroll">
+    <scroll-view scroll-y class="hub-scroll" :style="{ height: scrollHeight }">
 
-      <!-- ① Profile completeness -->
-      <view class="hub-section app-card-soft" @click="navTo('/pages/agent/profile')">
-        <view class="hub-section-head">
-          <text class="hub-section-title">{{ t('agent.hub.profileSection') }}</text>
-          <text class="hub-section-arrow">›</text>
-        </view>
-        <view v-if="agentProfile" class="hub-pct-wrap">
-          <view class="hub-pct-bar">
-            <view
-              class="hub-pct-fill"
-              :class="'pct-' + agentProfile.personalizationLevel.toLowerCase()"
-              :style="{ width: agentProfile.completenessScore + '%' }"
-            />
-          </view>
-          <text class="hub-pct-label">{{ levelLabel }} · {{ agentProfile.completenessScore }}%</text>
-        </view>
-        <view v-if="agentProfile?.missingSignals?.length" class="hub-missing-row">
-          <view
-            v-for="sig in agentProfile.missingSignals.slice(0, 3)"
-            :key="sig.key"
-            class="hub-missing-chip"
-            :class="'chip-' + sig.priority.toLowerCase()"
-          >
-            <text class="hub-missing-chip-text">+ {{ sig.label }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- ② Today -->
+      <!-- ① Today -->
       <view v-if="agentToday" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.todaySection') }}</text>
           <view class="hub-stage-pill"><text class="hub-stage-text">{{ stageLabel }}</text></view>
         </view>
-        <text class="hub-headline">{{ agentToday.headlineKey ? t(agentToday.headlineKey) : agentToday.headline }}</text>
-        <text class="hub-focus">{{ agentToday.focusKey ? t(agentToday.focusKey) : agentToday.todayFocus }}</text>
-        <view class="hub-progress-bar">
-          <view class="hub-progress-fill" :style="{ width: agentToday.progressPercent + '%' }" />
+        <text class="hub-headline">{{ displayText(agentToday.headlineKey ? t(agentToday.headlineKey) : agentToday.headline) }}</text>
+        <text class="hub-focus">{{ displayText(agentToday.focusKey ? t(agentToday.focusKey) : agentToday.todayFocus) }}</text>
+        <view class="hub-reason-box">
+          <text class="hub-reason-label">{{ t('agent.hub.reasonSection') }}</text>
+          <text class="hub-reason-text">{{ displayText(agentToday.reasonKey ? t(agentToday.reasonKey) : agentToday.reason) }}</text>
         </view>
-        <text class="hub-progress-text">{{ t('agent.hub.readiness', { n: agentToday.progressPercent }) }}</text>
-        <view v-if="agentToday.actions?.length" class="hub-actions">
+        <view class="hub-reason-box hub-outcome-box">
+          <text class="hub-reason-label">{{ t('agent.hub.outcomeSection') }}</text>
+          <text class="hub-reason-text">{{ todayOutcome }}</text>
+        </view>
+        <view v-if="primaryTask" class="hub-primary-actions">
+          <view class="hub-primary-cta" @click="navTo(taskTarget(primaryTask))">
+            <text class="hub-primary-cta-text">{{ t('agent.hub.startTodayAction') }}</text>
+            <text class="hub-primary-cta-arrow">›</text>
+          </view>
+          <view class="hub-primary-done" @click="completeTask(primaryTask.taskId)">
+            <text class="hub-primary-done-text">{{ t('agent.hub.taskDone') }}</text>
+          </view>
+        </view>
+        <view class="hub-progress-bar">
+          <view class="hub-progress-fill" :style="{ width: todayProgressPercent + '%' }" />
+        </view>
+        <text class="hub-progress-text">{{ t('agent.hub.readiness', { n: todayProgressPercent }) }}</text>
+        <view v-if="!primaryTask && agentToday.actions?.length" class="hub-actions">
           <view
             v-for="action in agentToday.actions.slice(0, 3)"
             :key="action.label"
@@ -62,21 +51,43 @@
             :class="{ 'hub-action-primary': action.priority === 'HIGH' }"
             @click="navTo(action.target)"
           >
-            <text class="hub-action-text">{{ action.labelKey ? t(action.labelKey) : action.label }}</text>
+            <text class="hub-action-text">{{ displayText(action.labelKey ? t(action.labelKey) : action.label) }}</text>
+          </view>
+        </view>
+      </view>
+      <view v-else class="hub-section app-card-soft">
+        <view class="hub-section-head">
+          <text class="hub-section-title">{{ t('agent.hub.todaySection') }}</text>
+          <view class="hub-stage-pill"><text class="hub-stage-text">先建立基线</text></view>
+        </view>
+        <text class="hub-headline">先完成一次职业测评</text>
+        <text class="hub-focus">{{ loadError || '暂时还没有生成今日行动，先用测评建立第一份求职画像。' }}</text>
+        <view class="hub-reason-box">
+          <text class="hub-reason-label">{{ t('agent.hub.reasonSection') }}</text>
+          <text class="hub-reason-text">测评结果会帮助系统判断目标方向、简历重点和后续面试练习顺序。</text>
+        </view>
+        <view class="hub-reason-box hub-outcome-box">
+          <text class="hub-reason-label">{{ t('agent.hub.outcomeSection') }}</text>
+          <text class="hub-reason-text">目标方向、岗位建议和后续准备重点</text>
+        </view>
+        <view class="hub-primary-actions">
+          <view class="hub-primary-cta" @click="navTo('/pages/assessment/index')">
+            <text class="hub-primary-cta-text">开始测评</text>
+            <text class="hub-primary-cta-arrow">›</text>
           </view>
         </view>
       </view>
 
-      <!-- ③ Tasks -->
+      <!-- ② Tasks -->
       <view class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.tasksSection') }}</text>
-          <text class="hub-task-count">{{ t('agent.hub.tasksOpen', { n: openTasks.length }) }}</text>
+          <text class="hub-task-count">{{ t('agent.hub.tasksOpen', { n: secondaryTasks.length }) }}</text>
         </view>
-        <view v-if="openTasks.length === 0" class="hub-empty">
+        <view v-if="secondaryTasks.length === 0" class="hub-empty">
           <text class="hub-empty-text">{{ t('agent.hub.tasksEmpty') }}</text>
         </view>
-        <view v-for="task in openTasks" :key="task.taskId" class="hub-task">
+        <view v-for="task in secondaryTasks" :key="task.taskId" class="hub-task">
           <view class="hub-task-header" @click="toggleTask(task.taskId)">
             <view class="hub-task-meta">
               <view class="hub-task-badges">
@@ -87,8 +98,8 @@
                   <text class="hub-badge-text">{{ task.estimatedMinutes }}min</text>
                 </view>
               </view>
-              <text class="hub-task-title">{{ task.title }}</text>
-              <text v-if="task.description" class="hub-task-desc">{{ task.description }}</text>
+              <text class="hub-task-title">{{ displayText(task.title) }}</text>
+              <text v-if="task.description" class="hub-task-desc">{{ displayText(task.description) }}</text>
             </view>
             <view class="hub-task-right">
               <view class="hub-task-actions">
@@ -123,40 +134,16 @@
                   <text class="hub-badge-text">{{ sub.estimatedMinutes }}min</text>
                 </view>
               </view>
-              <text class="hub-subtask-title">{{ sub.title }}</text>
+              <text class="hub-subtask-title">{{ displayText(sub.title) }}</text>
               <view v-if="sub.status !== 'DONE'" class="hub-subtask-done-btn" @click="completeTask(sub.taskId)">
-                <text class="hub-subtask-done-text ri-check-line"></text>
+                <text class="hub-subtask-done-text">✓</text>
               </view>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- ④ Risk Watch -->
-      <view v-if="agentRisk" class="hub-section app-card-soft">
-        <view class="hub-section-head">
-          <text class="hub-section-title">{{ t('agent.hub.riskSection') }}</text>
-          <view class="hub-risk-pill" :class="'risk-' + agentRisk.overallLevel.toLowerCase()">
-            <text class="hub-risk-pill-text">{{ agentRisk.overallLevel }}</text>
-          </view>
-        </view>
-        <text class="hub-risk-primary">{{ agentRisk.risks?.[0]?.titleKey ? t(agentRisk.risks[0].titleKey) : agentRisk.primaryRiskTitle }}</text>
-        <text class="hub-risk-summary">{{ agentRisk.summary }}</text>
-        <view class="hub-risks-list">
-          <view v-for="r in agentRisk.risks" :key="r.code" class="hub-risk-row">
-            <view class="hub-risk-row-left">
-              <view class="hub-risk-dot" :class="'dot-' + r.level.toLowerCase()" />
-              <text class="hub-risk-row-title">{{ r.titleKey ? t(r.titleKey) : r.title }}</text>
-            </view>
-            <view class="hub-risk-row-right">
-              <text class="hub-risk-trend" :class="'trend-' + r.trend.toLowerCase()">{{ r.trend === 'RISING' ? t('home.riskTrendRising') : r.trend === 'DECREASING' ? t('home.riskTrendImproving') : t('home.riskTrendStable') }}</text>
-              <text class="hub-risk-score">{{ r.score }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- ⑤ Plan -->
+      <!-- ③ Plan -->
       <view v-if="agentPlan" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.planSection') }}</text>
@@ -164,12 +151,12 @@
             {{ planHealthLabel }}
           </text>
         </view>
-        <text class="hub-plan-role">{{ agentPlan.targetRole || t('agent.hub.planRoleEmpty') }}</text>
+        <text class="hub-plan-role">{{ displayRole(agentPlan.targetRole) || t('agent.hub.planRoleEmpty') }}</text>
         <text v-if="agentPlan.nextMilestoneTitle" class="hub-plan-milestone">
-          {{ agentPlan.nextMilestoneHorizon }} · {{ agentPlan.nextMilestoneTitle }}
+          {{ displayText(agentPlan.nextMilestoneHorizon) }} · {{ displayText(agentPlan.nextMilestoneTitle) }}
         </text>
         <view v-if="agentPlan.weeklyFocus?.length" class="hub-focus-list">
-          <text v-for="f in agentPlan.weeklyFocus" :key="f" class="hub-focus-item">• {{ f }}</text>
+          <text v-for="f in agentPlan.weeklyFocus" :key="f" class="hub-focus-item">• {{ displayText(f) }}</text>
         </view>
         <view
           v-if="!agentPlan.hasPlan || agentPlan.planHealth === 'NEEDS_REFRESH'"
@@ -180,7 +167,55 @@
         </view>
       </view>
 
-      <!-- ⑥ Weekly Review -->
+      <!-- ④ Current gap -->
+      <view v-if="agentRisk" class="hub-section app-card-soft">
+        <view class="hub-section-head">
+          <text class="hub-section-title">{{ t('agent.hub.riskSection') }}</text>
+        </view>
+        <text class="hub-risk-primary">{{ displayText(agentRisk.risks?.[0]?.titleKey ? t(agentRisk.risks[0].titleKey) : agentRisk.primaryRiskTitle) }}</text>
+        <text class="hub-risk-summary">{{ displayText(agentRisk.summary) }}</text>
+        <view class="hub-risks-list">
+          <view v-for="r in agentRisk.risks" :key="r.code" class="hub-risk-row">
+            <view class="hub-risk-row-left">
+              <view class="hub-risk-dot" :class="'dot-' + r.level.toLowerCase()" />
+              <text class="hub-risk-row-title">{{ displayText(r.titleKey ? t(r.titleKey) : r.title) }}</text>
+            </view>
+            <view class="hub-risk-row-right">
+              <text class="hub-risk-trend" :class="'trend-' + r.trend.toLowerCase()">{{ r.trend === 'RISING' ? t('home.riskTrendRising') : r.trend === 'DECREASING' ? t('home.riskTrendImproving') : t('home.riskTrendStable') }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- ⑤ Preference completeness -->
+      <view class="hub-section app-card-soft" @click="navTo('/pages/agent/profile')">
+        <view class="hub-section-head">
+          <text class="hub-section-title">{{ t('agent.hub.profileSection') }}</text>
+          <text class="hub-section-arrow">›</text>
+        </view>
+        <view v-if="agentProfile" class="hub-pct-wrap">
+          <view class="hub-pct-bar">
+            <view
+              class="hub-pct-fill"
+              :class="'pct-' + agentProfile.personalizationLevel.toLowerCase()"
+              :style="{ width: agentProfile.completenessScore + '%' }"
+            />
+          </view>
+          <text class="hub-pct-label">{{ levelLabel }} · {{ agentProfile.completenessScore }}%</text>
+        </view>
+        <view v-if="agentProfile?.missingSignals?.length" class="hub-missing-row">
+          <view
+            v-for="sig in agentProfile.missingSignals.slice(0, 3)"
+            :key="sig.key"
+            class="hub-missing-chip"
+            :class="'chip-' + sig.priority.toLowerCase()"
+          >
+            <text class="hub-missing-chip-text">+ {{ displayText(sig.label) }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- ⑥ Recent review -->
       <view v-if="weeklyReview" class="hub-section app-card-soft">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.reviewSection') }}</text>
@@ -201,11 +236,11 @@
           </view>
         </view>
         <view v-if="reviewPayload?.highlights?.length" class="hub-review-highlights">
-          <text v-for="h in reviewPayload.highlights" :key="h" class="hub-review-highlight">· {{ h }}</text>
+          <text v-for="h in reviewPayload.highlights" :key="h" class="hub-review-highlight">· {{ displayText(h) }}</text>
         </view>
       </view>
 
-      <!-- ⑦ Agent State stats -->
+      <!-- ⑦ Action stats -->
       <view v-if="agentState" class="hub-section hub-state-section app-card-soft">
         <text class="hub-section-title">{{ t('agent.hub.stateSection') }}</text>
         <view class="hub-state-stats">
@@ -224,7 +259,7 @@
         </view>
       </view>
 
-      <!-- ⑧ Recent Activity (Events Timeline) -->
+      <!-- ⑧ Recent activity -->
       <view class="hub-section hub-state-section app-surface">
         <view class="hub-section-head">
           <text class="hub-section-title">{{ t('agent.hub.activitySection') }}</text>
@@ -276,12 +311,15 @@ import {
 } from '@/api/agent';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { useTheme } from '@/utils/theme';
+import { normalizeProductCopy, normalizeRoleLabel } from '@/utils/displayText';
+import { selectPrimaryTask, taskOutcome, taskTarget } from '@/utils/taskDisplay';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 const topSafeHeight = ref(52);
 const rightAvoidWidth = ref(16);
+const scrollHeight = ref('calc(100vh - 88px)');
 const agentProfile = ref<AgentUserProfile | null>(null);
 const agentToday = ref<CareerAgentToday | null>(null);
 const agentRisk = ref<CareerAgentRiskWatch | null>(null);
@@ -290,10 +328,14 @@ const agentState = ref<AgentState | null>(null);
 const weeklyReview = ref<AgentEvent | null>(null);
 const openTasks = ref<AgentTask[]>([]);
 const recentEvents = ref<AgentEvent[]>([]);
+const loadError = ref('');
 
 const expandedTasks = reactive(new Set<number>());
 const subtaskMap = reactive(new Map<number, AgentTask[]>());
 const subtaskLoading = reactive(new Set<number>());
+
+const displayText = normalizeProductCopy;
+const displayRole = normalizeRoleLabel;
 
 const levelLabel = computed(() => {
   const lvl = agentProfile.value?.personalizationLevel || 'LOW';
@@ -307,6 +349,10 @@ const stageLabel = computed(() => {
   const stageMap = {
     DIRECTION_DISCOVERY: t('agent.stage.DIRECTION_DISCOVERY'),
     TARGET_ROLE_SELECTION: t('agent.stage.TARGET_ROLE_SELECTION'),
+    ASSESSMENT_BASELINE: t('agent.stage.ASSESSMENT_BASELINE'),
+    INTERNSHIP_RESUME_BOOTSTRAP: t('agent.stage.INTERNSHIP_RESUME_BOOTSTRAP'),
+    GRADUATE_RESUME_UPLOAD: t('agent.stage.GRADUATE_RESUME_UPLOAD'),
+    CAREER_SWITCH_POSITIONING: t('agent.stage.CAREER_SWITCH_POSITIONING'),
     RESUME_BOOTSTRAP: t('agent.stage.RESUME_BOOTSTRAP'),
     RESUME_IMPROVEMENT: t('agent.stage.RESUME_IMPROVEMENT'),
     INTERVIEW_BOOTSTRAP: t('agent.stage.INTERVIEW_BOOTSTRAP'),
@@ -328,6 +374,29 @@ const planBtnLabel = computed(() =>
   agentPlan.value?.hasPlan ? t('agent.hub.planRefresh') : t('agent.hub.planGenerate')
 );
 
+const primaryTask = computed(() => selectPrimaryTask(openTasks.value, agentToday.value?.actions || []));
+const secondaryTasks = computed(() => {
+  const primaryId = primaryTask.value?.taskId;
+  return openTasks.value.filter((task) => task.taskId !== primaryId);
+});
+
+const todayOutcome = computed(() => {
+  const task = primaryTask.value;
+  if (task) return taskOutcome(task);
+  const action = agentToday.value?.actions?.[0];
+  if (action?.type === 'RESUME') return t('agent.hub.outcomeResume');
+  if (action?.type === 'INTERVIEW') return t('agent.hub.outcomeInterview');
+  if (action?.type === 'ASSESSMENT') return t('agent.hub.outcomeAssessment');
+  if (action?.type === 'TARGET_ROLE') return t('agent.hub.outcomeTargetRole');
+  if (action?.type === 'PLAN' || action?.source === 'PLAN_WEEKLY') return t('agent.hub.outcomePlan');
+  return t('agent.hub.outcomeProgress');
+});
+
+const todayProgressPercent = computed(() => {
+  const raw = agentProfile.value?.readiness?.overallPercent ?? agentToday.value?.progressPercent ?? 0;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+});
+
 const weeklyReviewDate = computed(() => {
   const d = weeklyReview.value?.createdAt;
   return d ? d.substring(0, 10) : '';
@@ -342,13 +411,13 @@ const reviewPayload = computed(() => {
 });
 
 const EVENT_ICONS: Record<string, string> = {
-  TASK_COMPLETED: 'ri-check-line',
-  TASK_DISMISSED: '–',
-  RISK_CHANGED: 'ri-alert-line',
-  PLAN_GENERATED: 'ri-clipboard-line',
-  RESUME_SCORE_CHANGED: 'ri-file-text-line',
-  INTERVIEW_SCORE_CHANGED: 'ri-mic-2-line',
-  WEEKLY_REVIEW_COMPLETED: 'ri-bar-chart-2-line',
+  TASK_COMPLETED: '✓',
+  TASK_DISMISSED: '✕',
+  RISK_CHANGED: '△',
+  PLAN_GENERATED: '≡',
+  RESUME_SCORE_CHANGED: '≡',
+  INTERVIEW_SCORE_CHANGED: '◉',
+  WEEKLY_REVIEW_COMPLETED: '↗',
 };
 const EVENT_COLORS: Record<string, string> = {
   TASK_COMPLETED: 'green',
@@ -372,6 +441,7 @@ const formatEventTime = (raw?: string) => {
 };
 
 const loadAll = async () => {
+  loadError.value = '';
   const [profile, today, risk, plan, state, review, tasks, events] = await Promise.allSettled([
     getAgentProfileApi(),
     getCareerAgentTodayApi(),
@@ -389,8 +459,11 @@ const loadAll = async () => {
   if (plan.status === 'fulfilled') agentPlan.value = plan.value;
   if (state.status === 'fulfilled') agentState.value = state.value;
   if (review.status === 'fulfilled') weeklyReview.value = review.value;
-  if (tasks.status === 'fulfilled') openTasks.value = tasks.value || [];
+  if (tasks.status === 'fulfilled') openTasks.value = (tasks.value || []).filter((task) => task.status === 'TODO');
   if (events.status === 'fulfilled') recentEvents.value = events.value || [];
+  if (today.status === 'rejected' && tasks.status === 'rejected') {
+    loadError.value = '网络不稳定，先从基础测评开始也可以继续推进。';
+  }
 };
 
 const completeTask = async (taskId: number) => {
@@ -399,9 +472,10 @@ const completeTask = async (taskId: number) => {
     openTasks.value = openTasks.value.filter(t => t.taskId !== taskId);
     subtaskMap.delete(taskId);
     expandedTasks.delete(taskId);
-    uni.showToast({ title: t('agent.hub.completeSuccess'), icon: 'success' });
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t('agent.hub.completeError'), icon: 'none' });
+    uni.showToast({ title: '已完成，下一步已更新', icon: 'success' });
+    await loadAll();
+  } catch {
+    uni.showToast({ title: t('agent.hub.completeError'), icon: 'none' });
   }
 };
 
@@ -441,12 +515,36 @@ const ensurePlan = async () => {
   try {
     agentPlan.value = await ensureCareerAgentPlanApi();
     uni.showToast({ title: t('agent.hub.planUpdated'), icon: 'success' });
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t('agent.hub.planFailed'), icon: 'none' });
+  } catch {
+    uni.showToast({ title: t('agent.hub.planFailed'), icon: 'none' });
   }
 };
 
-const navTo = (path: string) => uni.navigateTo({ url: path });
+const SWITCH_TAB_PATHS = new Set([
+  '/pages/home/index',
+  '/pages/assistant/index',
+  '/pages/resume/index',
+  '/pages/user/index',
+]);
+
+const navTo = (path: string) => {
+  if (!path) {
+    uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' });
+    return;
+  }
+  const base = path.split('?')[0];
+  if (SWITCH_TAB_PATHS.has(base)) {
+    uni.switchTab({
+      url: base,
+      fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+    });
+    return;
+  }
+  uni.navigateTo({
+    url: path,
+    fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+  });
+};
 const goBack = () => uni.navigateBack();
 
 onMounted(() => {
@@ -454,14 +552,13 @@ onMounted(() => {
   const safeMetrics = getMpSafeAreaMetrics();
   topSafeHeight.value = safeMetrics.topSafeHeight;
   rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+  scrollHeight.value = `calc(100vh - ${safeMetrics.contentTop}px)`;
   loadAll();
 });
 </script>
 
 <style scoped>
 .hub-page {
-  display: flex; flex-direction: column;
-  height: 100vh;
   box-sizing: border-box;
 }
 .hub-refresh {
@@ -470,10 +567,16 @@ onMounted(() => {
 }
 .hub-refresh-icon { font-size: 20px; color: var(--text-secondary, #64748b); }
 
-.hub-scroll { flex: 1; min-height: 0; }
+.hub-scroll {
+  width: 100%;
+  box-sizing: border-box;
+}
 
 .hub-section {
   margin: 16rpx 24rpx; padding: 24rpx; margin-bottom: 24rpx;
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .hub-state-section { margin-bottom: 0; }
 .hub-bottom-spacer { height: 48rpx; }
@@ -508,6 +611,68 @@ onMounted(() => {
 .hub-stage-text { font-size: 11px; color: var(--primary-hover, #1d4ed8); font-weight: 600; }
 .hub-headline { font-size: 15px; font-weight: 700; color: var(--text-primary, #0f172a); line-height: 1.4; margin-bottom: 6rpx; }
 .hub-focus { font-size: 12.5px; color: var(--text-secondary, #64748b); margin-bottom: 14rpx; }
+.hub-reason-box {
+  margin: 12rpx 0;
+  padding: 16rpx;
+  border-radius: 14rpx;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.hub-outcome-box {
+  background: var(--primary-soft, #eff6ff);
+  border-color: rgba(37, 99, 235, 0.14);
+}
+.hub-reason-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-tertiary, #8e8e93);
+}
+.hub-reason-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary, #0f172a);
+}
+.hub-primary-actions {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin: 16rpx 0 14rpx;
+}
+.hub-primary-cta {
+  flex: 1;
+  min-width: 0;
+  height: 76rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #1d4ed8, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+.hub-primary-cta-text,
+.hub-primary-cta-arrow {
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 800;
+}
+.hub-primary-done {
+  flex-shrink: 0;
+  height: 76rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: var(--surface-3, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hub-primary-done-text {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  font-weight: 700;
+}
 .hub-progress-bar { height: 6rpx; background: #e5e7eb; border-radius: 3rpx; overflow: hidden; margin-bottom: 6rpx; }
 .hub-progress-fill { height: 100%; background: linear-gradient(90deg,#1d4ed8,#6366f1); border-radius: 3rpx; }
 .hub-progress-text { font-size: 11px; color: var(--text-tertiary, #8e8e93); margin-bottom: 14rpx; }
@@ -525,9 +690,9 @@ onMounted(() => {
 .hub-empty-text { font-size: 12.5px; color: var(--text-tertiary, #8e8e93); }
 .hub-task { border-top: 1rpx solid #f3f4f6; padding-top: 16rpx; margin-top: 12rpx; }
 .hub-task:first-child { border-top: none; margin-top: 0; }
-.hub-task-header { display: flex; gap: 12rpx; }
+.hub-task-header { display: flex; flex-direction: column; gap: 14rpx; }
 .hub-task-meta { flex: 1; min-width: 0; }
-.hub-task-badges { display: flex; gap: 6rpx; margin-bottom: 6rpx; }
+.hub-task-badges { display: flex; gap: 6rpx; margin-bottom: 6rpx; flex-wrap: wrap; }
 .hub-badge {
   border-radius: 6rpx; padding: 2rpx 10rpx;
 }
@@ -537,10 +702,10 @@ onMounted(() => {
 .hub-badge-time { background: #ede9fe; }
 .hub-badge-time .hub-badge-text { color: #5b21b6; }
 .hub-badge-text { font-size: 10px; font-weight: 600; }
-.hub-task-title { font-size: 13px; font-weight: 600; color: var(--text-primary, #0f172a); }
-.hub-task-desc { font-size: 11.5px; color: var(--text-secondary, #64748b); margin-top: 4rpx; }
-.hub-task-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; }
-.hub-task-actions { display: flex; gap: 8rpx; }
+.hub-task-title { font-size: 13px; font-weight: 600; color: var(--text-primary, #0f172a); line-height: 1.45; word-break: break-word; }
+.hub-task-desc { font-size: 11.5px; color: var(--text-secondary, #64748b); margin-top: 4rpx; line-height: 1.45; word-break: break-word; }
+.hub-task-right { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; width: 100%; }
+.hub-task-actions { display: flex; gap: 8rpx; flex-wrap: wrap; min-width: 0; }
 .hub-task-btn {
   border: 1.5rpx solid #d1d5db; border-radius: 999rpx;
   padding: 6rpx 14rpx; background: var(--surface-2, #f8fafc);
@@ -548,7 +713,7 @@ onMounted(() => {
 .hub-task-done { border-color: var(--primary-hover, #1d4ed8); background: var(--primary-soft, #eff6ff); }
 .hub-task-btn-text { font-size: 11.5px; color: var(--text-secondary, #64748b); }
 .hub-task-done .hub-task-btn-text { color: var(--primary-hover, #1d4ed8); font-weight: 600; }
-.hub-expand-btn { border-radius: 999rpx; padding: 4rpx 12rpx; background: var(--surface-3, #f1f5f9); }
+.hub-expand-btn { border-radius: 999rpx; padding: 4rpx 12rpx; background: var(--surface-3, #f1f5f9); flex-shrink: 0; }
 .hub-expand-text { font-size: 11px; color: var(--text-secondary, #64748b); }
 
 /* subtasks */
@@ -562,7 +727,7 @@ onMounted(() => {
 .hub-subtask:last-child { border-bottom: none; }
 .hub-subtask-done { opacity: .45; }
 .hub-subtask-badges { display: flex; gap: 4rpx; margin-bottom: 4rpx; flex-wrap: wrap; }
-.hub-subtask-title { font-size: 12px; color: var(--text-secondary, #64748b); flex: 1; }
+.hub-subtask-title { font-size: 12px; color: var(--text-secondary, #64748b); flex: 1; min-width: 0; line-height: 1.45; word-break: break-word; }
 .hub-subtask-done-btn {
   width: 40rpx; height: 40rpx; border-radius: 50%;
   background: #d1fae5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -578,12 +743,12 @@ onMounted(() => {
 .hub-risk-primary { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); margin-bottom: 6rpx; }
 .hub-risk-summary { font-size: 12px; color: var(--text-secondary, #64748b); margin-bottom: 14rpx; }
 .hub-risks-list { display: flex; flex-direction: column; gap: 10rpx; }
-.hub-risk-row { display: flex; align-items: center; justify-content: space-between; }
-.hub-risk-row-left { display: flex; align-items: center; gap: 10rpx; }
+.hub-risk-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
+.hub-risk-row-left { display: flex; align-items: center; gap: 10rpx; flex: 1; min-width: 0; }
 .hub-risk-dot { width: 10rpx; height: 10rpx; border-radius: 50%; }
 .dot-high { background: #ef4444; } .dot-medium { background: #f59e0b; } .dot-low { background: #10b981; }
-.hub-risk-row-title { font-size: 12px; color: var(--text-secondary, #64748b); }
-.hub-risk-row-right { display: flex; align-items: center; gap: 10rpx; }
+.hub-risk-row-title { font-size: 12px; color: var(--text-secondary, #64748b); min-width: 0; word-break: break-word; }
+.hub-risk-row-right { display: flex; align-items: center; gap: 10rpx; flex-shrink: 0; }
 .hub-risk-trend { font-size: 11px; }
 .trend-rising { color: #ef4444; } .trend-stable { color: var(--text-secondary, #64748b); } .trend-decreasing { color: #10b981; }
 .hub-risk-score { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
@@ -603,11 +768,11 @@ onMounted(() => {
 
 /* weekly review */
 .hub-review-stats, .hub-state-stats {
-  display: flex; gap: 0; margin-bottom: 14rpx;
+  display: flex; gap: 8rpx; margin-bottom: 14rpx;
 }
-.hub-stat { flex: 1; text-align: center; }
-.hub-stat-val { font-size: 16px; font-weight: 700; color: var(--text-primary, #0f172a); display: block; }
-.hub-stat-label { font-size: 11px; color: var(--text-tertiary, #8e8e93); display: block; margin-top: 4rpx; }
+.hub-stat { flex: 1; min-width: 0; text-align: center; }
+.hub-stat-val { font-size: 16px; font-weight: 700; color: var(--text-primary, #0f172a); display: block; line-height: 1.25; word-break: break-word; }
+.hub-stat-label { font-size: 11px; color: var(--text-tertiary, #8e8e93); display: block; margin-top: 4rpx; line-height: 1.35; word-break: break-word; }
 .hub-review-highlights { display: flex; flex-direction: column; gap: 6rpx; }
 .hub-review-highlight { font-size: 12px; color: var(--text-secondary, #64748b); }
 
@@ -631,4 +796,346 @@ onMounted(() => {
 .hub-event-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
 .hub-event-label { font-size: 12.5px; color: var(--text-secondary, #64748b); font-weight: 600; }
 .hub-event-time { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
+
+/* Dark mode: this hub has many custom local surfaces, so keep the
+   contrast rules page-scoped instead of relying only on generic cards. */
+.hub-page.is-dark {
+  background: #09111f;
+}
+
+.hub-page.is-dark .hub-scroll {
+  background: #09111f;
+}
+
+.hub-page.is-dark .hub-refresh {
+  background: rgba(59, 130, 246, 0.22);
+  border: 1px solid rgba(147, 197, 253, 0.46);
+}
+
+.hub-page.is-dark .hub-refresh-icon {
+  color: #dbeafe;
+}
+
+.hub-page.is-dark .hub-section {
+  background: #172235;
+  border: 1px solid #315173;
+  box-shadow: none;
+}
+
+.hub-page.is-dark .hub-section-title,
+.hub-page.is-dark .hub-task-count,
+.hub-page.is-dark .hub-review-date {
+  color: #e2e8f0;
+}
+
+.hub-page.is-dark .hub-section-arrow,
+.hub-page.is-dark .hub-progress-text,
+.hub-page.is-dark .hub-stat-label,
+.hub-page.is-dark .hub-review-date,
+.hub-page.is-dark .hub-empty-text,
+.hub-page.is-dark .hub-subtask-loading-text {
+  color: #94a3b8;
+}
+
+.hub-page.is-dark .hub-pct-bar,
+.hub-page.is-dark .hub-progress-bar {
+  background: #26364d;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.hub-page.is-dark .hub-pct-fill,
+.hub-page.is-dark .hub-progress-fill {
+  box-shadow: 0 0 12rpx rgba(34, 211, 238, 0.28);
+}
+
+.hub-page.is-dark .hub-stage-pill {
+  background: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(147, 197, 253, 0.36) !important;
+}
+
+/* 主要操作：鲜蓝底 + 纯白字，对比清晰 */
+.hub-page.is-dark .hub-action-primary {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+.hub-page.is-dark .hub-action-primary .hub-action-text {
+  color: #ffffff !important;
+}
+
+/* 完成按钮：蓝底 + 白字 */
+.hub-page.is-dark .hub-task-done {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+.hub-page.is-dark .hub-task-done .hub-task-btn-text {
+  color: #ffffff !important;
+}
+
+/* stage pill */
+.hub-page.is-dark .hub-stage-pill {
+  background: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(147, 197, 253, 0.36) !important;
+}
+.hub-page.is-dark .hub-stage-text {
+  color: #bfdbfe;
+}
+
+/* 次要按钮：中灰底 + 亮白字 */
+.hub-page.is-dark .hub-action,
+.hub-page.is-dark .hub-task-btn,
+.hub-page.is-dark .hub-expand-btn,
+.hub-page.is-dark .hub-primary-done {
+  background: #243449 !important;
+  border-color: #5b7190 !important;
+}
+
+.hub-page.is-dark .hub-task,
+.hub-page.is-dark .hub-subtask,
+.hub-page.is-dark .hub-event-row {
+  border-color: #315173;
+}
+
+.hub-page.is-dark .hub-subtasks {
+  border-left-color: rgba(147, 197, 253, 0.36);
+}
+
+.hub-page.is-dark .chip-high,
+.hub-page.is-dark .risk-high,
+.hub-page.is-dark .diff-hard {
+  background: #4a1818 !important;
+  border-color: #f87171 !important;
+}
+
+.hub-page.is-dark .chip-high .hub-missing-chip-text,
+.hub-page.is-dark .risk-high .hub-risk-pill-text,
+.hub-page.is-dark .diff-hard .hub-badge-text {
+  color: #fecaca !important;
+}
+
+.hub-page.is-dark .chip-medium,
+.hub-page.is-dark .risk-medium,
+.hub-page.is-dark .diff-medium {
+  background: #422006 !important;
+  border-color: #fbbf24 !important;
+}
+
+.hub-page.is-dark .chip-medium .hub-missing-chip-text,
+.hub-page.is-dark .risk-medium .hub-risk-pill-text,
+.hub-page.is-dark .diff-medium .hub-badge-text {
+  color: #fde68a !important;
+}
+
+.hub-page.is-dark .chip-low,
+.hub-page.is-dark .risk-low,
+.hub-page.is-dark .diff-easy {
+  background: #063525 !important;
+  border-color: #34d399 !important;
+}
+
+.hub-page.is-dark .chip-low .hub-missing-chip-text,
+.hub-page.is-dark .risk-low .hub-risk-pill-text,
+.hub-page.is-dark .diff-easy .hub-badge-text {
+  color: #bbf7d0 !important;
+}
+
+.hub-page.is-dark .hub-badge-time {
+  background: #31235f !important;
+  border-color: #a78bfa !important;
+}
+
+.hub-page.is-dark .hub-badge-time .hub-badge-text {
+  color: #ddd6fe !important;
+}
+
+.hub-page.is-dark .hub-subtask-done-btn {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.36);
+}
+
+.hub-page.is-dark .hub-subtask-done-text {
+  color: #6ee7b7;
+}
+
+.hub-page.is-dark .hub-event-icon-wrap {
+  border: 1px solid transparent;
+}
+
+.hub-page.is-dark .ev-green {
+  background: rgba(16, 185, 129, 0.24);
+  border-color: rgba(110, 231, 183, 0.48);
+  color: #a7f3d0;
+}
+
+.hub-page.is-dark .ev-gray {
+  background: #243449;
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+.hub-page.is-dark .ev-orange {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(253, 230, 138, 0.5);
+  color: #fde68a;
+}
+
+.hub-page.is-dark .ev-blue {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(191, 219, 254, 0.5);
+  color: #dbeafe;
+}
+
+.hub-page.is-dark .ev-purple {
+  background: rgba(139, 92, 246, 0.28);
+  border-color: rgba(221, 214, 254, 0.5);
+  color: #ede9fe;
+}
+
+.hub-page.is-dark .hub-bottom-spacer {
+  background: #09111f;
+}
+
+/* ── Primary text in dark mode ── */
+.hub-page.is-dark .hub-headline,
+.hub-page.is-dark .hub-task-title,
+.hub-page.is-dark .hub-risk-primary,
+.hub-page.is-dark .hub-plan-role,
+.hub-page.is-dark .hub-stat-val {
+  color: #f1f5f9;
+}
+
+/* ── Secondary text in dark mode ── */
+.hub-page.is-dark .hub-focus,
+.hub-page.is-dark .hub-action-text,
+.hub-page.is-dark .hub-event-label,
+.hub-page.is-dark .hub-risk-summary,
+.hub-page.is-dark .hub-plan-milestone,
+.hub-page.is-dark .hub-focus-item,
+.hub-page.is-dark .hub-task-desc,
+.hub-page.is-dark .hub-pct-label,
+.hub-page.is-dark .hub-risk-row-title,
+.hub-page.is-dark .hub-subtask-title {
+  color: #d5e1f0;
+}
+
+/* ── Tertiary text in dark mode ── */
+.hub-page.is-dark .hub-event-time,
+.hub-page.is-dark .hub-risk-score {
+  color: #94a3b8;
+}
+
+/* 次要按钮文字：灰底 + 亮白字 */
+.hub-page.is-dark .hub-task-btn .hub-task-btn-text,
+.hub-page.is-dark .hub-expand-text,
+.hub-page.is-dark .hub-action .hub-action-text,
+.hub-page.is-dark .hub-primary-done-text {
+  color: #f1f5f9 !important;
+}
+
+/* ── Event icon colors (inherit from parent ev-* class) ── */
+.hub-page.is-dark .hub-event-icon { color: inherit; }
+
+/* Redundant .is-dark selectors are intentional for mp-weixin output: some
+   scoped descendant rules can lose to global text and light chip styles. */
+.is-dark .hub-missing-chip,
+.is-dark .hub-risk-pill,
+.is-dark .hub-badge,
+.is-dark .hub-stage-pill,
+.is-dark .hub-plan-health {
+  border-width: 1.5rpx !important;
+  border-style: solid !important;
+  box-shadow: none !important;
+}
+
+.is-dark .chip-high,
+.is-dark .risk-high,
+.is-dark .diff-hard {
+  background: #4a1818 !important;
+  border-color: #f87171 !important;
+}
+
+.is-dark .chip-high .hub-missing-chip-text,
+.is-dark .risk-high .hub-risk-pill-text,
+.is-dark .diff-hard .hub-badge-text {
+  color: #fecaca !important;
+}
+
+.is-dark .chip-medium,
+.is-dark .risk-medium,
+.is-dark .diff-medium {
+  background: #422006 !important;
+  border-color: #fbbf24 !important;
+}
+
+.is-dark .chip-medium .hub-missing-chip-text,
+.is-dark .risk-medium .hub-risk-pill-text,
+.is-dark .diff-medium .hub-badge-text {
+  color: #fde68a !important;
+}
+
+.is-dark .chip-low,
+.is-dark .risk-low,
+.is-dark .diff-easy {
+  background: #063525 !important;
+  border-color: #34d399 !important;
+}
+
+.is-dark .chip-low .hub-missing-chip-text,
+.is-dark .risk-low .hub-risk-pill-text,
+.is-dark .diff-easy .hub-badge-text {
+  color: #bbf7d0 !important;
+}
+
+.is-dark .hub-stage-pill,
+.is-dark .hub-plan-health {
+  background: #243449 !important;
+  border-color: #5b7190 !important;
+  border-radius: 999rpx;
+  padding: 4rpx 14rpx;
+}
+
+.is-dark .hub-stage-text,
+.is-dark .hub-plan-health {
+  color: #f1f5f9 !important;
+}
+
+.is-dark .hub-missing-chip-text,
+.is-dark .hub-risk-pill-text,
+.is-dark .hub-badge-text {
+  font-weight: 700 !important;
+}
+
+.is-dark .hub-review-stats,
+.is-dark .hub-state-stats {
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.is-dark .hub-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  text-align: left;
+  padding: 10rpx 12rpx;
+  border-radius: 12rpx;
+  background: #111827;
+  border: 1rpx solid #315173;
+}
+
+.is-dark .hub-stat-val {
+  flex: 1;
+  min-width: 0;
+  color: #f8fafc !important;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.is-dark .hub-stat-label {
+  flex-shrink: 0;
+  max-width: 160rpx;
+  margin-top: 0;
+  color: #cbd5e1 !important;
+  text-align: right;
+}
+
 </style>

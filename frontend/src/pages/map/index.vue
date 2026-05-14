@@ -19,13 +19,10 @@
         </view>
         <view class="tab-item" :class="{ 'tab-active': activeTab === 'plan' }" @click="activeTab = 'plan'">
           <text class="tab-text">{{ t('map.tabPlan') }}</text>
-          <view class="tab-badge" v-if="plan && plan.version && plan.version > 0"></view>
+          <view class="tab-badge" v-if="plan"></view>
         </view>
       </view>
 
-      <!-- ══════════════════════════════════════════
-           TAB: Skill Map (existing content)
-           ══════════════════════════════════════════ -->
       <view v-if="activeTab === 'map'">
     <view class="page-intro">
       <text class="intro-title">{{ t('map.intro') }}</text>
@@ -77,7 +74,7 @@
             <text class="tl-title">{{ node.name }}</text>
             <text class="tl-desc" v-if="node.description">{{ node.description }}</text>
             <view class="tl-meta-row">
-              <text class="tl-meta" v-if="node.estimatedHours">~{{ node.estimatedHours }} h</text>
+              <text class="tl-meta" v-if="node.estimatedHours">约 {{ node.estimatedHours }} 小时</text>
               <view class="tl-badge" :class="badgeClass(node)">
                 <text class="badge-text">{{ statusLabel(node) }}</text>
               </view>
@@ -94,11 +91,11 @@
         <view class="sheet-handle"></view>
         <view class="sheet-header">
           <text class="sheet-title">{{ selectedNode.name }}</text>
-          <text class="sheet-mastery">{{ statusLabel(selectedNode) }} · ~{{ selectedNode.estimatedHours || 10 }} h</text>
+          <text class="sheet-mastery">{{ statusLabel(selectedNode) }} · 约 {{ selectedNode.estimatedHours || 10 }} 小时</text>
         </view>
         <view class="sheet-section">
           <text class="sheet-label">{{ t('map.sheetCovers') }}</text>
-          <text class="sheet-advice">{{ selectedNode.description || 'Description coming soon.' }}</text>
+          <text class="sheet-advice">{{ selectedNode.description || t('map.sheetDescriptionEmpty') }}</text>
         </view>
         <view class="sheet-section" v-if="prerequisiteName">
           <text class="sheet-label">{{ t('map.sheetPrereq') }}</text>
@@ -114,9 +111,6 @@
       </view>
     </view><!-- end map tab -->
 
-    <!-- ══════════════════════════════════════════
-         TAB: AI Career Plan (F28c)
-         ══════════════════════════════════════════ -->
     <view v-if="activeTab === 'plan'" class="plan-tab">
 
       <!-- Loading -->
@@ -152,7 +146,7 @@
         <view class="plan-hero">
           <text class="plan-hero-label">{{ t('map.planTargetRole') }}</text>
           <text class="plan-hero-role">{{ plan.targetRole }}</text>
-          <text class="plan-hero-meta">v{{ plan.version }} · {{ formatDate(plan.lastUpdatedAt) }}</text>
+          <text class="plan-hero-meta">{{ t('map.planUpdatedAt') }} {{ formatDate(plan.lastUpdatedAt) }}</text>
           <view class="plan-regen-btn" @click="handleGenerate(plan.targetRole)">
             <text class="plan-regen-text">{{ t('map.planRegenerate') }}</text>
           </view>
@@ -244,9 +238,9 @@ const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(44);
 const rightAvoidWidth = ref(20);
-const activeTab    = ref<'map' | 'plan'>('map');
+const activeTab    = ref<'map' | 'plan'>('plan');
 
-// ── skill-map tab ─────────────────────────────────────────────────────────────
+// ── route tab ─────────────────────────────────────────────────────────────
 const showDetail = ref(false);
 const loading    = ref(true);
 
@@ -469,6 +463,7 @@ onMounted(() => {
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any).options || {};
   const queryPathId = opts.pathId ? parseInt(opts.pathId) : undefined;
+  if (queryPathId && !isNaN(queryPathId)) activeTab.value = 'map';
   loadAll(queryPathId && !isNaN(queryPathId) ? queryPathId : undefined);
   loadPlan();
 });
@@ -483,7 +478,7 @@ onShow(() => {
   }
 });
 
-// ── F28c: AI career plan ──────────────────────────────────────────────────────
+// ── career plan ──────────────────────────────────────────────────────────────
 const plan           = ref<UserCareerPlan | null>(null);
 const planLoading    = ref(false);
 const inputTargetRole = ref('');
@@ -528,7 +523,7 @@ const handleGenerate = async (targetRole?: string) => {
   }
 };
 
-/** Convert raw AI horizon values like "3m", "6m", "1y", "2y" to readable labels. */
+/** Convert raw horizon values like "3m", "6m", "1y", "2y" to readable labels. */
 const horizonLabel = (h: string): string => {
   if (!h) return h;
   const m = h.match(/^(\d+)(m|y)$/i);
@@ -831,7 +826,7 @@ const formatDate = (iso?: string) => {
 .is-dark .intro-text { color: #94a3b8; }
 
 .is-dark .tl-card,
-.is-dark .detail-sheet { background: #1e293b; }
+.is-dark .detail-sheet { background: #1e293b; border-color: #334155; }
 
 .is-dark .tl-desc,
 .is-dark .sheet-advice { color: #94a3b8; }
@@ -841,6 +836,32 @@ const formatDate = (iso?: string) => {
 .is-dark .nav-icon-btn {
   background: rgba(37, 99, 235, 0.2);
   color: #93c5fd;
+}
+.is-dark .tl-line { background: #334155; }
+.is-dark .tl-dot {
+  border: 1px solid #475569;
+  color: #cbd5e1;
+}
+.is-dark .dot-done {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #6ee7b7;
+}
+.is-dark .dot-active,
+.is-dark .dot-ready {
+  background: rgba(37, 99, 235, 0.24);
+  border-color: rgba(147, 197, 253, 0.48);
+  color: #bfdbfe;
+}
+.is-dark .dot-locked {
+  background: #1e293b;
+  border-color: #334155;
+  color: #64748b;
+  opacity: 1;
+}
+.is-dark .tl-meta {
+  background: #334155;
+  color: #cbd5e1;
 }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
@@ -986,8 +1007,22 @@ const formatDate = (iso?: string) => {
 .is-dark .ms-title      { color: #f1f5f9; }
 .is-dark .plan-empty    { background: #1e293b; border-color: #334155; }
 .is-dark .plan-empty-title { color: #f1f5f9; }
-.is-dark .tab-bar       { background: #1e293b; }
-.is-dark .tab-active    { background: #334155; }
+.is-dark .tab-bar       { background: #111827; border: 1px solid #334155; }
+.is-dark .tab-active    { background: #2563eb; box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.45) inset; }
 .is-dark .tab-text      { color: #94a3b8; }
-.is-dark .tab-active .tab-text { color: #f1f5f9; }
+.is-dark .tab-active .tab-text { color: #ffffff; }
+.is-dark .tab-badge { background: #fbbf24; }
+.is-dark .ms-horizon-badge { background: rgba(37, 99, 235, 0.24); border: 1px solid rgba(147, 197, 253, 0.36); }
+.is-dark .ms-horizon-text { color: #bfdbfe; }
+.is-dark .ms-tag-action { background: rgba(16, 185, 129, 0.18); }
+.is-dark .ms-tag-action .ms-tag-text { color: #6ee7b7; }
+.is-dark .ms-tag-skill { background: rgba(37, 99, 235, 0.2); }
+.is-dark .ms-tag-skill .ms-tag-text { color: #93c5fd; }
+.is-dark .ms-tag-kpi { background: rgba(245, 158, 11, 0.18); }
+.is-dark .ms-tag-kpi .ms-tag-text { color: #fbbf24; }
+.is-dark .focus-dot {
+  background: rgba(37, 99, 235, 0.24);
+  border: 1px solid rgba(147, 197, 253, 0.36);
+  color: #bfdbfe;
+}
 </style>

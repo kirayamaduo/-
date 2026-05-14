@@ -95,6 +95,26 @@
 .is-dark.app-shell,
 .is-dark[class*="-page"],
 .is-dark[class*="-container"] {
+  --bg-color: #0f172a;
+  --page-ios-gray: #0f172a;
+  --card-bg: #1e293b;
+  --surface-1: #1e293b;
+  --surface-2: #0f172a;
+  --surface-3: #334155;
+  --topbar-bg: rgba(15, 23, 42, 0.96);
+  --topbar-border: rgba(51, 65, 85, 0.86);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #94a3b8;
+  --text-placeholder: #94a3b8;
+  --text-disabled: #64748b;
+  --border-color: #334155;
+  --border-strong: #475569;
+  --primary-soft: rgba(37, 99, 235, 0.2);
+  --accent-soft: rgba(249, 115, 22, 0.15);
+  --success-soft: rgba(16, 185, 129, 0.15);
+  --warning-soft: rgba(245, 158, 11, 0.15);
+  --danger-soft: rgba(239, 68, 68, 0.15);
   background: #0f172a !important;
   color: #e2e8f0;
 }
@@ -171,8 +191,17 @@
 .is-dark .hero-subtitle,
 .is-dark .summary-text,
 .is-dark .section-meta,
+.is-dark .app-section-meta,
+.is-dark .group-label,
 .is-dark .empty-desc,
 .is-dark .field-hint,
+.is-dark .field-hint-checking,
+.is-dark .hint,
+.is-dark .help-text,
+.is-dark .tip-text,
+.is-dark .meta,
+.is-dark .caption,
+.is-dark .placeholder,
 .is-dark .desc,
 .is-dark .sl-input__label,
 .is-dark .sl-list-item__subtitle,
@@ -192,7 +221,24 @@
 .is-dark .ph,
 .is-dark .search-ph,
 .is-dark .input-ph {
+  color: #94a3b8 !important;
+}
+.is-dark .menu-arrow,
+.is-dark .arrow,
+.is-dark .chevron {
+  color: #94a3b8 !important;
+}
+.is-dark .disabled,
+.is-dark .is-disabled,
+.is-dark [disabled] {
   color: #64748b !important;
+}
+.is-dark .divider,
+.is-dark .divider-line,
+.is-dark .stat-divider,
+.is-dark .line {
+  background: #334155 !important;
+  border-color: #334155 !important;
 }
 .is-dark .btn-primary,
 .is-dark .btn-send,
@@ -220,3 +266,79 @@
 .is-dark .sl-tabs {
   border-color: #334155 !important;
 }
+.is-dark .sl-navbar { background: #0f172a !important; }
+.is-dark .app-gradient-bg {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%) !important;
+}
+.is-dark .app-soft-bg,
+.is-dark .sticky-cta,
+.is-dark .bottom-bar,
+.is-dark .bottom-action,
+.is-dark .input-area,
+.is-dark .input-bar,
+.is-dark .toolbar,
+.is-dark .picker-box,
+.is-dark .sheet-content,
+.is-dark .sheet-card,
+.is-dark .sheet-panel,
+.is-dark .tab-active,
+.is-dark .plan-card,
+.is-dark .plan-node,
+.is-dark .plan-input-wrap,
+.is-dark .choice-card,
+.is-dark .option-card,
+.is-dark .question-card,
+.is-dark .answer-card,
+.is-dark .resume-card,
+.is-dark .resume-item,
+.is-dark .report-card,
+.is-dark .summary-card,
+.is-dark .score-card,
+.is-dark .dimension-card,
+.is-dark .chat-input-wrap {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+.is-dark .ui-list-item,
+.is-dark .list-item,
+.is-dark .item {
+  border-color: #334155 !important;
+}
+/* mp-weixin.css hardcodes #e2e8f0 border on cards; override for dark mode */
+.is-dark .app-card-soft,
+.is-dark .app-card-metric,
+.is-dark .app-card-feature,
+.is-dark .sl-card,
+.is-dark .sl-list-item,
+.is-dark .sl-search-bar {
+  border-color: #334155 !important;
+  background: var(--card-bg, #1e293b) !important;
+  box-shadow: none !important;
+}
+.is-dark .bar-bg,
+.is-dark .divider,
+.is-dark .plan-role-input,
+.is-dark .picker-filled,
+.is-dark .btn-disabled {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+.is-dark .q-title,
+.is-dark .sheet-title,
+.is-dark .tab-active .tab-text,
+.is-dark .plan-load-text,
+.is-dark .plan-section-title,
+.is-dark .skill-score,
+.is-dark .dim-score,
+.is-dark .loading-title {
+  color: #f8fafc !important;
+}
+.is-dark .app-icon-tile {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #93c5fd !important;
+}
+.is-dark .app-icon-tile--violet { background: rgba(139,92,246,0.15) !important; }
+.is-dark .app-icon-tile--cyan   { background: rgba(6,182,212,0.15) !important; }
+.is-dark .app-icon-tile--candy  { background: rgba(236,72,153,0.15) !important; }
+.is-dark .app-icon-tile--success { background: rgba(16,185,129,0.15) !important; }
+.is-dark .app-icon-tile--warning { background: rgba(245,158,11,0.15) !important; }

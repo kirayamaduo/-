@@ -55,8 +55,8 @@ const innerStyle = computed<CSSProperties>(() => ({
   left: 0;
   right: 0;
   z-index: 880;
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.86);
+  background: var(--topbar-bg, rgba(255, 255, 255, 0.94));
+  border-bottom: 1px solid var(--topbar-border, rgba(226, 232, 240, 0.86));
   box-sizing: border-box;
   transition: opacity 0.12s ease;
 }
@@ -98,9 +98,4 @@ const innerStyle = computed<CSSProperties>(() => ({
   color: var(--text-primary, #0f172a);
 }
 
-.is-dark .sl-scroll-topbar,
-:deep(.is-dark) .sl-scroll-topbar {
-  background: rgba(15, 23, 42, 0.96);
-  border-bottom-color: rgba(51, 65, 85, 0.86);
-}
 </style>

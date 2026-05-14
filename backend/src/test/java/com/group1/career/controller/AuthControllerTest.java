@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.group1.career.common.ErrorCode;
 import com.group1.career.config.JwtConfig;
 import com.group1.career.exception.BizException;
+import com.group1.career.interceptor.AuthInterceptor;
 import com.group1.career.model.entity.User;
 import com.group1.career.service.EmailService;
 import com.group1.career.service.UserService;
@@ -53,6 +54,9 @@ public class AuthControllerTest {
 
     @MockitoBean
     private VerificationCodeService verificationCodeService;
+
+    @MockitoBean
+    private AuthInterceptor authInterceptor;
 
     @Autowired
     private ObjectMapper objectMapper;

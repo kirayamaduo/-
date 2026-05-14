@@ -54,7 +54,7 @@
 		{
 			"path": "pages/assessment/quiz",
 			"style": {
-				"navigationBarTitleText": "Assessment",
+				"navigationBarTitleText": "职业测评",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"navigationStyle": "custom"
 			}
@@ -62,7 +62,7 @@
 		{
 			"path": "pages/assessment/result",
 			"style": {
-				"navigationBarTitleText": "Results",
+				"navigationBarTitleText": "测评结果",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"navigationStyle": "custom"
 			}
@@ -91,7 +91,7 @@
 		{
 			"path": "pages/resume/template",
 			"style": {
-				"navigationBarTitleText": "Create Resume",
+				"navigationBarTitleText": "创建简历",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"navigationStyle": "custom"
 			}
@@ -120,7 +120,7 @@
 		{
 			"path": "pages/interview/chat",
 			"style": {
-				"navigationBarTitleText": "Interview Chat",
+				"navigationBarTitleText": "面试对话",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"navigationStyle": "custom"
 			}
@@ -128,7 +128,7 @@
 		{
 			"path": "pages/interview/start",
 			"style": {
-				"navigationBarTitleText": "Start Interview",
+				"navigationBarTitleText": "开始面试",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"navigationStyle": "custom"
 			}
@@ -160,7 +160,7 @@
 		{
 			"path": "pages/webview/index",
 			"style": {
-				"navigationBarTitleText": "Loading...",
+				"navigationBarTitleText": "加载中",
 				"navigationBarBackgroundColor": "#ffffff",
 				"navigationBarTextStyle": "black",
 				"navigationStyle": "custom"
@@ -209,11 +209,19 @@
 				"navigationStyle": "custom",
 				"disableScroll": true
 			}
+		},
+		{
+			"path": "pages/cdut-employment/index",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
+			}
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "Career Platform",
+		"navigationBarTitleText": "CareerLoop",
 		"navigationBarBackgroundColor": "#ffffff",
 		"backgroundColor": "#f8fafc"
 	},
@@ -225,31 +233,25 @@
 		"list": [
 			{
 				"pagePath": "pages/home/index",
-				"text": "Home",
+				"text": "首页",
 				"iconPath": "static/tabbar/home.png",
 				"selectedIconPath": "static/tabbar/home-active.png"
 			},
 			{
-				"pagePath": "pages/messages/index",
-				"text": "Messages",
-				"iconPath": "static/tabbar/messages.png",
-				"selectedIconPath": "static/tabbar/messages-active.png"
-			},
-			{
 				"pagePath": "pages/assistant/index",
-				"text": "Assistant",
+				"text": "助手",
 				"iconPath": "static/tabbar/assistant.png",
 				"selectedIconPath": "static/tabbar/assistant-active.png"
 			},
 			{
 				"pagePath": "pages/resume/index",
-				"text": "Resume",
+				"text": "简历",
 				"iconPath": "static/tabbar/resume.png",
 				"selectedIconPath": "static/tabbar/resume-active.png"
 			},
 			{
 				"pagePath": "pages/user/index",
-				"text": "Profile",
+				"text": "我的",
 				"iconPath": "static/tabbar/user.png",
 				"selectedIconPath": "static/tabbar/user-active.png"
 			}

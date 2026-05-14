@@ -88,6 +88,10 @@ export interface AgentReadiness {
   hasResume: boolean;
   hasInterview: boolean;
   hasPlan: boolean;
+  directionClarityPercent?: number;
+  resumeReadinessPercent?: number;
+  interviewReadinessPercent?: number;
+  actionContinuityPercent?: number;
 }
 
 export interface AgentBehavior {

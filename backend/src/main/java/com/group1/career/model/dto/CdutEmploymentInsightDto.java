@@ -1,0 +1,58 @@
+package com.group1.career.model.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CdutEmploymentInsightDto {
+    private String school;
+    private String major;
+    private String targetRole;
+    private String matchLabel;
+    private String summary;
+    private BigDecimal latestEmploymentRate;
+    private BigDecimal latestPostgraduateRate;
+    private Integer latestYear;
+    private Integer sourceCount;
+    private LocalDateTime updatedAt;
+    private List<String> destinationHighlights;
+    private List<YearPoint> trend;
+    private List<SourceItem> sources;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class YearPoint {
+        private Integer year;
+        private BigDecimal employmentRate;
+        private BigDecimal postgraduateRate;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SourceItem {
+        private Long id;
+        private Integer year;
+        private String title;
+        private String url;
+        private String sourceType;
+        private String majorKeyword;
+        private String careerKeyword;
+        private BigDecimal employmentRate;
+        private BigDecimal postgraduateRate;
+        private String excerpt;
+        private LocalDateTime fetchedAt;
+    }
+}

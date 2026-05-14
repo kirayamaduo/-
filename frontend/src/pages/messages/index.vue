@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
@@ -183,14 +183,6 @@ interface SystemMessageView {
 const systemMessages = ref<SystemMessageView[]>([]);
 const systemLoading = ref(false);
 const unreadCount = computed(() => systemMessages.value.filter((m) => m.unread).length);
-
-watch(unreadCount, (val) => {
-  if (val > 0) {
-    uni.setTabBarBadge({ index: 1, text: val > 99 ? '99+' : String(val) });
-  } else {
-    uni.removeTabBarBadge({ index: 1 });
-  }
-}, { immediate: true });
 
 // ─── 滑动删除状态 ────────────────────────────────────────────────────────────
 // 每条消息的当前水平偏移量（px），负值表示向左滑动
@@ -780,6 +772,11 @@ onShow(() => {
   background: #1e293b;
   border-color: #334155;
   box-shadow: none;
+}
+
+.msg-page.is-dark .empty-state {
+  background: transparent;
+  border: none;
 }
 
 .msg-page.is-dark .msg-name {

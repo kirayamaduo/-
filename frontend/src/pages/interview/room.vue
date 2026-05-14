@@ -9,7 +9,7 @@
       </view>
       <view class="top-meta">
         <text class="top-title">{{ interview?.positionName || t('interviewRoom.mockInterview') }}</text>
-        <text class="top-sub">{{ interview?.difficulty || 'Normal' }} · Voice · EN</text>
+        <text class="top-sub">{{ difficultyLabel }} · {{ modeLabel }} · {{ languageLabel }}</text>
       </view>
       <!-- End button moved to bottom action zone for better thumb reach -->
       <view style="width: 48px;"></view>
@@ -205,6 +205,20 @@ const statusLabel = computed(() => {
   return t('interviewRoom.statusReady');
 });
 
+const difficultyLabel = computed(() => {
+  const value = interview.value?.difficulty || 'NORMAL';
+  const map: Record<string, string> = {
+    EASY: t('interview.diffEasy'),
+    NORMAL: t('interview.diffNormal'),
+    MEDIUM: t('interview.diffNormal'),
+    HARD: t('interview.diffHard'),
+  };
+  return map[String(value).toUpperCase()] || String(value);
+});
+
+const modeLabel = computed(() => t('interviewRoom.voiceMode'));
+const languageLabel = computed(() => interviewLang === 'en' ? t('interviewRoom.languageEnglish') : t('interviewRoom.languageChinese'));
+
 const mouthClass = computed(() => {
   if (!aiTalking.value) return 'mouth-rest';
   return 'mouth-talk';
@@ -288,11 +302,11 @@ const initRecorder = () => {
   recorderManager.onStop((res) => {
     cleanupRecording();
     if (!res?.tempFilePath) {
-      showToast('Recording was empty', 'error');
+      showToast(t('interviewRoom.recordingEmpty'), 'error');
       return;
     }
     if (recordSeconds.value < 1) {
-      showToast('Hold the mic for at least 1 second', 'info');
+      showToast(t('interviewRoom.recordingTooShort'), 'info');
       return;
     }
     sendVoiceTurn(res.tempFilePath);
@@ -300,7 +314,7 @@ const initRecorder = () => {
 
   recorderManager.onError((err) => {
     cleanupRecording();
-    showToast(err?.errMsg || 'Recorder error', 'error');
+    showToast(err?.errMsg || t('interviewRoom.recorderError'), 'error');
   });
 };
 
@@ -319,7 +333,7 @@ const initAudio = () => {
     // related); surfacing it as a toast is noisy and not actionable for the user.
     const msg: string = err?.errMsg || '';
     if (!msg.includes('operateAudio')) {
-      showToast(msg || 'Audio playback failed', 'error');
+      showToast(msg || t('interviewRoom.audioFailed'), 'error');
     }
   });
 };
@@ -335,14 +349,14 @@ const requestCamera = () => {
     },
     fail: () => {
       cameraReady.value = false;
-      cameraError.value = 'Camera not enabled';
+      cameraError.value = t('interviewRoom.cameraNotEnabled');
     },
   });
 };
 
 const onCameraError = (e: any) => {
   cameraReady.value = false;
-  cameraError.value = e?.detail?.errMsg || 'Camera failed';
+  cameraError.value = e?.detail?.errMsg || t('interviewRoom.cameraFailed');
   stopBodyLanguageCapture();
 };
 
@@ -419,7 +433,7 @@ const onPressEnd = () => {
     // with garbage transcripts after an accidental tap.
     try { recorderManager?.stop(); } catch {}
     cleanupRecording();
-    showToast('Hold the mic to record', 'info');
+    showToast(t('interviewRoom.recordingTooShort'), 'info');
     return;
   }
   stopRecordingAndSend();

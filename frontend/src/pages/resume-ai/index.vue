@@ -98,7 +98,7 @@
           </view>
         </view>
 
-        <!-- 生成定制简历按钮（成功后隐藏，换成结果卡） -->
+        <!-- 按 JD 优化简历按钮（成功后隐藏，换成结果卡） -->
         <button
           v-if="!tailorResult"
           class="btn-secondary"
@@ -106,7 +106,7 @@
           @click="generateTailored"
         >{{ t('resumeAi.tailorBtn') }}</button>
 
-        <!-- 定制成功结果卡 -->
+        <!-- 优化成功结果卡 -->
         <view v-else class="tailor-success-card">
           <text class="ts-icon ri-check-line"></text>
           <text class="ts-title">{{ t('resumeAi.tailorSuccessTitle') }}</text>
@@ -156,7 +156,7 @@ const openingPdf = ref(false);
 const showResult = ref(false);
 const result = ref<DiagnosisResult | null>(null);
 const tailorResult = ref<Resume | null>(null);
-const loadingMessage = ref('Ready...');
+const loadingMessage = ref('');
 const loadingProgress = ref(0);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -642,7 +642,7 @@ onShow(() => {
 .is-dark .ab-chip  { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); }
 .is-dark .ab-chip-text { color: #a5b4fc; }
 
-/* 定制简历成功卡片 */
+/* 优化简历成功卡片 */
 .tailor-success-card {
   margin-top: 16px;
   background: linear-gradient(135deg, #f0fdf4, #dcfce7);
@@ -751,7 +751,7 @@ onShow(() => {
 
 .is-dark .loading-overlay { background: rgba(15, 23, 42, 0.88); }
 
-.is-dark .score-ring { background-color: var(--text-primary, #0f172a); }
+.is-dark .score-ring { background-color: var(--bg-color, #0f172a); }
 .is-dark .score-ring.ring-good { border-color: #10b981; background: #022c22; }
 .is-dark .score-ring.ring-good .score-val { color: #34d399; }
 .is-dark .score-ring.ring-warn { border-color: #f59e0b; background: #451a03; }

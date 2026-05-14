@@ -92,7 +92,7 @@
         <textarea
           class="field-textarea ui-input"
           v-model="form.experience"
-          placeholder="Example: Developed a Vue3 + Spring Boot e-commerce platform. Responsible for the product listing and checkout modules. Reduced checkout time by 40% by optimising API calls..."
+          placeholder="例如：参与 Vue3 + Spring Boot 电商项目，负责商品列表和结算模块，通过优化接口调用将结算耗时降低 40%。"
           maxlength="800"
           @input="(e: any) => form.experience = e.detail.value"
         />

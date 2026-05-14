@@ -65,12 +65,12 @@
         </view>
       </view>
 
-      <!-- ── AI 定制简历 section（有时才显示）── -->
+      <!-- ── 针对岗位优化后的简历 section（有时才显示）── -->
       <view v-if="tailoredResumes.length > 0" class="section-bar section-bar-ai">
         <view class="section-titles">
           <view class="ai-section-label-row">
             <text class="section-title">{{ t('resume.tailoredResumes') }}</text>
-            <view class="ai-badge"><text class="ai-badge-text">AI</text></view>
+            <view class="ai-badge"><text class="ai-badge-text">JD</text></view>
           </view>
           <text class="section-sub">{{ t('resume.tailoredHint') }}</text>
         </view>
@@ -79,7 +79,7 @@
         <view class="resume-card resume-card-ai app-card-soft" v-for="(item, idx) in tailoredResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon rc-icon-ai">
-              <text class="rc-icon-text">AI</text>
+              <text class="rc-icon-text">JD</text>
             </view>
           </view>
           <view class="rc-body">
@@ -253,10 +253,19 @@ const rightAvoidWidth = ref(20);
 const scrollTopValue = ref(0);
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const RESUME_AUTO_UPLOAD_KEY = 'resume_auto_upload_once';
 const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
 const handleUploadClick = () => {
   showSheet.value = true;
+};
+
+const openPendingUploadSheet = () => {
+  if (uni.getStorageSync(RESUME_AUTO_UPLOAD_KEY) !== '1') return;
+  uni.removeStorageSync(RESUME_AUTO_UPLOAD_KEY);
+  setTimeout(() => {
+    handleUploadClick();
+  }, 250);
 };
 
 const closeSheet = () => {
@@ -457,6 +466,7 @@ onMounted(() => {
 onShow(() => {
   refreshTheme();
   loadResumes();
+  openPendingUploadSheet();
 });
 
 onPageScroll(({ scrollTop }) => {
@@ -770,6 +780,10 @@ onPageScroll(({ scrollTop }) => {
 .is-dark .sheet-option,
 .is-dark .sheet-title-bar,
 .is-dark .sheet-cancel { background: #1e293b; border-color: #334155; }
+.is-dark .empty-state {
+  background: transparent;
+  border: none;
+}
 
 .is-dark .skel-card { background: #1e293b; }
 .is-dark .skel-line { background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%); background-size: 200% 100%; }
@@ -855,15 +869,17 @@ onPageScroll(({ scrollTop }) => {
 }
 
 .resume-page.is-dark .rc-icon-0 {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(37, 99, 235, 0.2));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.42), rgba(37, 99, 235, 0.24));
+  border: 1px solid rgba(147, 197, 253, 0.34);
 }
 
 .resume-page.is-dark .rc-icon-1 {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(79, 70, 229, 0.2));
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.42), rgba(79, 70, 229, 0.24));
+  border: 1px solid rgba(199, 210, 254, 0.34);
 }
 
 .resume-page.is-dark .rc-icon-text {
-  color: #bfdbfe;
+  color: #f8fafc;
 }
 
 .resume-page.is-dark .badge-recent {
@@ -905,7 +921,7 @@ onPageScroll(({ scrollTop }) => {
 
 /* #endif */
 
-/* AI 定制简历分区样式 */
+/* 针对岗位优化后的简历分区样式 */
 .section-bar-ai { margin-top: 24px; }
 .ai-section-label-row { display: flex; align-items: center; gap: 6px; }
 .ai-badge {

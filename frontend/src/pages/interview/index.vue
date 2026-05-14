@@ -1,7 +1,7 @@
 <template>
   <SlPage class="app-soft-bg legacy-bridge" :custom-class="[themeClass, fontClass].join(' ')" :style="{ paddingTop: topSafeHeight + 'px' }">
-    <text class="bridge-title">{{ t('common.loading') }}</text>
-    <text class="bridge-copy"></text>
+    <text class="bridge-title">{{ t('interview.bridgeTitle') }}</text>
+    <text class="bridge-copy">{{ t('interview.bridgeCopy') }}</text>
   </SlPage>
 </template>
 
