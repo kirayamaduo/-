@@ -3,7 +3,7 @@
     <SlNavBar :title="t('interviewReport.navTitle')" show-back @back="goBack" :safe-top="topSafeHeight" />
 
 
-    <!-- Loading state while AI evaluates -->
+    <!-- Loading state while the report is generated -->
     <view class="loading-state app-surface" v-if="loading">
       <view class="spinner"></view>
       <text class="loading-title">{{ t('interviewReport.loading') }}</text>
@@ -21,7 +21,7 @@
       <view class="report-header">
         <text class="r-title">{{ t('interviewReport.reportTitle') }}</text>
         <text class="r-sub">{{ report.positionName }} · {{ report.difficulty }}{{ report.durationSeconds ? ' · ' + formatDuration(report.durationSeconds) : '' }}</text>
-        <text class="r-desc">{{ report.textSummary || 'Use the breakdown below to identify which parts of your interview performance are already stable and which ones still need practice.' }}</text>
+        <text class="r-desc">{{ report.textSummary || t('interviewReport.summaryFallback') }}</text>
       </view>
 
       <!-- Overall score -->

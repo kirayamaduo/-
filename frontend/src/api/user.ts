@@ -170,6 +170,12 @@ export interface UserProfileSnapshot {
     targetRole?: string;
     interviewMode?: 'voice' | 'text';
   } | null;
+  onboarding?: {
+    identityType?: 'student' | 'new_graduate' | 'internship_seeker' | 'career_switcher' | string;
+    /** User self-reported resume state from onboarding, not proof that a resume exists in the system. */
+    hasResume?: 'yes' | 'no' | 'unsure' | string;
+    onboardingCompletedAt?: string;
+  } | null;
 }
 
 /**
@@ -192,6 +198,24 @@ export const updatePreferencesApi = (data: { targetRole?: string; interviewMode?
     url: '/users/me/profile-snapshot/preferences',
     method: 'PUT',
     data,
+  });
+};
+
+export interface UpdateOnboardingDTO {
+  identityType?: 'student' | 'new_graduate' | 'internship_seeker' | 'career_switcher' | string;
+  /** User self-reported resume state from onboarding, not proof that a resume exists in the system. */
+  hasResume?: 'yes' | 'no' | 'unsure' | string;
+  onboardingCompletedAt?: string;
+  /** Persisted server-side into preferences.targetRole. */
+  targetRole?: string;
+}
+
+export const updateOnboardingApi = (data: UpdateOnboardingDTO, options?: { silent?: boolean }) => {
+  return request<UserProfileSnapshot>({
+    url: '/users/me/profile-snapshot/onboarding',
+    method: 'PUT',
+    data,
+    silent: options?.silent,
   });
 };
 

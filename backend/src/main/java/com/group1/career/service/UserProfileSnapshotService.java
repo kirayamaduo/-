@@ -40,4 +40,7 @@ public interface UserProfileSnapshotService {
 
     /** Merge changes to user-chosen preferences (target role, interview mode). */
     void mergePreferences(Long userId, UserProfileSnapshot.PreferencesBlock block);
+
+    /** Merge the user's self-reported onboarding setup into the snapshot. */
+    void mergeOnboarding(Long userId, UserProfileSnapshot.OnboardingBlock block);
 }

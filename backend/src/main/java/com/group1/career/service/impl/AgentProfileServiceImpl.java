@@ -62,6 +62,7 @@ public class AgentProfileServiceImpl implements AgentProfileService {
         UserProfileSnapshot.ResumeBlock resume = snapshot.getResume();
         UserProfileSnapshot.InterviewBlock interview = snapshot.getInterview();
         UserProfileSnapshot.PreferencesBlock prefs = snapshot.getPreferences();
+        UserProfileSnapshot.OnboardingBlock onboarding = snapshot.getOnboarding();
 
         // ── target role ──────────────────────────────────────────────────────
         String targetRole = null;
@@ -118,6 +119,15 @@ public class AgentProfileServiceImpl implements AgentProfileService {
         if (interviewScore >= 70) readinessBase += 10;
         if (hasPlan) readinessBase += 10;
         int overallReadiness = Math.min(readinessBase, 100);
+        int directionClarity = Math.min(100, (hasText(targetRole) ? 60 : 0) + (hasAssessment ? 40 : 0));
+        int resumeReadiness = hasResume
+                ? Math.min(100, 55 + (resumeScore > 0 ? Math.min(45, resumeScore / 2) : 0))
+                : ("yes".equalsIgnoreCase(onboarding != null ? onboarding.getHasResume() : null) ? 25 : 0);
+        int interviewReadiness = hasInterview
+                ? Math.min(100, 50 + (interviewScore > 0 ? Math.min(50, interviewScore / 2) : 0))
+                : 0;
+        int actionContinuity = Math.min(100, checkIn.getWeeklyDays() * 25
+                + (checkIn.getTodayCompleted() > 0 ? 25 : 0));
 
         AgentUserProfileDto.Readiness readiness = AgentUserProfileDto.Readiness.builder()
                 .overallPercent(overallReadiness)
@@ -127,6 +137,10 @@ public class AgentProfileServiceImpl implements AgentProfileService {
                 .hasResume(hasResume)
                 .hasInterview(hasInterview)
                 .hasPlan(hasPlan)
+                .directionClarityPercent(directionClarity)
+                .resumeReadinessPercent(resumeReadiness)
+                .interviewReadinessPercent(interviewReadiness)
+                .actionContinuityPercent(actionContinuity)
                 .build();
 
         // ── behavior ─────────────────────────────────────────────────────────
@@ -176,7 +190,10 @@ public class AgentProfileServiceImpl implements AgentProfileService {
             missing.add(signal("assessment", "完成一次职业测评", "HIGH"));
         }
         if (!hasResume) {
-            missing.add(signal("resume", "上传或创建简历", "HIGH"));
+            String label = "yes".equalsIgnoreCase(onboarding != null ? onboarding.getHasResume() : null)
+                    ? "上传已有简历"
+                    : "上传或创建简历";
+            missing.add(signal("resume", label, "HIGH"));
         }
         if (!hasInterview) {
             missing.add(signal("interview", "完成一次模拟面试", "MEDIUM"));
@@ -198,7 +215,7 @@ public class AgentProfileServiceImpl implements AgentProfileService {
         String level = completeness >= 70 ? "HIGH" : completeness >= 40 ? "MEDIUM" : "LOW";
 
         // ── stage (fast heuristic, mirrors getToday logic) ───────────────────
-        String stage = inferStage(targetRole, assessment, resume, interview, checkIn);
+        String stage = inferStage(targetRole, assessment, resume, interview, checkIn, onboarding);
 
         // ── persist ───────────────────────────────────────────────────────────
         AgentUserProfile entity = profileRepository.findByUserId(userId)
@@ -292,9 +309,19 @@ public class AgentProfileServiceImpl implements AgentProfileService {
     private String inferStage(String targetRole, UserProfileSnapshot.AssessmentBlock assessment,
                                UserProfileSnapshot.ResumeBlock resume,
                                UserProfileSnapshot.InterviewBlock interview,
-                               CheckInService.CheckInStatus checkIn) {
-        if (!hasText(targetRole) && assessment == null) return "DIRECTION_DISCOVERY";
+                               CheckInService.CheckInStatus checkIn,
+                               UserProfileSnapshot.OnboardingBlock onboarding) {
         if (!hasText(targetRole)) return "TARGET_ROLE_SELECTION";
+        String identityType = onboarding != null ? onboarding.getIdentityType() : null;
+        String selfReportedResume = onboarding != null ? onboarding.getHasResume() : null;
+        if ("career_switcher".equals(identityType)) return "CAREER_SWITCH_POSITIONING";
+        if ("internship_seeker".equals(identityType) && !"yes".equalsIgnoreCase(selfReportedResume) && resume == null) {
+            return "INTERNSHIP_RESUME_BOOTSTRAP";
+        }
+        if ("new_graduate".equals(identityType) && "yes".equalsIgnoreCase(selfReportedResume) && resume == null) {
+            return "GRADUATE_RESUME_UPLOAD";
+        }
+        if (assessment == null) return "ASSESSMENT_BASELINE";
         if (resume == null) return "RESUME_BOOTSTRAP";
         if (resume.getDiagnosisScore() != null && resume.getDiagnosisScore() < 70) return "RESUME_IMPROVEMENT";
         if (interview == null) return "INTERVIEW_BOOTSTRAP";

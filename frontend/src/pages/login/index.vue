@@ -75,7 +75,7 @@
                 v-model="verifyCode" :placeholder="t('login.codePlaceholder')" placeholder-class="ph"
                 maxlength="6" type="number" @blur="validateCode" />
               <view class="btn-send-code" :class="{ 'is-disabled': codeCooldown > 0 || sendingCode }" @click="sendRegisterCode">
-                <text class="btn-send-text">{{ sendingCode ? '...' : (codeCooldown > 0 ? codeCooldown + 's' : t('login.sendCode')) }}</text>
+                <text class="btn-send-text">{{ sendingCode ? '…' : (codeCooldown > 0 ? codeCooldown + 's' : t('login.sendCode')) }}</text>
               </view>
             </view>
             <text class="field-hint-error" v-if="codeError">{{ codeError }}</text>
@@ -172,7 +172,7 @@
             <input class="field-input code-input ui-input" v-model="resetCode"
               :placeholder="t('login.codePlaceholder')" placeholder-class="ph" maxlength="6" type="number" />
             <view class="btn-send-code" :class="{ 'is-disabled': resetCooldown > 0 || sendingReset }" @click="sendResetCode">
-              <text class="btn-send-text">{{ sendingReset ? '...' : (resetCooldown > 0 ? resetCooldown + 's' : t('login.sendCode')) }}</text>
+              <text class="btn-send-text">{{ sendingReset ? '…' : (resetCooldown > 0 ? resetCooldown + 's' : t('login.sendCode')) }}</text>
             </view>
           </view>
           <view class="modal-actions">
@@ -215,11 +215,13 @@ import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { sendCodeApi, resetPasswordApi, registerApi, loginApi, wechatLoginApi, checkEmailApi } from '@/api/user';
 import { enterGuestMode } from '@/utils/auth';
 import { useTheme } from '@/utils/theme';
+import { readPendingOnboarding, syncPendingOnboarding } from '@/utils/onboardingSync';
 
 const { t } = useI18n();
 const statusTopPx = ref(52);
 const rightAvoidWidth = ref(20);
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
+const RESUME_AUTO_UPLOAD_KEY = 'resume_auto_upload_once';
 
 // ─── 动态计算 scroll-view 高度 ─────────────────────────────────────
 // uni-app 的 scroll-view 必须给一个明确的 px 高度才能滚动。
@@ -250,6 +252,36 @@ const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info')
     icon: type === 'success' ? 'success' : 'none',
     duration: 2000
   });
+};
+
+const routeAfterAuth = async () => {
+  const pending = readPendingOnboarding();
+  try {
+    await syncPendingOnboarding();
+  } catch {
+    // Keep the pending setup in storage so a later real-account session can retry.
+  }
+
+  setTimeout(() => {
+    if (pending?.hasResume === 'yes' || pending?.recommendedEntry === 'resume') {
+      uni.setStorageSync(RESUME_AUTO_UPLOAD_KEY, '1');
+      uni.switchTab({ url: '/pages/resume/index' });
+      return;
+    }
+    if (pending) {
+      uni.reLaunch({ url: '/pages/assessment/index' });
+      return;
+    }
+    uni.switchTab({ url: '/pages/home/index' });
+  }, 1000);
+};
+
+const storeRealSession = (token: string, user: any) => {
+  uni.setStorageSync('token', token);
+  uni.setStorageSync('userId', user.userId);
+  uni.setStorageSync('userInfo', user);
+  uni.setStorageSync('consent_v1.0', '1');
+  uni.removeStorageSync('isGuest');
 };
 
 // ─── 表单字段 ────────────────────────────────────────────────────
@@ -456,20 +488,14 @@ const handleSubmit = async () => {
     if (mode.value === 'register') {
       await registerApi({ nickname: nickname.value, identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value, code: verifyCode.value });
       const loginRes = await loginApi({ identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value });
-      uni.setStorageSync('token', loginRes.token);
-      uni.setStorageSync('userId', loginRes.user.userId);
-      uni.setStorageSync('userInfo', loginRes.user);
-      uni.setStorageSync('consent_v1.0', '1');
+      storeRealSession(loginRes.token, loginRes.user);
       showSnack(t('login.accountCreated'), 'success');
     } else {
       const res = await loginApi({ identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value });
-      uni.setStorageSync('token', res.token);
-      uni.setStorageSync('userId', res.user.userId);
-      uni.setStorageSync('userInfo', res.user);
-      uni.setStorageSync('consent_v1.0', '1');
+      storeRealSession(res.token, res.user);
       showSnack(t('login.signedIn'), 'success');
     }
-    setTimeout(() => { uni.switchTab({ url: '/pages/home/index' }); }, 1000);
+    await routeAfterAuth();
   } catch (e: any) {
     showSnack(e?.message || t('login.requestFailed'), 'error');
   } finally { loading.value = false; }
@@ -501,13 +527,10 @@ const wxLogin = () => {
       }
       try {
         const res = await wechatLoginApi({ code: loginRes.code });
-        uni.setStorageSync('token', res.token);
-        uni.setStorageSync('userId', res.user.userId);
-        uni.setStorageSync('userInfo', res.user);
-        uni.setStorageSync('consent_v1.0', '1');
+        storeRealSession(res.token, res.user);
         uni.hideLoading();
         showSnack(t('login.signedIn'), 'success');
-        setTimeout(() => { uni.switchTab({ url: '/pages/home/index' }); }, 1000);
+        await routeAfterAuth();
       } catch (e: any) {
         uni.hideLoading();
         // Surface the actual reason -- usually a misconfigured appId/secret on
@@ -528,7 +551,19 @@ const guestLogin = () => {
   // kick them back here every relaunch.
   enterGuestMode();
   showSnack(t('login.guestEnabled'), 'info');
-  setTimeout(() => { uni.switchTab({ url: '/pages/home/index' }); }, 800);
+  setTimeout(() => {
+    const pending = readPendingOnboarding();
+    if (pending?.hasResume === 'yes' || pending?.recommendedEntry === 'resume') {
+      uni.setStorageSync(RESUME_AUTO_UPLOAD_KEY, '1');
+      uni.switchTab({ url: '/pages/resume/index' });
+      return;
+    }
+    if (pending) {
+      uni.reLaunch({ url: '/pages/assessment/index' });
+      return;
+    }
+    uni.switchTab({ url: '/pages/home/index' });
+  }, 800);
 };
 </script>
 

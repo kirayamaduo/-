@@ -5,6 +5,7 @@ import com.group1.career.interceptor.AuthInterceptor;
 import com.group1.career.model.entity.CareerNode;
 import com.group1.career.model.entity.CareerPath;
 import com.group1.career.model.entity.UserCareerProgress;
+import com.group1.career.service.CareerPlanService;
 import com.group1.career.service.CareerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,9 @@ public class CareerControllerTest {
 
     @MockitoBean
     private CareerService careerService;
+
+    @MockitoBean
+    private CareerPlanService careerPlanService;
 
     @MockitoBean
     private AuthInterceptor authInterceptor;

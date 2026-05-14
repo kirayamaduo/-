@@ -1,7 +1,11 @@
 package com.group1.career.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.group1.career.interceptor.AuthInterceptor;
+import com.group1.career.model.dto.UserProfileSnapshot;
 import com.group1.career.model.entity.User;
+import com.group1.career.service.AgentProfileService;
+import com.group1.career.service.CareerPlanService;
 import com.group1.career.service.UserProfileSnapshotService;
 import com.group1.career.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,12 +13,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +35,9 @@ public class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private UserService userService;
@@ -35,6 +49,12 @@ public class UserControllerTest {
      */
     @MockitoBean
     private UserProfileSnapshotService snapshotService;
+
+    @MockitoBean
+    private CareerPlanService careerPlanService;
+
+    @MockitoBean
+    private AgentProfileService agentProfileService;
 
     @MockitoBean
     private AuthInterceptor authInterceptor;
@@ -62,5 +82,46 @@ public class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userId").value(userId))
                 .andExpect(jsonPath("$.data.nickname").value("ExistingUser"));
+    }
+
+    @Test
+    @DisplayName("PUT /users/me/profile-snapshot/onboarding - persists onboarding block and target role preference")
+    public void testUpdateOnboarding_PersistsBlocks() throws Exception {
+        Long userId = 7L;
+        UserProfileSnapshot snapshot = UserProfileSnapshot.builder()
+                .onboarding(UserProfileSnapshot.OnboardingBlock.builder()
+                        .identityType("internship_seeker")
+                        .hasResume("no")
+                        .onboardingCompletedAt("2026-05-14T10:00:00.000Z")
+                        .build())
+                .preferences(UserProfileSnapshot.PreferencesBlock.builder()
+                        .targetRole("前端开发工程师")
+                        .build())
+                .build();
+        when(snapshotService.read(userId)).thenReturn(snapshot);
+
+        mockMvc.perform(put("/users/me/profile-snapshot/onboarding")
+                        .requestAttr("userId", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "identityType", "internship_seeker",
+                                "hasResume", "no",
+                                "onboardingCompletedAt", "2026-05-14T10:00:00.000Z",
+                                "targetRole", "前端开发工程师"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.onboarding.identityType").value("internship_seeker"))
+                .andExpect(jsonPath("$.data.onboarding.hasResume").value("no"))
+                .andExpect(jsonPath("$.data.onboarding.onboardingCompletedAt").value("2026-05-14T10:00:00.000Z"))
+                .andExpect(jsonPath("$.data.preferences.targetRole").value("前端开发工程师"));
+
+        verify(snapshotService).mergeOnboarding(eq(userId), argThat(block ->
+                "internship_seeker".equals(block.getIdentityType())
+                        && "no".equals(block.getHasResume())
+                        && "2026-05-14T10:00:00.000Z".equals(block.getOnboardingCompletedAt())));
+        verify(snapshotService).mergePreferences(eq(userId), argThat(block ->
+                "前端开发工程师".equals(block.getTargetRole())));
+        verify(careerPlanService).regenerateWithRoleAsync(userId, "前端开发工程师");
+        verify(agentProfileService).refresh(userId);
     }
 }

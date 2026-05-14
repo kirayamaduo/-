@@ -70,6 +70,11 @@
         <text class="menu-text">{{ t('profile.aiMemory') }}</text>
         <text class="menu-arrow">›</text>
       </view>
+      <view class="menu-item" v-if="isLoggedIn" @click="navTo('/pages/messages/index')">
+        <view class="app-icon-tile menu-icon-wrap"><text class="menu-icon ri-notification-3-line"></text></view>
+        <text class="menu-text">{{ t('profile.systemMessages') }}</text>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
 
     <!-- Menu group 2: Appearance & Accessibility -->
@@ -144,19 +149,19 @@
         
         <view class="form-group">
           <text class="field-label">{{ t('profile.nickname') }}</text>
-          <input class="field-input ui-input" v-model="editForm.nickname" :placeholder="t('profile.nicknamePlaceholder')" maxlength="64" />
+          <input class="field-input ui-input" v-model="editForm.nickname" :placeholder="t('profile.nicknamePlaceholder')" placeholder-class="ph" maxlength="64" />
         </view>
         <view class="form-group">
           <text class="field-label">{{ t('profile.schoolUniversity') }}</text>
-          <input class="field-input ui-input" v-model="editForm.school" :placeholder="t('profile.schoolPlaceholder')" />
+          <input class="field-input ui-input" v-model="editForm.school" :placeholder="t('profile.schoolPlaceholder')" placeholder-class="ph" />
         </view>
         <view class="form-group">
           <text class="field-label">{{ t('profile.major') }}</text>
-          <input class="field-input ui-input" v-model="editForm.major" :placeholder="t('profile.majorPlaceholder')" />
+          <input class="field-input ui-input" v-model="editForm.major" :placeholder="t('profile.majorPlaceholder')" placeholder-class="ph" />
         </view>
         <view class="form-group">
           <text class="field-label">{{ t('profile.graduationYear') }}</text>
-          <input class="field-input ui-input" v-model="editForm.gradYear" type="number" :placeholder="t('profile.gradYearPlaceholder')" />
+          <input class="field-input ui-input" v-model="editForm.gradYear" type="number" :placeholder="t('profile.gradYearPlaceholder')" placeholder-class="ph" />
         </view>
 
         <view class="modal-actions">
@@ -261,8 +266,30 @@ const goResumes = () => {
   uni.switchTab({ url: '/pages/resume/index' });
 };
 
+const SWITCH_TAB_PATHS = new Set([
+  '/pages/home/index',
+  '/pages/assistant/index',
+  '/pages/resume/index',
+  '/pages/user/index',
+]);
+
 const navTo = (url: string) => {
-  uni.navigateTo({ url });
+  if (!url) {
+    uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' });
+    return;
+  }
+  const base = url.split('?')[0];
+  if (SWITCH_TAB_PATHS.has(base)) {
+    uni.switchTab({
+      url: base,
+      fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+    });
+    return;
+  }
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+  });
 };
 
 const saveProfile = async () => {

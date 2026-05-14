@@ -123,7 +123,7 @@ onMounted(async () => {
       messages.value = await getInterviewMessagesApi(interviewId.value);
       
       // First time entering this session: ask the backend to generate the
-      // AI interviewer's opening question. The endpoint is idempotent —
+      // opening question. The endpoint is idempotent —
       // if a greeting already exists it just returns it.
       if (messages.value.length === 0) {
         aiTyping.value = true;
@@ -131,8 +131,8 @@ onMounted(async () => {
         try {
           const greeting = await generateGreetingApi(interviewId.value, interviewLang);
           if (greeting) messages.value = [greeting];
-        } catch (greetErr: any) {
-          uni.showToast({ title: greetErr?.message || 'AI service error', icon: 'none', duration: 3000 });
+        } catch {
+          uni.showToast({ title: t('interviewChat.greetingFailed'), icon: 'none', duration: 3000 });
         } finally {
           aiTyping.value = false;
           stopTypingTimer();
@@ -348,7 +348,7 @@ const goBack = () => {
 .send-active .send-label { color: #ffffff; }
 
 /* Dark mode */
-.is-dark { background-color: var(--text-primary, #0f172a); }
+.is-dark { background-color: var(--bg-color, #0f172a); }
 
 .is-dark .message.ai .msg-content { background: #1e293b; color: #f8fafc; box-shadow: none; }
 

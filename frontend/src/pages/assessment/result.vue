@@ -100,54 +100,54 @@ const record = ref<AssessmentRecord | null>(null);
  * added by branching on `record.scaleId` once Holland questions are seeded.
  */
 const MBTI_TYPES: Record<string, { name: string; tags: string[]; strengths: string; growth: string }> = {
-  INTJ: { name: 'Architect',     tags: ['Strategic', 'Independent', 'Analytical'],
-    strengths: 'You excel at long-range planning and spotting structural weaknesses in complex systems. Your independence and intellectual rigour make you a natural fit for systems architecture, data science and product strategy roles.',
-    growth:    'A relentless drive for precision can read as cold to teammates. Make a habit of voicing the human reasoning behind your decisions \u2014 not just the logic.' },
-  INTP: { name: 'Logician',      tags: ['Curious', 'Theoretical', 'Calm'],
-    strengths: 'You are at your best when you have space to investigate ideas at depth. Research, debugging, algorithm design and tooling are sweet spots.',
-    growth:    'Beware analysis paralysis. Set explicit "good-enough" milestones so curiosity doesn\'t stall delivery.' },
-  ENTJ: { name: 'Commander',     tags: ['Decisive', 'Driven', 'Organised'],
-    strengths: 'You move teams forward with clear vision and confident execution. Engineering management, founding roles, and consulting fit your style.',
-    growth:    'Slow down to listen. Your speed can steamroll quieter contributors with valuable insights.' },
-  ENTP: { name: 'Debater',       tags: ['Inventive', 'Energetic', 'Bold'],
-    strengths: 'You generate options others miss and adapt fast under pressure. Product, growth, and early-stage startup roles play to this.',
-    growth:    'Discipline the follow-through. Brilliance without finish is unread documentation.' },
-  INFJ: { name: 'Advocate',      tags: ['Insightful', 'Principled', 'Quiet leader'],
-    strengths: 'You read people accurately and craft work that aligns with deep values. UX research, design leadership, and HR/L&D suit you.',
-    growth:    'Protect your energy. The quiet empathy that helps you understand others can leave you depleted; schedule recovery time.' },
-  INFP: { name: 'Mediator',      tags: ['Idealistic', 'Creative', 'Empathetic'],
-    strengths: 'Your work shines when it carries personal meaning. Writing, design, and mission-driven product roles let you do your best work.',
-    growth:    'Translate values into measurable goals so collaborators understand what "done" looks like.' },
-  ENFJ: { name: 'Protagonist',   tags: ['Charismatic', 'Mentoring', 'Warm'],
-    strengths: 'You excel at lifting teams and turning vision into shared belief. Engineering management, education, and partnerships are natural fits.',
-    growth:    'Don\'t carry every emotional load. Set boundaries so empathy stays a strength, not an exhaustion.' },
-  ENFP: { name: 'Campaigner',    tags: ['Enthusiastic', 'Imaginative', 'Sociable'],
-    strengths: 'You thrive in roles that mix ideas and people: developer relations, product marketing, design.',
-    growth:    'Build small systems for follow-through. Your spark needs scaffolding, not more brainstorming.' },
-  ISTJ: { name: 'Logistician',   tags: ['Reliable', 'Detail-oriented', 'Methodical'],
-    strengths: 'You build dependable systems and keep them running. Backend, security, ops, and QA roles benefit from your discipline.',
-    growth:    'Stay open when better practices emerge. "We\'ve always done it this way" can hide outdated assumptions.' },
-  ISFJ: { name: 'Defender',      tags: ['Caring', 'Loyal', 'Practical'],
-    strengths: 'You quietly hold teams together with thorough preparation and genuine care. Customer support, internal tooling, and team leadership all suit you.',
-    growth:    'Speak up earlier. Your contributions are easy to overlook because you make them look effortless.' },
-  ESTJ: { name: 'Executive',     tags: ['Organised', 'Direct', 'Results-driven'],
-    strengths: 'You drive operational excellence and clear accountability. Engineering management, programme management, and founder/operator roles fit you.',
-    growth:    'Leave room for unstructured thinking. The best ideas don\'t always arrive on schedule.' },
-  ESFJ: { name: 'Consul',        tags: ['Supportive', 'Loyal', 'Outgoing'],
-    strengths: 'You make teams feel heard and aligned. Engineering management, partnerships and customer success thrive on your energy.',
-    growth:    'Don\'t let consensus replace clarity \u2014 hard truths shared kindly serve the team better in the long run.' },
-  ISTP: { name: 'Virtuoso',      tags: ['Practical', 'Hands-on', 'Calm'],
-    strengths: 'You diagnose and fix where others freeze. Hardware, embedded systems, infra and incident response are sweet spots.',
-    growth:    'Document your fixes. Your fluent intuition becomes a single point of failure if no one else can follow it.' },
-  ISFP: { name: 'Adventurer',    tags: ['Artistic', 'Sensitive', 'Easygoing'],
-    strengths: 'You bring craft and aesthetic instinct to whatever you build. Design, frontend, and creative tooling roles let you flourish.',
-    growth:    'Make your decisions visible. Strong taste with quiet delivery can be missed in noisy reviews.' },
-  ESTP: { name: 'Entrepreneur',  tags: ['Energetic', 'Pragmatic', 'Bold'],
-    strengths: 'You move fast and read situations on the fly. Sales engineering, biz dev, and operations under pressure are good fits.',
-    growth:    'Pause for long-term consequences. Speed without strategy is rework dressed up as progress.' },
-  ESFP: { name: 'Entertainer',   tags: ['Spontaneous', 'Lively', 'Friendly'],
-    strengths: 'You energise the room and adapt quickly. Customer-facing engineering, devrel, and event roles suit you.',
-    growth:    'Build a routine for boring-but-important work \u2014 maintenance, follow-ups, retros.' },
+  INTJ: { name: '规划型', tags: ['战略', '独立', '分析'],
+    strengths: '你擅长长期规划和发现系统问题，适合需要结构化思考的岗位。',
+    growth: '表达判断时多补充人的因素，让同伴理解你的逻辑和取舍。' },
+  INTP: { name: '探索型', tags: ['好奇', '理论', '冷静'],
+    strengths: '你适合深入研究复杂问题，调试、算法、工具和研究类任务会更容易发挥。',
+    growth: '避免长时间停留在分析阶段，给自己设定可交付的小节点。' },
+  ENTJ: { name: '推动型', tags: ['果断', '目标感', '组织'],
+    strengths: '你擅长推动团队达成目标，适合管理、咨询和需要决策的角色。',
+    growth: '放慢一点听取不同声音，避免节奏过快导致信息遗漏。' },
+  ENTP: { name: '创想型', tags: ['创新', '活跃', '敢试'],
+    strengths: '你能快速提出新思路，适合产品、增长和变化快的业务环境。',
+    growth: '把想法落实成清晰计划，减少半途切换造成的损耗。' },
+  INFJ: { name: '洞察型', tags: ['洞察', '原则', '安静领导'],
+    strengths: '你能理解人的动机和长期价值，适合研究、设计和人才发展相关工作。',
+    growth: '注意保留精力边界，不要把所有情绪压力都扛在自己身上。' },
+  INFP: { name: '理想型', tags: ['价值感', '创意', '共情'],
+    strengths: '你在有意义的事情上更有投入度，适合内容、设计和使命感强的产品。',
+    growth: '把价值判断转成可衡量目标，让协作伙伴知道怎样算完成。' },
+  ENFJ: { name: '带动型', tags: ['感染力', '辅导', '温暖'],
+    strengths: '你擅长凝聚团队和传递愿景，适合教育、管理和合作型岗位。',
+    growth: '帮助别人时也要设定边界，避免长期消耗自己。' },
+  ENFP: { name: '启发型', tags: ['热情', '想象力', '社交'],
+    strengths: '你适合连接人和想法，产品市场、用户运营和开发者关系会更容易发挥。',
+    growth: '用固定流程承接灵感，保证重要事情能持续推进。' },
+  ISTJ: { name: '执行型', tags: ['可靠', '细致', '有方法'],
+    strengths: '你擅长把系统稳定运行起来，适合后端、安全、运维和质量保障。',
+    growth: '面对新方法时保持开放，避免只依赖过去经验。' },
+  ISFJ: { name: '支持型', tags: ['负责', '忠诚', '务实'],
+    strengths: '你能用细致准备支撑团队，适合内部工具、客户支持和团队协调。',
+    growth: '更早表达自己的贡献和判断，避免被低估。' },
+  ESTJ: { name: '管理型', tags: ['组织', '直接', '结果导向'],
+    strengths: '你重视效率和责任，适合项目管理、运营管理和执行强度高的岗位。',
+    growth: '给开放探索留一些空间，避免过早锁死方案。' },
+  ESFJ: { name: '协作型', tags: ['支持', '稳定', '外向'],
+    strengths: '你擅长让团队保持一致，适合客户成功、合作关系和团队管理。',
+    growth: '不要让追求共识取代清晰判断，必要时要说出关键问题。' },
+  ISTP: { name: '实干型', tags: ['务实', '动手', '冷静'],
+    strengths: '你擅长定位和解决具体问题，适合基础设施、硬件、应急响应等场景。',
+    growth: '把解决过程记录下来，避免经验只停留在自己脑中。' },
+  ISFP: { name: '体验型', tags: ['审美', '敏感', '随和'],
+    strengths: '你对体验和细节敏感，适合设计、前端和创意工具相关方向。',
+    growth: '把设计判断讲清楚，让好品味在协作中被看见。' },
+  ESTP: { name: '行动型', tags: ['有活力', '务实', '大胆'],
+    strengths: '你反应快、适应强，适合销售工程、商务拓展和高压运营场景。',
+    growth: '做决定前多看一步长期影响，减少返工。' },
+  ESFP: { name: '表现型', tags: ['自发', '活跃', '友好'],
+    strengths: '你能带动现场氛围，适合客户面对面、活动、内容和开发者关系。',
+    growth: '给重复但重要的工作建立节奏，比如跟进、维护和复盘。' },
 };
 
 const summaryDisplay = computed(() => {
@@ -450,6 +450,45 @@ onShow(() => {
   box-shadow: var(--shadow-card);
 }
 .btn-primary.practice-cta:active { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+
+.result-container.is-dark .radar-card,
+.result-container.is-dark .analysis-card,
+.result-container.is-dark .loading-state,
+.result-container.is-dark .error-state {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: none;
+}
+
+.result-container.is-dark .section-title,
+.result-container.is-dark .skill-name,
+.result-container.is-dark .skill-score,
+.result-container.is-dark .p-title {
+  color: #f8fafc;
+}
+
+.result-container.is-dark .p-content {
+  color: #cbd5e1;
+}
+
+.result-container.is-dark .bar-bg {
+  background-color: #334155;
+}
+
+.result-container.is-dark .divider {
+  background-color: #334155;
+}
+
+.result-container.is-dark .role-chip {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(147, 197, 253, 0.32);
+  color: #bfdbfe;
+}
+
+.result-container.is-dark .bottom-action {
+  background: rgba(15, 23, 42, 0.96);
+  border-top-color: #334155;
+}
 
 /* When the practice CTA is present we tone down the map button so the eye
    prioritises the practice action without making the secondary disappear. */

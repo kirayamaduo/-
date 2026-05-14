@@ -27,7 +27,7 @@
       <view class="brand-logo-wrap">
         <text class="brand-logo-text">CL</text>
       </view>
-      <text class="brand-name">Career Loop</text>
+      <text class="brand-name">CareerLoop</text>
       <text class="brand-slogan">{{ t('consent.slogan') }}</text>
     </view>
 

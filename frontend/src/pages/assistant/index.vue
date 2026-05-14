@@ -53,7 +53,7 @@
           <text class="agent-scope-label">{{ t('assistantPage.bestFor') }}</text>
           <text class="agent-scope-text">{{ currentPersona.bestFor }}</text>
         </view>
-        <view class="agent-note">
+        <view class="agent-note" v-if="currentPersona.note">
           <text class="agent-note-text">{{ currentPersona.note }}</text>
         </view>
         <view class="quick-actions">
@@ -156,7 +156,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'MENTOR',
     emoji: 'ri-compass-3-line',
-    label: '小职',
+    label: '教练',
     name: t('assistantPage.personas.MENTOR.name'),
     tagline: t('assistantPage.personas.MENTOR.tagline'),
     intro: t('assistantPage.personas.MENTOR.intro'),
@@ -172,7 +172,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'CHALLENGER',
     emoji: 'ri-shield-star-line',
-    label: '小严',
+    label: '反馈',
     name: t('assistantPage.personas.CHALLENGER.name'),
     tagline: t('assistantPage.personas.CHALLENGER.tagline'),
     intro: t('assistantPage.personas.CHALLENGER.intro'),
@@ -188,7 +188,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'INTERVIEWER',
     emoji: 'ri-mic-line',
-    label: '小面',
+    label: '练习',
     name: t('assistantPage.personas.INTERVIEWER.name'),
     tagline: t('assistantPage.personas.INTERVIEWER.tagline'),
     intro: t('assistantPage.personas.INTERVIEWER.intro'),
@@ -314,11 +314,10 @@ const sendMessage = async () => {
     if (sid) {
       await appendMessage(sid, text, String(reply || ''));
     }
-  } catch (err: any) {
-    const errMsg = err?.message || String(err) || 'Unknown error';
+  } catch {
     messages.value[typingIdx] = {
       role: 'ai',
-      content: t('assistantPage.requestFailed', { msg: errMsg }),
+      content: t('assistantPage.requestFailed'),
     };
   } finally {
     isSending.value = false;
@@ -860,10 +859,15 @@ onShow(() => {
 .is-dark .chip-text { color: #60a5fa; }
 .is-dark .nav-action { background: rgba(37, 99, 235, 0.16); }
 .is-dark .nav-action:active { background: rgba(37, 99, 235, 0.26); }
-.is-dark .persona-chip { background: rgba(30, 41, 59, 0.6); border-color: var(--text-secondary, #64748b); }
-.is-dark .persona-active { background: rgba(37, 99, 235, 0.2); border-color: var(--primary-color, #2563eb); }
+.is-dark .persona-chip { background: rgba(30, 41, 59, 0.7); border-color: #334155; }
+.is-dark .persona-active {
+  background: #2563eb;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.42) inset;
+}
 .is-dark .persona-label { color: var(--text-tertiary, #8e8e93); }
-.is-dark .persona-active .persona-label { color: #60a5fa; }
+.is-dark .persona-active .persona-label,
+.is-dark .persona-active .persona-emoji { color: #ffffff; }
 .is-dark .time-text { color: var(--text-tertiary, #8e8e93); background: rgba(100, 116, 139, 0.15); }
 .is-dark .send-btn { background: #334155; }
 .is-dark .send-label { color: var(--text-secondary, #64748b); }
@@ -871,7 +875,7 @@ onShow(() => {
 .is-dark .dot { background: #64748b; }
 
 .is-dark .chat-list-surface {
-  background-color: var(--text-primary, #0f172a);
+  background-color: var(--bg-color, #0f172a);
 }
 
 .theme-green .chat-list-surface {
@@ -927,11 +931,21 @@ onShow(() => {
 
 .is-dark .persona-chip {
   background: #1e293b;
-  border-color: var(--text-secondary, #64748b);
+  border-color: #334155;
 }
 
 .is-dark .persona-label {
   color: #cbd5e1;
+}
+
+.is-dark .persona-active {
+  background: #2563eb;
+  border-color: #93c5fd;
+}
+
+.is-dark .persona-active .persona-label,
+.is-dark .persona-active .persona-emoji {
+  color: #ffffff;
 }
 
 .chat-page.is-dark .input-bar {
@@ -956,7 +970,7 @@ onShow(() => {
 
 .chat-page.is-dark .chat-list,
 .chat-page.is-dark .chat-list-surface {
-  background-color: var(--text-primary, #0f172a);
+  background-color: var(--bg-color, #0f172a);
 }
 
 .chat-page.theme-green .chat-list,

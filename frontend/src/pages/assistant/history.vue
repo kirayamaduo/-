@@ -74,9 +74,9 @@ const sessions = ref<AssistantSession[]>([]);
 
 const personaMeta = (persona?: string) => {
   const map: Record<string, { emoji: string; label: string }> = {
-    MENTOR: { emoji: 'ri-compass-3-line', label: '小职' },
-    CHALLENGER: { emoji: 'ri-shield-star-line', label: '小严' },
-    INTERVIEWER: { emoji: 'ri-mic-line', label: '小面' },
+    MENTOR: { emoji: 'ri-compass-3-line', label: '求职教练' },
+    CHALLENGER: { emoji: 'ri-shield-star-line', label: '严格反馈' },
+    INTERVIEWER: { emoji: 'ri-mic-line', label: '面试练习' },
   };
   return map[persona || 'MENTOR'] || map.MENTOR;
 };
@@ -92,7 +92,7 @@ const loadSessions = async () => {
     const res = await request<AssistantSession[]>({ url: `/api/chat/history/${userId}`, method: 'GET' });
     sessions.value = Array.isArray(res) ? res : [];
   } catch (e: any) {
-    uni.showToast({ title: e?.message || 'Failed to load history', icon: 'none' });
+    uni.showToast({ title: e?.message || t('assistantHistory.loadFailed'), icon: 'none' });
   } finally {
     loading.value = false;
   }

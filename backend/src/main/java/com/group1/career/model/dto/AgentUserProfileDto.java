@@ -65,6 +65,10 @@ public class AgentUserProfileDto {
         private Boolean hasResume;
         private Boolean hasInterview;
         private Boolean hasPlan;
+        private Integer directionClarityPercent;
+        private Integer resumeReadinessPercent;
+        private Integer interviewReadinessPercent;
+        private Integer actionContinuityPercent;
     }
 
     @Data

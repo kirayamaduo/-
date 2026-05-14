@@ -87,12 +87,16 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         UserProfileSnapshot.ResumeBlock resume = snapshot.getResume();
         UserProfileSnapshot.InterviewBlock interview = snapshot.getInterview();
         UserProfileSnapshot.PreferencesBlock preferences = snapshot.getPreferences();
+        UserProfileSnapshot.OnboardingBlock onboarding = snapshot.getOnboarding();
 
         String targetRole = firstText(
                 preferences != null ? preferences.getTargetRole() : null,
                 resume != null ? resume.getTargetJob() : null,
                 interview != null ? interview.getPositionName() : null
         );
+        String identityType = onboarding != null ? onboarding.getIdentityType() : null;
+        String selfReportedResume = onboarding != null ? onboarding.getHasResume() : null;
+        boolean selfReportedHasResume = "yes".equalsIgnoreCase(selfReportedResume);
         int progress = progress(assessment, resume, interview, targetRole, checkIn);
         List<String> risks = new ArrayList<>();
         List<String> riskKeys = new ArrayList<>();
@@ -103,34 +107,65 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         String focus;
         String reason;
 
-        if (!hasText(targetRole) && assessment == null) {
-            stage = "DIRECTION_DISCOVERY";
-            headline = "开始探索你的职业方向";
-            focus = "完成一次测评，为职业方向打下基础";
-            reason = "我还没有足够的职业方向数据，建议优先完成测评，建立你的基础画像。";
+        if (!hasText(targetRole)) {
+            stage = "TARGET_ROLE_SELECTION";
+            headline = "先选择一个目标岗位方向";
+            focus = "把求职准备收敛到一个具体岗位或方向";
+            reason = "目标岗位还没有设定。先确定方向，后续简历、测评和面试任务才会更准确。";
             risks.add("目标岗位尚未设置");
             riskKeys.add("agent.risk.reason.NO_TARGET_ROLE");
+            if (assessment == null) {
+                risks.add("测评基线尚未建立");
+                riskKeys.add("agent.risk.reason.NO_ASSESSMENT");
+            }
+            actions.add(action("选择目标岗位", "/pages/map/index", "TARGET_ROLE", "HIGH"));
+            actions.add(action("完成职业测评", "/pages/assessment/index", "ASSESSMENT", "MEDIUM"));
+        } else if ("career_switcher".equals(identityType)) {
+            stage = "CAREER_SWITCH_POSITIONING";
+            headline = "整理转岗理由和目标岗位证据";
+            focus = "把过往经历改写成「" + targetRole + "」需要的能力证据";
+            reason = "你在 onboarding 中选择了转方向。今天最重要的是先解释为什么转、凭什么能转，再进入简历细节。";
+            risks.add("转岗叙事尚未沉淀");
+            riskKeys.add("agent.risk.reason.PROFILE_MISSING");
+            actions.add(action("整理转岗证据", "/pages/assistant/index", "CAREER_SWITCH", "HIGH"));
+            actions.add(action("查看职业路线", "/pages/map/index", "LEARNING", "MEDIUM"));
+        } else if ("internship_seeker".equals(identityType) && !selfReportedHasResume && resume == null) {
+            stage = "INTERNSHIP_RESUME_BOOTSTRAP";
+            headline = "建立第一版实习简历素材";
+            focus = "先整理课程、项目和校园经历，形成可上传的实习简历草稿";
+            reason = "你在 onboarding 中选择了找实习，且还没有可投递简历。今天应先把经历素材整理出来。";
+            risks.add("实习简历素材尚未建立");
+            riskKeys.add("agent.risk.reason.NO_RESUME");
+            actions.add(action("整理实习简历素材", "/pages/resume/index", "RESUME", "HIGH"));
+            actions.add(action("完成职业测评", "/pages/assessment/index", "ASSESSMENT", "MEDIUM"));
+        } else if ("new_graduate".equals(identityType) && selfReportedHasResume && resume == null) {
+            stage = "GRADUATE_RESUME_UPLOAD";
+            headline = "上传简历并匹配一个目标 JD";
+            focus = "用已有简历完成一次针对「" + targetRole + "」的 AI 诊断";
+            reason = "你在 onboarding 中选择了应届/准应届且已有简历。下一步不是继续浏览功能，而是把简历上传并对齐目标岗位。";
+            risks.add("已有简历尚未进入系统诊断");
+            riskKeys.add("agent.risk.reason.NO_RESUME_HAS_ROLE");
+            actions.add(action("上传简历做 JD 匹配", "/pages/resume/index", "RESUME", "HIGH"));
+            actions.add(action("打开 AI 简历诊断", "/pages/resume-ai/index", "RESUME", "MEDIUM"));
+        } else if (assessment == null) {
+            stage = "ASSESSMENT_BASELINE";
+            headline = "完成 5 分钟职业测评";
+            focus = "为「" + targetRole + "」建立第一份能力和偏好基线";
+            reason = "目标岗位已经明确，但还缺少测评画像。先补齐这个基线，后续简历和面试建议会更准。";
             risks.add("测评基线尚未建立");
             riskKeys.add("agent.risk.reason.NO_ASSESSMENT");
-            actions.add(action("完成测评", "/pages/assessment/index", "ASSESSMENT", "HIGH"));
-            actions.add(action("让 AI 帮我对比方向", "/pages/assistant/index", "CHAT", "MEDIUM"));
-        } else if (!hasText(targetRole)) {
-            stage = "TARGET_ROLE_SELECTION";
-            headline = "选定一个具体的目标岗位";
-            focus = "将测评结果转化为一个明确的求职目标";
-            reason = "你已经有一些自我认知，但 Agent 需要一个明确的目标岗位才能有效推进简历和面试准备。";
-            risks.add("职业方向还不够聚焦");
-            riskKeys.add("agent.risk.reason.DIRECTION_BROAD");
-            actions.add(action("查看测评结果", "/pages/assessment/index", "ASSESSMENT", "HIGH"));
-            actions.add(action("与 AI 讨论目标岗位", "/pages/assistant/index", "CHAT", "HIGH"));
+            actions.add(action("完成 5 分钟测评", "/pages/assessment/index", "ASSESSMENT", "HIGH"));
+            actions.add(action("查看职业路线", "/pages/map/index", "LEARNING", "MEDIUM"));
         } else if (resume == null) {
             stage = "RESUME_BOOTSTRAP";
-            headline = "为「" + targetRole + "」准备一份简历";
-            focus = "创建或上传你的第一份简历草稿";
-            reason = "目标方向已明确，但在简历存在之前，我无法评估你的求职准备度。";
+            headline = selfReportedHasResume ? "上传已有简历并做一次诊断" : "为「" + targetRole + "」准备一份简历";
+            focus = selfReportedHasResume ? "把已有简历上传后匹配一个目标 JD" : "创建或上传你的第一份简历草稿";
+            reason = selfReportedHasResume
+                    ? "你自报已有简历，但系统还没有简历记录。先上传并诊断，准备度才会变成可评估状态。"
+                    : "目标方向已明确，但在简历存在之前，我无法评估你的求职准备度。";
             risks.add("目标岗位暂无简历数据");
             riskKeys.add("agent.risk.reason.NO_RESUME");
-            actions.add(action("AI 生成简历", "/pages/resume-ai/index", "RESUME", "HIGH"));
+            actions.add(action(selfReportedHasResume ? "上传简历做 JD 匹配" : "生成简历草稿", selfReportedHasResume ? "/pages/resume/index" : "/pages/resume-ai/index", "RESUME", "HIGH"));
             actions.add(action("打开简历模块", "/pages/resume/index", "RESUME", "MEDIUM"));
         } else if (resume.getDiagnosisScore() != null && resume.getDiagnosisScore() < RESUME_SCORE_THRESHOLD) {
             stage = "RESUME_IMPROVEMENT";
@@ -140,7 +175,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
             risks.add("简历诊断分数低于推荐阈值");
             riskKeys.add("agent.risk.reason.RESUME_LOW_SCORE");
             actions.add(action("优化简历", "/pages/resume-ai/index", "RESUME", "HIGH"));
-            actions.add(action("让严格 Agent 评审简历", "/pages/assistant/index", "CHAT", "MEDIUM"));
+            actions.add(action("检查简历薄弱项", "/pages/assistant/index", "CHAT", "MEDIUM"));
         } else if (interview == null) {
             stage = "INTERVIEW_BOOTSTRAP";
             headline = "开始「" + targetRole + "」的面试练习";
@@ -149,7 +184,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
             risks.add("暂无模拟面试记录");
             riskKeys.add("agent.risk.reason.NO_INTERVIEW");
             actions.add(action("开始模拟面试", "/pages/interview/start", "INTERVIEW", "HIGH"));
-            actions.add(action("在 AI 助手中练习", "/pages/assistant/index", "CHAT", "MEDIUM"));
+            actions.add(action("用求职教练练习", "/pages/assistant/index", "CHAT", "MEDIUM"));
         } else if (interview.getLastScore() != null && interview.getLastScore() < INTERVIEW_SCORE_THRESHOLD) {
             stage = "INTERVIEW_IMPROVEMENT";
             headline = "针对薄弱维度专项练习";
@@ -162,23 +197,23 @@ public class CareerAgentServiceImpl implements CareerAgentService {
                 riskKeys.add("agent.risk.reason.WEAK_DIMENSIONS");
             }
             actions.add(action("练习面试", "/pages/interview/start", "INTERVIEW", "HIGH"));
-            actions.add(action("向 AI 面试官请教", "/pages/assistant/index", "CHAT", "MEDIUM"));
+            actions.add(action("复盘面试回答", "/pages/assistant/index", "CHAT", "MEDIUM"));
         } else if (checkIn.getWeeklyDays() < MIN_CHECKIN_DAYS_PER_WEEK) {
             stage = "EXECUTION_RHYTHM";
             headline = "重建你的每周执行节奏";
             focus = "今天完成一项核心职业行动";
-            reason = "你的档案可用，但近期打卡活跃度偏低。Agent 现在应该推动执行力，而不是继续规划。";
+            reason = "你的档案可用，但近期行动连续性偏低。现在更适合先完成一个小任务，而不是继续增加计划。";
             risks.add("本周打卡天数不足 3 天");
             riskKeys.add("agent.risk.reason.LOW_CHECKIN");
             actions.add(action("查看打卡计划", "/pages/checkin/index", "CHECKIN", "HIGH"));
-            actions.add(action("让 AI 给我安排今日任务", "/pages/assistant/index", "CHAT", "MEDIUM"));
+            actions.add(action("更新今日行动", "/pages/agent/index", "PLAN", "MEDIUM"));
         } else {
             stage = "CAREER_MOMENTUM";
             headline = "保持冲向「" + targetRole + "」的势头";
             focus = "完成一项专项提升任务并保持连续打卡";
             reason = "方向、简历和面试信号均已具备。最佳下一步是持续改进和跟踪进展。";
-            actions.add(action("复盘职业规划", "/pages/assistant/index", "CHAT", "MEDIUM"));
-            actions.add(action("打开技能图谱", "/pages/map/index", "LEARNING", "MEDIUM"));
+            actions.add(action("复盘求职计划", "/pages/assistant/index", "CHAT", "MEDIUM"));
+            actions.add(action("打开求职路线", "/pages/map/index", "LEARNING", "MEDIUM"));
         }
 
         if (checkIn.getTodayCompleted() < checkIn.getTodayTotal()) {
@@ -256,7 +291,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         return plan.map(this::toPlanDto).orElseGet(() -> CareerAgentPlanDto.builder()
                 .hasPlan(false)
                 .planHealth("MISSING")
-                .adjustmentReason("尚未生成长期职业规划。")
+                .adjustmentReason("尚未生成长期求职计划。")
                 .weeklyFocus(List.of())
                 .build());
     }
@@ -327,6 +362,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         // Limit daily task count for struggling users
         int taskLimit = completionRate < COMPLETION_RATE_LOW ? MAX_TASKS_LOW_COMPLETION : actions.size();
         int synced = 0;
+        List<String> syncedKeys = new ArrayList<>();
 
         for (CareerAgentTodayDto.Action action : actions) {
             if (synced >= taskLimit) break;
@@ -340,8 +376,20 @@ public class CareerAgentServiceImpl implements CareerAgentService {
             if (completionRate >= COMPLETION_RATE_HIGH && "MEDIUM".equals(priority)) priority = "HIGH";
 
             String taskKey = taskKey(action);
+            syncedKeys.add(taskKey);
             final String finalPriority = priority;
             taskRepository.findByUserIdAndDueDateAndTaskKey(userId, today, taskKey)
+                    .map(existing -> {
+                        if ("TODO".equals(existing.getStatus())) {
+                            existing.setTitle(action.getLabel());
+                            existing.setDescription(taskDescription(focus, action));
+                            existing.setPriority(finalPriority);
+                            existing.setTarget(action.getTarget());
+                            existing.setSource(hasText(action.getSource()) ? action.getSource() : "DAILY_AGENT");
+                            return taskRepository.save(existing);
+                        }
+                        return existing;
+                    })
                     .orElseGet(() -> taskRepository.save(AgentTask.builder()
                             .userId(userId)
                             .taskKey(taskKey)
@@ -356,20 +404,31 @@ public class CareerAgentServiceImpl implements CareerAgentService {
                             .build()));
             synced++;
         }
+
+        taskRepository.findByUserIdAndDueDateOrderByCreatedAtDesc(userId, today).stream()
+                .filter(task -> "TODO".equals(task.getStatus()))
+                .filter(task -> "DAILY_AGENT".equals(task.getSource()))
+                .filter(task -> !syncedKeys.contains(task.getTaskKey()))
+                .forEach(task -> {
+                    task.setStatus("DISMISSED");
+                    task.setCompletedAt(null);
+                    taskRepository.save(task);
+                });
     }
 
     private AgentTask ownedTask(Long userId, Long taskId) {
         AgentTask task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new BizException("Agent task not found"));
+                .orElseThrow(() -> new BizException("任务不存在或已失效"));
         if (!userId.equals(task.getUserId())) {
-            throw new BizException("Agent task not found");
+            throw new BizException("任务不存在或已失效");
         }
         return task;
     }
 
     private String taskKey(CareerAgentTodayDto.Action action) {
         String source = hasText(action.getSource()) ? action.getSource() : "DAILY_AGENT";
-        return (source + ":" + action.getType() + ":" + action.getLabel())
+        String labelHash = Integer.toHexString(java.util.Objects.hash(action.getLabel(), action.getTarget()));
+        return (source + ":" + action.getType() + ":" + labelHash)
                 .toLowerCase()
                 .replaceAll("[^a-z0-9]+", "_")
                 .replaceAll("^_+|_+$", "");
@@ -377,7 +436,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
 
     private String taskDescription(String focus, CareerAgentTodayDto.Action action) {
         if ("PLAN_WEEKLY".equals(action.getSource())) {
-            return "来自长期职业规划的本周重点行动。";
+            return "来自长期求职计划的本周重点行动。";
         }
         return focus;
     }
@@ -395,7 +454,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
     private String shortTaskLabel(String text) {
         String value = text == null ? "" : text.trim();
         if (value.length() <= 24) return value;
-        return value.substring(0, 24) + "...";
+        return value.substring(0, 24) + "…";
     }
 
     private List<String> weeklyFocusItems(UserCareerPlan plan) {
@@ -487,7 +546,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         String recKey = "agent.risk.rec.RESUME_MAINTAIN";
         if (hasText(targetRole) && resume == null) {
             score = 70;
-            reason = "已有目标方向但缺少简历，Agent 无法评估求职准备度。";
+            reason = "已有目标方向但缺少简历，暂时无法评估简历可投递度。";
             reasonKey = "agent.risk.reason.NO_RESUME_HAS_ROLE";
             rec = "为「" + targetRole + "」创建或上传一份简历。";
             recKey = "agent.risk.rec.RESUME_CREATE";
@@ -543,7 +602,7 @@ public class CareerAgentServiceImpl implements CareerAgentService {
         if (checkIn.getTodayCompleted() < checkIn.getTodayTotal()) score += 10;
         String reason = score == 0
                 ? "近期打卡和任务完成情况显示执行节奏稳定。"
-                : "执行风险偏高：本周活跃 " + checkIn.getWeeklyDays() + "/7 天，近期 Agent 任务完成 " + done + "/" + total + "。";
+                : "行动连续性偏低：本周活跃 " + checkIn.getWeeklyDays() + "/7 天，近期任务完成 " + done + "/" + total + "。";
         String reasonKey = score == 0 ? "agent.risk.reason.EXECUTION_OK" : "agent.risk.reason.EXECUTION_LOW";
         String trend = score >= 60 ? "RISING" : (done > 0 && checkIn.getWeeklyDays() >= 3 ? "DECREASING" : "STABLE");
         return risk("EXECUTION_RISK", "执行节奏", score, trend, reason, reasonKey, "今天先完成一个小任务，再增加新计划。", "agent.risk.rec.EXECUTION_ONE_TASK");

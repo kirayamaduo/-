@@ -16,7 +16,10 @@ export const LOGIN_PAGE = '/pages/login/index';
 
 export const GUEST_USER_ID = -1;
 
-export const isGuest = (): boolean => uni.getStorageSync('isGuest') === true;
+export const isGuest = (): boolean => {
+  const userId = Number(uni.getStorageSync('userId'));
+  return uni.getStorageSync('isGuest') === true && userId === GUEST_USER_ID;
+};
 
 export const isLoggedIn = (): boolean => {
   const userId = uni.getStorageSync('userId');

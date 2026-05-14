@@ -80,7 +80,7 @@ export function updateTabBar(lang?: LangCode) {
   const locale = lang ?? currentLocale();
   const msgs = locale === 'zh-CN' ? zhCN : enUS;
   // 顺序必须与 pages.json tabBar.list 一致
-  const navKeys: (keyof typeof zhCN.nav)[] = ['home', 'messages', 'assistant', 'resume', 'profile'];
+  const navKeys: (keyof typeof zhCN.nav)[] = ['home', 'assistant', 'resume', 'profile'];
   navKeys.forEach((key, index) => {
     try {
       uni.setTabBarItem({ index, text: msgs.nav[key] });

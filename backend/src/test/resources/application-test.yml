@@ -22,6 +22,12 @@ spring:
       hibernate:
         format_sql: true
 
+  flyway:
+    # Tests use Hibernate create-drop against H2. Production Flyway migrations
+    # contain MySQL-specific DDL (multi-column ALTER + COMMENT clauses) that H2
+    # cannot parse even in MySQL mode, so keep Flyway disabled for this profile.
+    enabled: false
+
   # Mail is disabled at the SMTP-config level so EmailService can still
   # autowire; tests that exercise sending should @MockitoBean EmailService.
   mail:

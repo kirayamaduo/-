@@ -3,6 +3,7 @@ package com.group1.career.controller;
 import com.group1.career.common.Result;
 import com.group1.career.exception.BizException;
 import com.group1.career.model.dto.UserProfileSnapshot;
+import com.group1.career.service.AgentProfileService;
 import com.group1.career.model.entity.User;
 import com.group1.career.service.CareerPlanService;
 import com.group1.career.service.UserProfileSnapshotService;
@@ -29,6 +30,7 @@ public class UserController {
     private final UserService userService;
     private final UserProfileSnapshotService snapshotService;
     private final CareerPlanService careerPlanService;
+    private final AgentProfileService agentProfileService;
 
     @Operation(summary = "Get user profile (presigned avatar URL hydrated)")
     @GetMapping("/{id}")
@@ -94,6 +96,28 @@ public class UserController {
         return Result.success(snapshotService.read(uid));
     }
 
+    @Operation(summary = "Update onboarding block in the profile snapshot")
+    @PutMapping("/me/profile-snapshot/onboarding")
+    public Result<UserProfileSnapshot> updateOnboarding(@RequestBody UpdateOnboardingDto dto) {
+        Long uid = SecurityUtil.requireCurrentUserId();
+        snapshotService.mergeOnboarding(uid, UserProfileSnapshot.OnboardingBlock.builder()
+                .identityType(dto.getIdentityType())
+                .hasResume(dto.getHasResume())
+                .onboardingCompletedAt(dto.getOnboardingCompletedAt())
+                .build());
+
+        if (dto.getTargetRole() != null) {
+            snapshotService.mergePreferences(uid, UserProfileSnapshot.PreferencesBlock.builder()
+                    .targetRole(dto.getTargetRole())
+                    .build());
+            if (!dto.getTargetRole().isBlank()) {
+                careerPlanService.regenerateWithRoleAsync(uid, dto.getTargetRole());
+            }
+        }
+        agentProfileService.refresh(uid);
+        return Result.success(snapshotService.read(uid));
+    }
+
     /**
      * F25: Request account deletion (soft-delete with 30-day grace period).
      * Sets deleted_at = now(). Subsequent authenticated requests return 410 Gone.
@@ -143,5 +167,16 @@ public class UserController {
         private String targetRole;
         /** "voice" or "text" */
         private String interviewMode;
+    }
+
+    @Data
+    public static class UpdateOnboardingDto {
+        /** student | new_graduate | internship_seeker | career_switcher */
+        private String identityType;
+        /** User self-reported resume state from onboarding: yes | no | unsure. */
+        private String hasResume;
+        private String onboardingCompletedAt;
+        /** Optional target role; persisted to preferences.targetRole, not duplicated in onboarding. */
+        private String targetRole;
     }
 }

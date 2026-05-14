@@ -84,6 +84,21 @@ textarea {
   font-size: 14px;
   color: #0f172a;
 }
+.is-dark .ui-input,
+.is-dark .input,
+.is-dark textarea.ui-input,
+.is-dark .sl-input,
+.is-dark input,
+.is-dark textarea {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+.is-dark .ph,
+.is-dark .search-ph,
+.is-dark .input-ph {
+  color: #94a3b8;
+}
 
 .chat-nav,
 .sticky-cta,
@@ -108,5 +123,14 @@ textarea {
 .input-area,
 .input-bar,
 .toolbar   { background: var(--surface-1, #ffffff); }
+.is-dark .sticky-cta,
+.is-dark .bottom-bar,
+.is-dark .bottom-action,
+.is-dark .input-area,
+.is-dark .input-bar,
+.is-dark .toolbar {
+  background: #1e293b;
+  border-color: #334155;
+}
 
 /* #endif */

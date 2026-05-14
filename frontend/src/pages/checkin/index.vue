@@ -279,6 +279,23 @@ onShow(() => {
 .is-dark .action-desc { color: #94a3b8; }
 .is-dark .action-done { background: rgba(16, 185, 129, 0.16); border-color: #34d399; }
 .is-dark .action-done .action-desc { color: #6ee7b7; }
+.is-dark .hero-bar { background: rgba(255, 255, 255, 0.22); }
+.is-dark .hero-bar-fill { background: linear-gradient(90deg, #67e8f9, #a7f3d0); }
+.is-dark .tone-blue {
+  background: rgba(37, 99, 235, 0.22);
+  color: #93c5fd;
+  border: 1px solid rgba(147, 197, 253, 0.32);
+}
+.is-dark .tone-orange {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+}
+.is-dark .tone-violet {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(196, 181, 253, 0.32);
+}
 .is-dark .week-cell { background: #0f172a; }
 .is-dark .week-cell-day { color: #64748b; }
 .is-dark .week-cell-today:not(.week-cell-active) .week-cell-day { color: #f8fafc; }

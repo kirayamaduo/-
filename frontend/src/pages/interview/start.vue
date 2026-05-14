@@ -530,7 +530,7 @@ const startInterview = async () => {
 }
 
 /* Dark mode */
-.is-dark { background-color: var(--text-primary, #0f172a); }
+.is-dark { background-color: var(--bg-color, #0f172a); }
 
 .is-dark .title,
 .is-dark .label,
@@ -547,6 +547,11 @@ const startInterview = async () => {
 .is-dark .mode-name { color: #f8fafc; }
 
 .is-dark .picker-val { color: var(--text-secondary, #64748b); }
+.is-dark .label-hint {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(129, 140, 248, 0.36);
+  color: #c7d2fe;
+}
 
 .is-dark .expect-icon { background: rgba(37, 99, 235, 0.2); }
 

@@ -3,6 +3,7 @@ import { onLaunch } from "@dcloudio/uni-app";
 import { isLoggedIn, LOGIN_PAGE } from "@/utils/auth";
 import { useTheme } from "@/utils/theme";
 import { updateTabBar } from "@/locales/index";
+import { syncPendingOnboarding } from "@/utils/onboardingSync";
 
 const ONBOARDING_KEY = 'onboarding_v1_seen';
 const ONBOARDING_PAGE = '/pages/onboarding/index';
@@ -33,7 +34,15 @@ onLaunch(() => {
   // sentinel id as "logged in for navigation purposes."
   if (!isLoggedIn()) {
     uni.reLaunch({ url: LOGIN_PAGE });
+    return;
   }
+
+  // If onboarding was completed while offline or as a guest, login sync may
+  // have failed once. Retry quietly on the next real-account launch so stale
+  // pending setup does not keep resubmitting or confuse the first-run state.
+  syncPendingOnboarding({ silent: true }).catch(() => {
+    // Keep pending storage for the next launch; do not block app entry.
+  });
 });
 </script>
 

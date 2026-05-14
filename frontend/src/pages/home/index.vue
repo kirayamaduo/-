@@ -3,161 +3,135 @@
     <SlScrollTopBar :title="t('nav.home')" :opacity="topBarOpacity" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
     <view class="status-spacer" :style="{ height: topSafeHeight + 'px' }"></view>
 
-    <view class="top-bar" :style="{ paddingRight: rightAvoidWidth + 'px' }">
-      <image
-        class="user-avatar"
-        :src="avatarSrc"
-        mode="aspectFill"
-        @click="handleAvatarClick"
-      />
-      <view class="search-bar app-surface">
-        <view class="search-icon-wrap" @click="onSearch">
-          <text class="search-icon-svg ri-search-line"></text>
+    <view class="workbench-hero" :style="{ paddingRight: rightAvoidWidth + 'px' }">
+      <view class="brand-row">
+        <view class="brand-copy">
+          <text class="brand-kicker">CareerLoop</text>
+          <text class="brand-title">{{ welcomeTitle }}</text>
+          <text class="brand-subtitle">{{ stageLabel }} · {{ targetRoleLabel }}</text>
         </view>
-        <input
-          class="search-input"
-          v-model="searchQuery"
-          :placeholder="t('home.searchPlaceholder')"
-          placeholder-class="search-ph"
-          @confirm="onSearch"
-        />
-        <view class="search-clear" v-if="searchQuery" @click="clearSearch">
-          <text class="clear-icon">×</text>
-        </view>
+        <image class="user-avatar workbench-avatar" :src="avatarSrc" mode="aspectFill" @click="handleAvatarClick" />
       </view>
     </view>
 
-    <view class="greeting-row">
-      <text class="greeting-kicker">Career Loop</text>
-      <text class="greeting-title">Hello, {{ userInfo.nickname || 'Guest' }}</text>
-      <text class="greeting-text">{{ t('home.pullToRefresh') }}</text>
-    </view>
-
-    <view class="feature-grid">
-      <view class="feature-item app-card-soft" @click="navTo('/pages/assessment/index')">
-        <view class="app-icon-tile app-icon-tile--cyan">
-          <text class="fi-char ri-compass-3-line"></text>
+    <view class="readiness-card app-card-soft app-surface">
+      <view class="readiness-head">
+        <view class="readiness-copy">
+          <text class="readiness-kicker">求职准备度</text>
+          <text class="readiness-title">{{ readinessPercent }}%</text>
+          <text class="readiness-subtitle">{{ readinessSummary }}</text>
         </view>
-        <text class="feature-label">{{ t('home.featureAssessment') }}</text>
+        <view class="readiness-ring" :style="readinessRingStyle">
+          <text class="readiness-ring-text">{{ readinessPercent }}</text>
+        </view>
       </view>
-      <view class="feature-item app-card-soft" @click="navTo('/pages/map/index')">
-        <view class="app-icon-tile app-icon-tile--violet">
-          <text class="fi-char ri-map-2-line"></text>
-        </view>
-        <text class="feature-label">{{ t('home.featureSkillMap') }}</text>
+      <view class="readiness-bar">
+        <view class="readiness-fill" :style="{ width: readinessPercent + '%' }"></view>
       </view>
-      <view class="feature-item app-card-soft" @click="navTo('/pages/resume-ai/index')">
-        <view class="app-icon-tile app-icon-tile--candy">
-          <text class="fi-char ri-sparkling-line"></text>
-        </view>
-        <text class="feature-label">{{ t('home.featureAiResume') }}</text>
-      </view>
-      <view class="feature-item app-card-soft" @click="navTo('/pages/interview/start')">
-        <view class="app-icon-tile app-icon-tile--warning">
-          <text class="fi-char ri-mic-2-line"></text>
-        </view>
-        <text class="feature-label">{{ t('home.featureMockInterview') }}</text>
+      <view class="gap-row">
+        <text class="gap-label">最大短板</text>
+        <text class="gap-text">{{ biggestGap }}</text>
       </view>
     </view>
 
-    <!-- 7-day check-in chip — short, glanceable, taps through to the calendar -->
-    <view v-if="checkin" class="checkin-card" @click="navTo('/pages/checkin/index')">
-      <view class="checkin-left">
-        <text class="checkin-kicker">{{ t('checkin.title') }}</text>
-        <text class="checkin-title">{{ t('checkin.streak', { n: checkin.streakDays || 0 }) }}</text>
-        <text class="checkin-sub">{{ checkin.todayCompleted }}/{{ checkin.todayTotal }} {{ t('checkin.todayDone') }} · {{ checkin.weeklyDays }}/7 {{ t('checkin.weeklyDays') }}</text>
-      </view>
-      <view class="checkin-right">
-        <view class="checkin-bar">
-          <view class="checkin-bar-fill" :style="{ width: checkinPercent + '%' }"></view>
+    <view class="today-card app-card-soft">
+      <view class="today-top">
+        <view class="today-icon-wrap">
+          <text class="today-icon ri-sparkling-line"></text>
         </view>
-        <text class="checkin-cta">{{ t('checkin.viewCalendar') }}</text>
-      </view>
-    </view>
-    <view v-if="checkin && (!checkin.streakDays || !checkin.todayCompleted)" class="checkin-tip">
-      <text class="checkin-tip-text">{{ t('checkin.keepStreak') }}</text>
-    </view>
-
-    <view v-if="agentToday" class="agent-card app-card-soft app-surface">
-      <view class="agent-card-head">
-        <view class="agent-icon-wrap">
-          <text class="agent-icon ri-robot-2-line"></text>
-        </view>
-        <view class="agent-head-copy">
-          <text class="agent-kicker">{{ t('home.agentKicker') }}</text>
-          <text class="agent-title">{{ agentHeadline }}</text>
-        </view>
-        <view class="risk-pill" :class="'risk-' + agentToday.riskLevel.toLowerCase()">
-          <text class="risk-text">{{ agentToday.riskLevel === 'HIGH' ? t('home.riskLevelHigh') : agentToday.riskLevel === 'LOW' ? t('home.riskLevelLow') : t('home.riskLevelMedium') }}</text>
+        <view class="today-copy">
+          <text class="today-kicker">AI 给你的下一步</text>
+          <text class="today-title">{{ primaryTask.title }}</text>
+          <text class="today-desc">{{ primaryTask.desc }}</text>
         </view>
       </view>
-      <view v-if="agentProfile" class="agent-pct-row" @click="navTo('/pages/agent/profile')">
-        <view class="agent-pct-bar-wrap">
-          <view class="agent-pct-bar-fill" :style="{ width: agentProfile.completenessScore + '%' }" :class="'agent-pct-' + agentProfile.personalizationLevel.toLowerCase()"></view>
+      <view class="today-result">
+        <text class="today-result-label">完成后得到</text>
+        <text class="today-result-text">{{ primaryTask.outcome }}</text>
+      </view>
+      <view class="today-actions">
+        <view class="today-cta" @click="navTo(primaryTask.target)">
+          <text class="today-cta-text">{{ primaryTask.cta }}</text>
+          <text class="today-cta-arrow">›</text>
         </view>
-        <text class="agent-pct-label">{{ agentProfile.personalizationLevel === 'HIGH' ? t('agent.hub.profileLevelHigh') : agentProfile.personalizationLevel === 'MEDIUM' ? t('agent.hub.profileLevelMedium') : t('agent.hub.profileLevelLow') }} · {{ agentProfile.completenessScore }}%</text>
-        <text class="agent-pct-arrow">›</text>
-      </view>
-      <view v-if="agentProfile && agentProfile.missingSignals?.length" class="agent-missing-row">
-        <text class="agent-missing-label">{{ t('home.agentHelpLabel') }}</text>
-        <view class="agent-missing-chips">
-          <view v-for="sig in agentProfile.missingSignals.slice(0, 2)" :key="sig.key" class="agent-missing-chip" @click="navTo('/pages/agent/profile')">
-            <text class="agent-missing-chip-text">+ {{ sig.label }}</text>
-          </view>
+        <view class="today-plan-link" @click="navTo('/pages/agent/index')">
+          <text class="today-plan-link-text">查看完整下一步</text>
         </view>
-      </view>
-      <view class="agent-progress">
-        <view class="agent-progress-bar">
-          <view class="agent-progress-fill" :style="{ width: agentToday.progressPercent + '%' }"></view>
-        </view>
-        <text class="agent-progress-text">{{ t('agent.hub.readiness', { n: agentToday.progressPercent }) }}</text>
-      </view>
-      <text class="agent-focus">{{ t('home.todayFocusPrefix') }}{{ agentFocus }}</text>
-      <text class="agent-reason">{{ agentReason }}</text>
-      <view v-if="agentRiskReasons.length" class="agent-risks">
-        <text v-for="reason in agentRiskReasons.slice(0, 2)" :key="reason" class="agent-risk-item">• {{ reason }}</text>
-      </view>
-      <view v-if="agentToday.actions?.length" class="agent-actions">
         <view
-          v-for="action in agentToday.actions.slice(0, 2)"
-          :key="action.label"
-          class="agent-action"
-          :class="{ 'agent-action-primary': action.priority === 'HIGH' }"
-          @click="navTo(action.target)"
+          v-if="primaryTask.taskId"
+          class="today-done"
+          @click="completeAgentTask(primaryTask.taskId)"
         >
-          <text class="agent-action-text">{{ action.labelKey ? t(action.labelKey) : action.label }}</text>
+          <text class="today-done-text">标记完成</text>
         </view>
-      </view>
-      <view v-if="agentTasks.length" class="agent-task-list">
-        <view v-for="task in agentTasks" :key="task.taskId" class="agent-task-row" :class="{ 'agent-task-done': task.status === 'DONE' }">
-          <view class="agent-task-main" @click="task.target ? navTo(task.target) : undefined">
-            <view class="agent-task-title-row">
-              <text class="agent-task-title">{{ task.title }}</text>
-              <text v-if="task.source === 'PLAN_WEEKLY'" class="agent-task-source">{{ t('home.taskSourcePlan') }}</text>
-            </view>
-            <text class="agent-task-desc">{{ task.description || t('home.agentTaskDefaultDesc') }}</text>
-          </view>
-          <view class="agent-task-actions">
-            <view v-if="task.status !== 'DONE'" class="agent-task-btn agent-task-complete" @click.stop="completeAgentTask(task.taskId)">
-              <text class="agent-task-btn-text">{{ t('agent.hub.taskDone') }}</text>
-            </view>
-            <view v-if="task.status === 'TODO'" class="agent-task-btn" @click.stop="dismissAgentTask(task.taskId)">
-              <text class="agent-task-btn-text">{{ t('agent.hub.taskSkip') }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-      <view class="agent-hub-entry" @click="navTo('/pages/agent/index')">
-        <text class="agent-hub-entry-text">{{ t('home.agentHubEntry') }}</text>
       </view>
     </view>
 
-    <!-- Section 1 — Career Videos (Bilibili) -->
-    <view class="section" v-if="filteredVideos.length > 0">
+    <view class="core-entry-grid">
+      <view v-for="entry in coreEntries" :key="entry.label" class="core-entry app-surface" @click="navTo(entry.target)">
+        <view class="core-entry-icon" :class="entry.tone">
+          <text :class="entry.icon"></text>
+        </view>
+        <text class="core-entry-label">{{ entry.label }}</text>
+        <text class="core-entry-desc">{{ entry.desc }}</text>
+      </view>
+    </view>
+
+    <view class="recent-card app-card-soft app-surface">
+      <view class="section-lite-head">
+        <text class="section-lite-title">最近进展</text>
+        <text class="section-lite-action" @click="navTo('/pages/user/index')">查看全部 ›</text>
+      </view>
+      <view class="progress-list">
+        <view v-for="item in recentProgress" :key="item.label" class="progress-item" @click="navTo(item.target)">
+          <view class="progress-item-icon" :class="item.tone">
+            <text :class="item.icon"></text>
+          </view>
+          <view class="progress-item-copy">
+            <text class="progress-item-label">{{ item.label }}</text>
+            <text class="progress-item-value">{{ displayText(item.value) }}</text>
+          </view>
+          <text class="progress-item-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="checkin" class="support-card app-surface" @click="navTo('/pages/checkin/index')">
+      <view class="support-main">
+        <text class="support-title">今日行动记录</text>
+        <text class="support-desc">{{ checkin.todayCompleted }}/{{ checkin.todayTotal }} 已完成 · 连续 {{ checkin.streakDays || 0 }} 天</text>
+      </view>
+      <text class="support-link">查看 ›</text>
+    </view>
+
+    <view v-if="cdutInsight" class="support-card app-surface" @click="navTo('/pages/cdut-employment/index')">
+      <view class="support-main">
+        <text class="support-title">{{ t('cdut.homeTitle') }}</text>
+        <text class="support-desc">{{ cdutInsight.matchLabel }} · {{ cdutInsight.latestYear || t('cdut.publicSources') }}</text>
+      </view>
+      <text class="support-link">就业数据 ›</text>
+    </view>
+
+    <view v-if="hasResourceContent || searchQuery" class="resource-search app-surface">
+      <text class="resource-search-icon ri-search-line"></text>
+      <input
+        class="resource-search-input"
+        v-model="searchQuery"
+        :placeholder="t('home.searchPlaceholder')"
+        placeholder-class="search-ph"
+        @confirm="onSearch"
+      />
+      <view class="resource-search-clear" v-if="searchQuery" @click="clearSearch">
+        <text class="clear-icon">×</text>
+      </view>
+    </view>
+
+    <!-- Resource content is kept, but moved below the workbench so it no longer competes with the core job-search path. -->
+    <view class="section resource-section" v-if="filteredVideos.length > 0">
       <view class="section-header">
         <view class="section-titles">
-          <text class="section-title">{{ t('home.videos') }}</text>
-          <text class="section-meta">{{ t('home.videosSubtitle') }}</text>
+          <text class="section-title">资源补充</text>
+          <text class="section-meta">{{ t('home.videos') }} · {{ t('home.videosSubtitle') }}</text>
         </view>
       </view>
 
@@ -179,7 +153,7 @@
               </view>
             </view>
             <view class="video-body">
-              <text class="video-title">{{ v.title }}</text>
+              <text class="video-title">{{ displayText(v.title) }}</text>
               <view class="video-meta-row">
                 <text class="video-up">{{ v.upName || 'UP' }}</text>
                 <text class="video-views" v-if="v.viewCount">· {{ formatViews(v.viewCount) }}</text>
@@ -190,7 +164,6 @@
       </scroll-view>
     </view>
 
-    <!-- Section 2 — Career Insights (articles) -->
     <view class="section" v-if="filteredArticles.length > 0">
       <view class="section-header">
         <view class="section-titles">
@@ -219,8 +192,8 @@
             />
           </view>
           <view class="article-body">
-            <text class="article-title">{{ a.title }}</text>
-            <text v-if="a.summary" class="article-summary">{{ a.summary }}</text>
+            <text class="article-title">{{ displayText(a.title) }}</text>
+            <text v-if="a.summary" class="article-summary">{{ displayText(a.summary) }}</text>
             <view class="article-tag" v-if="a.category">
               <text class="article-tag-text">{{ a.category }}</text>
             </view>
@@ -229,7 +202,6 @@
       </view>
     </view>
 
-    <!-- Section 3 — Career Consultations -->
     <view class="section" v-if="filteredConsultations.length > 0">
       <view class="section-header">
         <view class="section-titles">
@@ -247,16 +219,15 @@
           :style="c.sourceUrl ? 'cursor:pointer' : ''"
         >
           <view class="consult-head">
-            <text class="consult-title">{{ c.title }}</text>
+            <text class="consult-title">{{ displayText(c.title) }}</text>
             <text v-if="c.author" class="consult-author">{{ c.author }}</text>
           </view>
-          <text v-if="c.body" class="consult-body">{{ c.body }}</text>
+          <text v-if="c.body" class="consult-body">{{ displayText(c.body) }}</text>
           <text v-if="c.sourceUrl" class="consult-link-hint">{{ consultLinkHint(c.sourceUrl) }}</text>
         </view>
       </view>
     </view>
 
-    <!-- Section 4 — Career path spotlights -->
     <view class="section" v-if="filteredCareerCards.length > 0">
       <view class="section-header">
         <view class="section-titles">
@@ -279,8 +250,8 @@
           <view class="path-icon-wrap" :class="'tone-' + (idx % 4)">
             <text class="path-icon-glyph ri-map-pin-user-line"></text>
           </view>
-          <text class="path-name">{{ p.name }}</text>
-          <text class="path-desc">{{ p.description }}</text>
+          <text class="path-name">{{ displayText(p.name) }}</text>
+          <text class="path-desc">{{ displayText(p.description) }}</text>
         </view>
       </view>
     </view>
@@ -317,6 +288,7 @@ import {
   type CareerCard,
 } from '@/api/home';
 import { getCheckInStatusApi, type CheckInStatus } from '@/api/checkin';
+import { getCdutEmploymentInsightApi, type CdutEmploymentInsight } from '@/api/cdutEmployment';
 import {
   getAgentBundleApi,
   completeAgentTaskApi,
@@ -325,14 +297,18 @@ import {
   type AgentTask,
   type AgentUserProfile,
 } from '@/api/agent';
+import { getProfileSnapshotApi, type UserProfileSnapshot } from '@/api/user';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { useTheme } from '@/utils/theme';
+import { normalizeProductCopy, normalizeRoleLabel } from '@/utils/displayText';
+import { selectPrimaryTask, taskCta, taskDescription, taskOutcome, taskTarget, taskTitle } from '@/utils/taskDisplay';
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const displayText = normalizeProductCopy;
 
 const userInfo = ref<{
   nickname: string;
@@ -362,9 +338,11 @@ const consultations = ref<HomeConsultation[]>([]);
 const careerCards = ref<CareerCard[]>([]);
 const homeError = ref('');
 const checkin = ref<CheckInStatus | null>(null);
+const cdutInsight = ref<CdutEmploymentInsight | null>(null);
 const agentToday = ref<CareerAgentToday | null>(null);
 const agentTasks = ref<AgentTask[]>([]);
 const agentProfile = ref<AgentUserProfile | null>(null);
+const profileSnapshot = ref<UserProfileSnapshot | null>(null);
 const checkinPercent = computed(() => {
   if (!checkin.value || !checkin.value.todayTotal) return 0;
   return Math.round((checkin.value.todayCompleted / checkin.value.todayTotal) * 100);
@@ -380,6 +358,227 @@ const agentRiskReasons = computed(() => {
     const key = today.riskReasonKeys?.[i];
     return key ? t(key) : raw;
   });
+});
+
+const welcomeTitle = computed(() => {
+  const name = userInfo.value.nickname && userInfo.value.nickname !== 'Guest' ? userInfo.value.nickname : '同学';
+  return `${name}，今天推进一个关键动作`;
+});
+
+const targetRoleLabel = computed(() => {
+  const role = agentProfile.value?.target?.role
+    || profileSnapshot.value?.preferences?.targetRole
+    || profileSnapshot.value?.resume?.targetJob
+    || profileSnapshot.value?.interview?.positionName;
+  return normalizeRoleLabel(role) || '还未锁定目标岗位';
+});
+
+const stageLabel = computed(() => {
+  const stage = agentProfile.value?.currentStage || agentToday.value?.stage || '';
+  const map: Record<string, string> = {
+    DIRECTION_DISCOVERY: '探索方向',
+    TARGET_ROLE_SELECTION: '选择目标岗位',
+    RESUME_BOOTSTRAP: '建立简历基线',
+    ASSESSMENT_BASELINE: '建立测评基线',
+    INTERNSHIP_RESUME_BOOTSTRAP: '准备实习简历',
+    GRADUATE_RESUME_UPLOAD: '校招简历诊断',
+    CAREER_SWITCH_POSITIONING: '转岗定位',
+    RESUME_IMPROVEMENT: '优化简历',
+    INTERVIEW_BOOTSTRAP: '启动面试练习',
+    INTERVIEW_IMPROVEMENT: '提升面试表现',
+    EXECUTION_RHYTHM: '建立执行节奏',
+    CAREER_MOMENTUM: '持续冲刺',
+  };
+  return map[stage] || '求职准备中';
+});
+
+const readinessPercent = computed(() => {
+  if (agentProfile.value?.readiness?.overallPercent !== undefined) {
+    return Math.max(0, Math.min(100, Math.round(agentProfile.value.readiness.overallPercent)));
+  }
+  if (agentToday.value?.progressPercent !== undefined) {
+    return Math.max(0, Math.min(100, Math.round(agentToday.value.progressPercent)));
+  }
+  const snap = profileSnapshot.value;
+  let score = 0;
+  if (targetRoleLabel.value !== '还未锁定目标岗位') score += 20;
+  if (snap?.assessment) score += 20;
+  if (snap?.resume) score += 25;
+  if (snap?.interview) score += 25;
+  if (checkin.value?.todayCompleted) score += 10;
+  return score;
+});
+
+const readinessSummary = computed(() => {
+  const readiness = agentProfile.value?.readiness;
+  if (readiness) {
+    const direction = readiness.directionClarityPercent ?? 0;
+    const resume = readiness.resumeReadinessPercent ?? 0;
+    const interview = readiness.interviewReadinessPercent ?? 0;
+    const action = readiness.actionContinuityPercent ?? 0;
+    const dimensions = [
+      { label: '方向清晰度', value: direction },
+      { label: '简历可投递度', value: resume },
+      { label: '面试准备度', value: interview },
+      { label: '行动连续性', value: action },
+    ];
+    const weakest = dimensions.sort((a, b) => a.value - b.value)[0];
+    if (weakest && weakest.value < 60) return `${weakest.label}还需要补齐，今天先推进最关键的一步。`;
+  }
+  if (readinessPercent.value >= 80) return '已经接近可投递/可面试状态，重点做最后验证。';
+  if (readinessPercent.value >= 55) return '已有基础信号，下一步要补齐最短板。';
+  if (readinessPercent.value >= 25) return '已经开始准备，但还缺少关键材料和练习。';
+  return '先确定方向，再建立测评、简历和面试基线。';
+});
+
+const readinessRingStyle = computed(() => {
+  const deg = Math.round((readinessPercent.value / 100) * 360);
+  return {
+    background: `conic-gradient(#2563eb 0deg, #38bdf8 ${deg}deg, #e2e8f0 ${deg}deg, #e2e8f0 360deg)`,
+  };
+});
+
+const biggestGap = computed(() => {
+  const readiness = agentProfile.value?.readiness;
+  if (readiness) {
+    const dimensions = [
+      { label: '方向清晰度', value: readiness.directionClarityPercent },
+      { label: '简历可投递度', value: readiness.resumeReadinessPercent },
+      { label: '面试准备度', value: readiness.interviewReadinessPercent },
+      { label: '行动连续性', value: readiness.actionContinuityPercent },
+    ].filter((item) => item.value !== undefined) as Array<{ label: string; value: number }>;
+    if (dimensions.length) {
+      const weakest = dimensions.sort((a, b) => a.value - b.value)[0];
+      if (weakest.value < 60) return weakest.label;
+    }
+  }
+  if (agentProfile.value?.missingSignals?.length) {
+    return agentProfile.value.missingSignals[0].label;
+  }
+  const snap = profileSnapshot.value;
+  if (targetRoleLabel.value === '还未锁定目标岗位') return '目标岗位不清晰';
+  if (!snap?.assessment) return '缺少测评画像';
+  if (!snap?.resume) return '缺少针对目标岗位的简历';
+  if (!snap?.interview) return '缺少一次模拟面试验证';
+  if (agentRiskReasons.value.length) return agentRiskReasons.value[0];
+  return '继续用今日任务保持节奏';
+});
+
+interface HomeTaskView {
+  title: string;
+  desc: string;
+  outcome: string;
+  cta: string;
+  target: string;
+  taskId?: number;
+}
+
+const primaryTask = computed<HomeTaskView>(() => {
+  const task = selectPrimaryTask(agentTasks.value, agentToday.value?.actions || []);
+  if (task) {
+    return {
+      title: agentHeadline.value || taskTitle(task),
+      desc: agentFocus.value || taskDescription(task),
+      outcome: taskOutcome(task),
+      cta: taskCta(task),
+      target: taskTarget(task),
+      taskId: task.taskId,
+    };
+  }
+
+  const snap = profileSnapshot.value;
+  if (targetRoleLabel.value === '还未锁定目标岗位' || !snap?.assessment) {
+    return {
+      title: '先完成一次职业测评',
+      desc: '用测评结果建立第一份职业画像，并得到可选择的目标岗位。',
+      outcome: '目标方向 + 推荐岗位 + 下一步准备建议',
+      cta: '开始测评',
+      target: '/pages/assessment/index',
+    };
+  }
+  if (!snap?.resume) {
+    return {
+      title: `为「${targetRoleLabel.value}」准备简历`,
+      desc: '上传或创建简历，再用目标 JD 做匹配诊断。',
+      outcome: '简历匹配分数 + 可修改建议',
+      cta: '匹配诊断',
+      target: '/pages/resume-ai/index',
+    };
+  }
+  if (!snap?.interview) {
+    return {
+      title: `练一次「${targetRoleLabel.value}」模拟面试`,
+      desc: '用目标岗位做一次 10 分钟练习，找到真实表达短板。',
+      outcome: '面试分数 + 优势/待改进维度',
+      cta: '开始面试',
+      target: `/pages/interview/start?suggestedRole=${encodeURIComponent(targetRoleLabel.value)}`,
+    };
+  }
+  return {
+    title: agentHeadline.value || '复盘最近一次求职准备',
+    desc: agentReason.value || '根据最近的简历、测评和面试记录，整理下一步行动。',
+    outcome: '一份更清晰的本周求职行动计划',
+    cta: '查看计划',
+    target: '/pages/agent/index',
+  };
+});
+
+const coreEntries = computed(() => [
+  {
+    label: '测评',
+    desc: profileSnapshot.value?.assessment ? '更新画像' : '建立画像',
+    icon: 'ri-compass-3-line',
+    tone: 'core-tone-blue',
+    target: '/pages/assessment/index',
+  },
+  {
+    label: '简历',
+    desc: profileSnapshot.value?.resume?.diagnosisScore ? `${profileSnapshot.value.resume.diagnosisScore} 分` : 'JD 匹配',
+    icon: 'ri-file-text-line',
+    tone: 'core-tone-pink',
+    target: '/pages/resume-ai/index',
+  },
+  {
+    label: '面试',
+    desc: profileSnapshot.value?.interview?.lastScore ? `${profileSnapshot.value.interview.lastScore} 分` : '10 分钟练习',
+    icon: 'ri-mic-2-line',
+    tone: 'core-tone-orange',
+    target: '/pages/interview/start',
+  },
+]);
+
+const recentProgress = computed(() => {
+  const snap = profileSnapshot.value;
+  return [
+    {
+      label: '目标岗位',
+      value: targetRoleLabel.value,
+      icon: 'ri-focus-2-line',
+      tone: 'progress-blue',
+      target: '/pages/agent/index',
+    },
+    {
+      label: '最近测评',
+      value: snap?.assessment?.summary || snap?.assessment?.scaleTitle || '还没有测评记录',
+      icon: 'ri-brain-line',
+      tone: 'progress-violet',
+      target: '/pages/assessment/index',
+    },
+    {
+      label: '最近简历',
+      value: snap?.resume?.diagnosisScore ? `匹配分 ${snap.resume.diagnosisScore}/100` : (snap?.resume?.title || '还没有简历诊断'),
+      icon: 'ri-file-text-line',
+      tone: 'progress-pink',
+      target: '/pages/resume/index',
+    },
+    {
+      label: '最近面试',
+      value: snap?.interview?.lastScore ? `${snap.interview.positionName || '模拟面试'} · ${snap.interview.lastScore}/100` : '还没有面试练习',
+      icon: 'ri-mic-2-line',
+      tone: 'progress-orange',
+      target: '/pages/interview/history',
+    },
+  ];
 });
 
 // Search filters every section so the home page works as a quick triage tool.
@@ -501,6 +700,13 @@ const filteredCareerCards = computed(() => {
   return careerCards.value.filter(p => matches(p.name, q) || matches(p.description, q));
 });
 
+const hasResourceContent = computed(() =>
+  videos.value.length > 0
+  || articles.value.length > 0
+  || consultations.value.length > 0
+  || careerCards.value.length > 0
+);
+
 const onSearch = () => {
   uni.hideKeyboard();
 };
@@ -523,15 +729,19 @@ const formatViews = (n: number): string => {
   return String(n);
 };
 
+const formatPercent = (n?: number): string => {
+  if (n === undefined || n === null || isNaN(Number(n))) return '-';
+  const value = Number(n);
+  return `${Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)}%`;
+};
+
 const openArticle = (a: HomeArticle) => {
   if (!a.url) {
     uni.showToast({ title: t('home.noLinkAttached'), icon: 'none' });
     return;
   }
-  // In-app routes go through navigateTo; external https URLs go through the
-  // shared openLink util (which handles the WeChat MP web-view fallback).
   if (a.url.startsWith('/pages/')) {
-    uni.navigateTo({ url: a.url });
+    navTo(a.url);
   } else {
     openLink(a.url, a.title);
   }
@@ -550,12 +760,12 @@ const loadHomeContent = async () => {
     articles.value = data?.articles || [];
     consultations.value = data?.consultations || [];
     careerCards.value = data?.careerCards || [];
-  } catch (e: any) {
+  } catch {
     videos.value = [];
     articles.value = [];
     consultations.value = [];
     careerCards.value = [];
-    homeError.value = e?.message || t('home.contentLoadFailed');
+    homeError.value = t('home.contentLoadFailed');
   }
 };
 
@@ -584,7 +794,7 @@ const loadAgentToday = async () => {
   try {
     const bundle = await getAgentBundleApi();
     agentToday.value = bundle.today;
-    agentTasks.value = bundle.tasks || [];
+    agentTasks.value = (bundle.tasks || []).filter((task) => task.status === 'TODO');
     agentProfile.value = bundle.profile;
   } catch {
     agentToday.value = null;
@@ -593,13 +803,40 @@ const loadAgentToday = async () => {
   }
 };
 
+const loadCdutInsight = async () => {
+  const uid = Number(uni.getStorageSync('userId'));
+  if (!uid || uid <= 0) {
+    cdutInsight.value = null;
+    return;
+  }
+  try {
+    cdutInsight.value = await getCdutEmploymentInsightApi();
+  } catch {
+    cdutInsight.value = null;
+  }
+};
+
+const loadProfileSnapshot = async () => {
+  const uid = Number(uni.getStorageSync('userId'));
+  if (!uid || uid <= 0) {
+    profileSnapshot.value = null;
+    return;
+  }
+  try {
+    profileSnapshot.value = await getProfileSnapshotApi();
+  } catch {
+    profileSnapshot.value = null;
+  }
+};
+
 const completeAgentTask = async (taskId: number) => {
   try {
-    const updated = await completeAgentTaskApi(taskId);
-    agentTasks.value = agentTasks.value.map((task) => task.taskId === taskId ? updated : task);
-    uni.showToast({ title: t('agent.hub.completeSuccess'), icon: 'success' });
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t('common.failed'), icon: 'none' });
+    await completeAgentTaskApi(taskId);
+    agentTasks.value = agentTasks.value.filter((task) => task.taskId !== taskId);
+    uni.showToast({ title: '已完成，下一步已更新', icon: 'success' });
+    await Promise.allSettled([loadAgentToday(), loadProfileSnapshot(), loadCheckin()]);
+  } catch {
+    uni.showToast({ title: t('common.failed'), icon: 'none' });
   }
 };
 
@@ -608,8 +845,8 @@ const dismissAgentTask = async (taskId: number) => {
     await dismissAgentTaskApi(taskId);
     agentTasks.value = agentTasks.value.filter((task) => task.taskId !== taskId);
     uni.showToast({ title: t('home.taskSkipped'), icon: 'none' });
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t('common.failed'), icon: 'none' });
+  } catch {
+    uni.showToast({ title: t('common.failed'), icon: 'none' });
   }
 };
 
@@ -628,7 +865,9 @@ onMounted(() => {
   rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   loadHomeContent();
   loadCheckin();
+  loadCdutInsight();
   loadAgentToday();
+  loadProfileSnapshot();
 });
 
 onShow(() => {
@@ -637,7 +876,9 @@ onShow(() => {
   // Refresh streak on tab return so finishing an interview/assessment
   // immediately bumps the chip without requiring a pull-to-refresh.
   loadCheckin();
+  loadCdutInsight();
   loadAgentToday();
+  loadProfileSnapshot();
 });
 
 onPullDownRefresh(async () => {
@@ -649,7 +890,7 @@ onPullDownRefresh(async () => {
     // We deliberately do NOT await this — a 429 rate-limit or network
     // hiccup must never prevent the local content from reloading.
     refreshHomeContentApi(uid).catch(() => {/* rate-limited or offline, ignore */});
-    await Promise.all([loadHomeContent(), loadCheckin(), loadAgentToday()]);
+    await Promise.all([loadHomeContent(), loadCheckin(), loadCdutInsight(), loadAgentToday(), loadProfileSnapshot()]);
     uni.showToast({ title: t('common.refreshed'), icon: 'success' });
   } catch {
     uni.showToast({ title: t('common.refreshFailed'), icon: 'none' });
@@ -663,18 +904,27 @@ onPageScroll(({ scrollTop }) => {
 });
 
 const navTo = (url: string) => {
-  const base = url.split('?')[0];
-  if (SWITCH_TAB_PATHS.has(base)) {
-    uni.switchTab({ url: base });
+  if (!url) {
+    uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url });
+  const base = url.split('?')[0];
+  if (SWITCH_TAB_PATHS.has(base)) {
+    uni.switchTab({
+      url: base,
+      fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+    });
+    return;
+  }
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: '暂时无法打开，请稍后重试', icon: 'none' }),
+  });
 };
 
 /** Tab roots from pages.json — use switchTab so MP doesn’t open a webview. */
 const SWITCH_TAB_PATHS = new Set([
   '/pages/home/index',
-  '/pages/messages/index',
   '/pages/assistant/index',
   '/pages/resume/index',
   '/pages/user/index',
@@ -691,12 +941,8 @@ const openConsultation = (raw: string, title?: string) => {
   if (!raw) return;
   const base = raw.split('?')[0];
   const normalizedBase = base.startsWith('/') ? base : `/${base}`;
-  if (SWITCH_TAB_PATHS.has(normalizedBase)) {
-    uni.switchTab({ url: normalizedBase });
-    return;
-  }
   if (normalizedBase.startsWith('/pages/')) {
-    uni.navigateTo({ url: raw.startsWith('/') ? raw : `/${raw}` });
+    navTo(raw.startsWith('/') ? raw : `/${raw}`);
     return;
   }
   openLink(raw, title);
@@ -733,6 +979,317 @@ const handleAvatarClick = () => {
 }
 
 .status-spacer { width: 100%; }
+
+/* ---- Career workbench ---- */
+.workbench-hero { padding: 10px 20px 0; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.brand-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.brand-kicker {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--primary-color, #2563eb);
+  text-transform: uppercase;
+}
+.brand-title {
+  font-size: 25px;
+  line-height: 1.12;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.brand-subtitle {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+.workbench-avatar { width: 40px; height: 40px; border-radius: 20px; }
+
+.readiness-card {
+  margin: 18px 20px 0;
+  padding: 18px;
+  border-radius: 18px;
+}
+.readiness-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.readiness-copy { flex: 1; min-width: 0; }
+.readiness-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+  letter-spacing: 0.06em;
+}
+.readiness-title {
+  display: block;
+  margin-top: 5px;
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.readiness-subtitle {
+  display: block;
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+.readiness-ring {
+  width: 70px;
+  height: 70px;
+  border-radius: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(#2563eb 0deg, #38bdf8 245deg, #e2e8f0 245deg);
+  flex-shrink: 0;
+}
+.readiness-ring-text {
+  width: 54px;
+  height: 54px;
+  border-radius: 27px;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 17px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.readiness-bar {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-3, #f1f5f9);
+  margin-top: 16px;
+}
+.readiness-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+}
+.gap-row {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: var(--surface-2, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gap-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+}
+.gap-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.today-card {
+  margin: 14px 20px 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+.today-top { display: flex; align-items: flex-start; gap: 13px; }
+.today-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  background: rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.today-icon { font-size: 22px; color: #7dd3fc; }
+.today-copy { flex: 1; min-width: 0; }
+.today-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #93c5fd;
+}
+.today-title {
+  display: block;
+  margin-top: 5px;
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 900;
+  color: #ffffff;
+}
+.today-desc {
+  display: block;
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+.today-result {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.today-result-label { font-size: 11px; font-weight: 800; color: #93c5fd; }
+.today-result-text { font-size: 13px; line-height: 1.45; color: #f8fafc; }
+.today-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.today-cta {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 14px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.today-cta-text,
+.today-cta-arrow { font-size: 14px; font-weight: 900; color: #0f172a; }
+.today-plan-link {
+  min-height: 44px;
+  border-radius: 14px;
+  padding: 0 12px;
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.today-plan-link-text {
+  font-size: 12px;
+  font-weight: 800;
+  color: #dbeafe;
+  white-space: nowrap;
+}
+.today-done {
+  min-height: 44px;
+  border-radius: 14px;
+  padding: 0 14px;
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.today-done-text { font-size: 13px; font-weight: 800; color: #e2e8f0; }
+
+.core-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 20px 0;
+}
+.core-entry {
+  border-radius: 15px;
+  padding: 14px 8px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: center;
+}
+.core-entry-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.core-tone-blue { background: #dbeafe; color: #2563eb; }
+.core-tone-pink { background: #fce7f3; color: #db2777; }
+.core-tone-orange { background: #ffedd5; color: #ea580c; }
+.core-entry-label { font-size: 13px; font-weight: 900; color: var(--text-primary, #0f172a); line-height: 1.2; }
+.core-entry-desc { font-size: 10.5px; line-height: 1.25; color: var(--text-secondary, #64748b); }
+
+.recent-card {
+  margin: 14px 20px 0;
+  padding: 16px;
+  border-radius: 18px;
+}
+.section-lite-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.section-lite-title { font-size: 16px; font-weight: 900; color: var(--text-primary, #0f172a); }
+.section-lite-action { font-size: 12px; font-weight: 800; color: var(--primary-color, #2563eb); }
+.progress-list { display: flex; flex-direction: column; gap: 8px; }
+.progress-item {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 13px;
+  padding: 8px;
+  background: var(--surface-2, #f8fafc);
+}
+.progress-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.progress-blue { background: #dbeafe; color: #2563eb; }
+.progress-violet { background: #ede9fe; color: #7c3aed; }
+.progress-pink { background: #fce7f3; color: #db2777; }
+.progress-orange { background: #ffedd5; color: #ea580c; }
+.progress-item-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.progress-item-label { font-size: 11px; font-weight: 800; color: var(--text-secondary, #64748b); }
+.progress-item-value {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.progress-item-arrow { color: var(--text-tertiary, #8e8e93); font-size: 17px; }
+
+.support-card {
+  margin: 12px 20px 0;
+  padding: 13px 15px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.support-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.support-title { font-size: 13px; font-weight: 900; color: var(--text-primary, #0f172a); }
+.support-desc { font-size: 12px; color: var(--text-secondary, #64748b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.support-link { font-size: 12px; font-weight: 800; color: var(--primary-color, #2563eb); flex-shrink: 0; }
+
+.resource-search {
+  margin: 18px 20px 0;
+  height: 40px;
+  border-radius: 14px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.resource-search-icon { font-size: 15px; color: var(--text-tertiary, #8e8e93); }
+.resource-search-input { flex: 1; height: 38px; font-size: 13px; color: var(--text-primary, #0f172a); }
+.resource-search-clear { padding: 4px; }
+.resource-section { margin-top: 2px; }
 
 /* ---- Top bar ---- */
 .top-bar { display: flex; align-items: center; padding: 8px 20px 0; gap: 12px; }
@@ -981,6 +1538,56 @@ const handleAvatarClick = () => {
 }
 .checkin-tip-text { font-size: 11.5px; color: var(--text-secondary, #64748b); }
 
+/* ---- CDUT employment insight ---- */
+.cdut-card {
+  margin: 16px 20px 0;
+  padding: 15px 16px;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-primary, #0f172a);
+}
+.cdut-card:active { transform: scale(0.99); }
+.cdut-head { display: flex; align-items: center; gap: 10px; }
+.cdut-icon-wrap {
+  width: 40px; height: 40px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary-soft, #eff6ff);
+  flex-shrink: 0;
+}
+.cdut-icon { font-size: 20px; color: var(--primary-color, #2563eb); }
+.cdut-head-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cdut-kicker {
+  font-size: 10px; font-weight: 900; letter-spacing: 0.08em;
+  color: var(--primary-color, #2563eb);
+}
+.cdut-title { font-size: 16px; line-height: 1.28; font-weight: 900; color: var(--text-primary, #0f172a); }
+.cdut-arrow { font-size: 18px; color: var(--text-tertiary, #8e8e93); }
+.cdut-match-row { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cdut-match {
+  font-size: 11px; color: var(--primary-color, #2563eb); font-weight: 800;
+  background: var(--primary-soft, #eff6ff); padding: 4px 8px; border-radius: 999px;
+}
+.cdut-updated { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
+.cdut-summary {
+  display: block; margin-top: 8px;
+  font-size: 12.5px; line-height: 1.55; color: var(--text-secondary, #64748b);
+  display: -webkit-box; line-clamp: 3; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cdut-metrics {
+  display: flex; gap: 8px; margin-top: 12px;
+}
+.cdut-metric {
+  flex: 1; min-width: 0; padding: 10px 8px; border-radius: 12px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.cdut-metric-val { display: block; font-size: 16px; line-height: 1.1; font-weight: 900; color: var(--text-primary, #0f172a); }
+.cdut-metric-label { display: block; margin-top: 4px; font-size: 10px; color: var(--text-tertiary, #8e8e93); }
+.cdut-highlight {
+  margin-top: 10px; padding: 9px 10px; border-radius: 12px;
+  background: var(--surface-2, #f8fafc);
+}
+.cdut-highlight-text { font-size: 11.5px; line-height: 1.45; color: var(--text-secondary, #64748b); }
+
 /* ---- Generic section header ---- */
 .section { padding: 24px 0 0; }
 .section-header {
@@ -1132,6 +1739,15 @@ const handleAvatarClick = () => {
 .is-dark .search-input { color: #f8fafc; }
 .is-dark .feature-label { color: #e2e8f0; }
 .is-dark .feature-item { background: #1e293b; box-shadow: none; border-color: #334155; }
+.is-dark .feature-item:nth-child(1) { background: linear-gradient(135deg, #083344, #172554); }
+.is-dark .feature-item:nth-child(2) { background: linear-gradient(135deg, #2e1065, #172554); }
+.is-dark .feature-item:nth-child(3) { background: linear-gradient(135deg, #4a1c4e, #2e1065); }
+.is-dark .feature-item:nth-child(4) { background: linear-gradient(135deg, #451a03, #450a0a); }
+.is-dark .feature-item .app-icon-tile {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc !important;
+}
 .is-dark .section-title { color: #f8fafc; }
 .is-dark .video-card,
 .is-dark .article-card,
@@ -1143,6 +1759,21 @@ const handleAvatarClick = () => {
 .is-dark .checkin-sub { color: #bae6fd; }
 .is-dark .checkin-cta { color: #67e8f9; }
 .is-dark .checkin-tip-text { color: var(--text-tertiary, #8e8e93); }
+.is-dark .cdut-card,
+.is-dark .cdut-metric,
+.is-dark .cdut-highlight {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: none;
+}
+.is-dark .cdut-icon-wrap,
+.is-dark .cdut-match {
+  background: rgba(37, 99, 235, 0.2);
+}
+.is-dark .cdut-title,
+.is-dark .cdut-metric-val { color: #f8fafc; }
+.is-dark .cdut-summary,
+.is-dark .cdut-highlight-text { color: #94a3b8; }
 .is-dark .article-tag { background: #172554; }
 .is-dark .article-tag-text,
 .is-dark .section-more-text,
@@ -1156,6 +1787,16 @@ const handleAvatarClick = () => {
 .is-dark .article-summary,
 .is-dark .consult-body,
 .is-dark .path-desc { color: var(--text-tertiary, #8e8e93); }
+.is-dark .tone-0 { background: rgba(37, 99, 235, 0.22); color: #93c5fd; }
+.is-dark .tone-1 { background: rgba(168, 85, 247, 0.22); color: #d8b4fe; }
+.is-dark .tone-2 { background: rgba(99, 102, 241, 0.22); color: #c7d2fe; }
+.is-dark .tone-3 { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+.is-dark .risk-medium { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.38); }
+.is-dark .risk-medium .risk-text { color: #fbbf24; }
+.is-dark .risk-low { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.36); }
+.is-dark .risk-low .risk-text { color: #6ee7b7; }
+.is-dark .risk-high { background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.36); }
+.is-dark .risk-high .risk-text { color: #fca5a5; }
 
 /* ================================================================
  *  MP-WEIXIN parity overrides — HARDCODED values, no CSS vars.
@@ -1208,6 +1849,12 @@ const handleAvatarClick = () => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04);
 }
 
+.cdut-card {
+  overflow: visible;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04);
+}
+
 .path-card {
   overflow: visible;
   border: 1px solid #e2e8f0;
@@ -1247,7 +1894,8 @@ const handleAvatarClick = () => {
 
 .home-page.is-dark .article-card,
 .home-page.is-dark .consult-card,
-.home-page.is-dark .path-card {
+.home-page.is-dark .path-card,
+.home-page.is-dark .cdut-card {
   background: #1e293b;
   border-color: #334155;
   box-shadow: none;

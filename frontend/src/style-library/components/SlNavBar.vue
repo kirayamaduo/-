@@ -11,7 +11,7 @@
             <text v-if="showBack" class="sl-navbar__back">‹</text>
           </slot>
         </view>
-        <view class="sl-navbar__center">
+        <view class="sl-navbar__center" :style="centerStyle">
           <slot name="title">
             <text class="sl-navbar__title">{{ title }}</text>
           </slot>
@@ -63,6 +63,14 @@ const innerStyle = computed(() => ({
   height: `${props.height}px`,
   paddingRight: effectiveRightAvoidWidth.value > 0 ? `${Math.max(effectiveRightAvoidWidth.value, 16)}px` : '16px',
 }));
+
+const centerStyle = computed(() => {
+  const sideInset = Math.max(effectiveRightAvoidWidth.value || 0, 64);
+  return {
+    left: `${sideInset}px`,
+    right: `${sideInset}px`,
+  };
+});
 
 onMounted(() => {
   autoRightAvoidWidth.value = getMpSafeAreaMetrics().rightAvoidWidth;
@@ -129,6 +137,10 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-primary, #0f172a);
   pointer-events: auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sl-navbar__back {
