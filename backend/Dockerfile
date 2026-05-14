@@ -16,6 +16,19 @@ WORKDIR /workspace
 # Cache the Maven download layer separately so a code-only change doesn't
 # force re-resolving every dependency.
 COPY pom.xml .
+RUN mkdir -p /root/.m2 \
+ && printf '%s\n' \
+    '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">' \
+    '  <mirrors>' \
+    '    <mirror>' \
+    '      <id>aliyunmaven</id>' \
+    '      <mirrorOf>central</mirrorOf>' \
+    '      <name>Aliyun Maven Central Mirror</name>' \
+    '      <url>https://maven.aliyun.com/repository/central</url>' \
+    '    </mirror>' \
+    '  </mirrors>' \
+    '</settings>' \
+    > /root/.m2/settings.xml
 RUN mvn -B -q dependency:go-offline
 
 COPY src ./src
