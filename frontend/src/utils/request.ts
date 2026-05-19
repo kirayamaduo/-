@@ -1,7 +1,8 @@
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
 import { translate } from '@/locales';
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const DEFAULT_API_BASE_URL = 'https://api.careerloop.top';
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
 let _redirectingToLogin = false;
 
 interface Result<T> {

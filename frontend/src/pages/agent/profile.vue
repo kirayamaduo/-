@@ -23,6 +23,109 @@
       </text>
     </view>
 
+    <!-- quantified profile -->
+    <view v-if="agentProfile" class="profile-form profile-quant-wrap">
+      <view class="profile-section app-card-soft">
+        <view class="profile-section-head">
+          <text class="profile-section-title">{{ t('agent.profile.sectionQuant') }}</text>
+          <text class="profile-section-meta">{{ t('agent.profile.updatedAt') }} {{ profileUpdatedAt }}</text>
+        </view>
+
+        <view class="profile-target-panel">
+          <view class="profile-target-copy">
+            <text class="profile-target-label">{{ t('agent.profile.targetRole') }}</text>
+            <text class="profile-target-role">{{ targetRoleLabel }}</text>
+            <text class="profile-target-source">{{ targetSourceLabel }}</text>
+          </view>
+          <view class="profile-score-ring" :style="targetRingStyle">
+            <view class="profile-score-ring-inner">
+              <text class="profile-score-ring-value">{{ targetConfidencePercent }}</text>
+              <text class="profile-score-ring-unit">%</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="profile-readiness-grid">
+          <view v-for="metric in readinessMetrics" :key="metric.key" class="profile-metric">
+            <view class="profile-metric-head">
+              <text class="profile-metric-label">{{ metric.label }}</text>
+              <text class="profile-metric-value">{{ metric.value }}%</text>
+            </view>
+            <view class="profile-metric-bar">
+              <view class="profile-metric-fill" :class="metric.tone" :style="{ width: metric.value + '%' }" />
+            </view>
+          </view>
+        </view>
+
+        <view class="profile-behavior-grid">
+          <view v-for="metric in behaviorMetrics" :key="metric.key" class="profile-behavior-item">
+            <text class="profile-behavior-value">{{ metric.value }}</text>
+            <text class="profile-behavior-label">{{ metric.label }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="profile-section app-card-soft">
+        <view class="profile-section-head">
+          <text class="profile-section-title">{{ t('agent.profile.sectionTagEditor') }}</text>
+          <view class="profile-small-action" @click="refreshProfileTags">
+            <text class="profile-small-action-text">{{ t('agent.profile.refreshTags') }}</text>
+          </view>
+        </view>
+        <view v-for="section in tagSections" :key="section.category" class="profile-tag-editor-block">
+          <view class="profile-tag-editor-head">
+            <text class="profile-signal-title">{{ section.label }}</text>
+            <view class="profile-tag-add" @click="addTag(section.category)">
+              <text class="profile-tag-add-text">+</text>
+            </view>
+          </view>
+          <view class="profile-signal-chips">
+            <view
+              v-for="(tag, idx) in tagDrafts[section.category]"
+              :key="section.category + '-' + tag"
+              class="profile-signal-chip profile-edit-chip"
+              @click="removeTag(section.category, idx)"
+            >
+              <text class="profile-signal-chip-text">{{ tag }}</text>
+              <text class="profile-edit-chip-x">×</text>
+            </view>
+          </view>
+        </view>
+        <view class="profile-tags-save" :class="{ 'profile-tags-saving': savingTags }" @click="saveProfileTags">
+          <text class="profile-tags-save-text">{{ savingTags ? t('agent.profile.saving') : t('agent.profile.saveTags') }}</text>
+        </view>
+      </view>
+
+      <view v-if="agentProfile.missingSignals?.length || agentProfile.skills?.length" class="profile-section app-card-soft">
+        <text class="profile-section-title">{{ t('agent.profile.sectionSignals') }}</text>
+
+        <view v-if="agentProfile.missingSignals?.length" class="profile-signal-block">
+          <text class="profile-signal-title">{{ t('agent.profile.missingSignals') }}</text>
+          <view class="profile-signal-chips">
+            <view
+              v-for="sig in agentProfile.missingSignals"
+              :key="sig.key"
+              class="profile-signal-chip"
+              :class="'signal-' + sig.priority.toLowerCase()"
+            >
+              <text class="profile-signal-chip-text">{{ sig.label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-if="agentProfile.skills?.length" class="profile-skill-list">
+          <text class="profile-signal-title">{{ t('agent.profile.skillSignals') }}</text>
+          <view v-for="skill in agentProfile.skills.slice(0, 6)" :key="skill.name" class="profile-skill-row">
+            <text class="profile-skill-name">{{ skill.name }}</text>
+            <view class="profile-skill-bar">
+              <view class="profile-skill-fill" :style="{ width: normalizeSkillLevel(skill.level) + '%' }" />
+            </view>
+            <text class="profile-skill-score">{{ normalizeSkillLevel(skill.level) }}%</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- form -->
     <view class="profile-form">
       <view class="profile-section app-card-soft">
@@ -162,6 +265,13 @@ import { useI18n } from '@/locales';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
 import SlPage from '@/style-library/components/SlPage.vue';
 import { getAgentProfileApi, saveProfileInputsApi, type AgentUserProfile, type ProfileInputsRequest } from '@/api/agent';
+import {
+  getProfileTagsApi,
+  refreshProfileTagsApi,
+  saveManualProfileTagsApi,
+  type ProfileTagCategory,
+  type UserProfileTagSummary,
+} from '@/api/profileTags';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { useTheme } from '@/utils/theme';
 
@@ -171,7 +281,9 @@ const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
 const rightAvoidWidth = ref(16);
 const agentProfile = ref<AgentUserProfile | null>(null);
+const profileTagSummary = ref<UserProfileTagSummary | null>(null);
 const saving = ref(false);
+const savingTags = ref(false);
 
 const form = ref<ProfileInputsRequest>({
   targetCity: '',
@@ -205,6 +317,35 @@ const difficultyOptions = computed(() => [
   { label: t('agent.profile.difficultyHard'), val: 'HARD' },
 ]);
 
+const tagSections = computed(() => [
+  { category: 'SKILL' as ProfileTagCategory, label: t('agent.profile.tagSkills') },
+  { category: 'BACKGROUND' as ProfileTagCategory, label: t('agent.profile.tagBackground') },
+  { category: 'GROWTH' as ProfileTagCategory, label: t('agent.profile.tagGrowth') },
+  { category: 'GOAL' as ProfileTagCategory, label: t('agent.profile.tagGoal') },
+]);
+
+const tagDrafts = ref<Record<ProfileTagCategory, string[]>>({
+  SKILL: [],
+  BACKGROUND: [],
+  GROWTH: [],
+  GOAL: [],
+});
+
+const hydrateTagDrafts = (summary: UserProfileTagSummary | null) => {
+  const next: Record<ProfileTagCategory, string[]> = {
+    SKILL: [],
+    BACKGROUND: [],
+    GROWTH: [],
+    GOAL: [],
+  };
+  (summary?.tags || []).forEach((tag) => {
+    const category = tag.category as ProfileTagCategory;
+    if (!next[category] || !tag.label) return;
+    if (!next[category].includes(tag.label)) next[category].push(tag.label);
+  });
+  tagDrafts.value = next;
+};
+
 const levelLabel = computed(() => {
   const lvl = agentProfile.value?.personalizationLevel || 'LOW';
   if (lvl === 'HIGH') return t('agent.profile.levelHigh');
@@ -212,15 +353,148 @@ const levelLabel = computed(() => {
   return t('agent.profile.levelLow');
 });
 
+const clampPercent = (value: unknown) => {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+};
+
+const pctTone = (value: number) => {
+  if (value >= 75) return 'metric-strong';
+  if (value >= 45) return 'metric-steady';
+  return 'metric-risk';
+};
+
+const targetConfidencePercent = computed(() => {
+  const raw = agentProfile.value?.target?.confidence ?? 0;
+  const n = Number(raw);
+  return clampPercent(n <= 1 ? n * 100 : n);
+});
+
+const targetRingStyle = computed(() => ({
+  background: `conic-gradient(#2563eb ${targetConfidencePercent.value * 3.6}deg, #e5e7eb 0deg)`,
+}));
+
+const targetRoleLabel = computed(() =>
+  agentProfile.value?.target?.role || t('agent.profile.targetRoleEmpty')
+);
+
+const targetSourceLabel = computed(() => {
+  const source = agentProfile.value?.target?.source;
+  if (!source) return t('agent.profile.targetSourceMissing');
+  return t('agent.profile.targetSource', { source });
+});
+
+const profileUpdatedAt = computed(() => {
+  const d = agentProfile.value?.updatedAt || agentProfile.value?.generatedAt || '';
+  return d ? d.replace('T', ' ').substring(0, 16) : '-';
+});
+
+const readinessMetrics = computed(() => {
+  const r = agentProfile.value?.readiness;
+  const metrics = [
+    { key: 'overall', label: t('agent.profile.metricOverall'), value: clampPercent(r?.overallPercent) },
+    { key: 'direction', label: t('agent.profile.metricDirection'), value: clampPercent(r?.directionClarityPercent) },
+    { key: 'resume', label: t('agent.profile.metricResume'), value: clampPercent(r?.resumeReadinessPercent) },
+    { key: 'interview', label: t('agent.profile.metricInterview'), value: clampPercent(r?.interviewReadinessPercent) },
+    { key: 'action', label: t('agent.profile.metricAction'), value: clampPercent(r?.actionContinuityPercent) },
+  ];
+  return metrics.map((m) => ({ ...m, tone: pctTone(m.value) }));
+});
+
+const behaviorMetrics = computed(() => {
+  const b = agentProfile.value?.behavior;
+  return [
+    { key: 'streak', label: t('agent.profile.behaviorStreak'), value: `${b?.streakDays ?? 0}d` },
+    { key: 'weekly', label: t('agent.profile.behaviorWeekly'), value: `${b?.weeklyDays ?? 0}/7` },
+    { key: 'done', label: t('agent.profile.behaviorDone'), value: `${b?.todayCompleted ?? 0}/${b?.todayTotal ?? 0}` },
+    { key: 'completion', label: t('agent.profile.behaviorCompletion'), value: `${clampPercent((b?.completionRate7d ?? 0) * 100)}%` },
+    { key: 'dismiss', label: t('agent.profile.behaviorDismiss'), value: `${clampPercent((b?.dismissRate7d ?? 0) * 100)}%` },
+    { key: 'difficulty', label: t('agent.profile.behaviorDifficulty'), value: b?.preferredDifficulty || '-' },
+  ];
+});
+
+const normalizeSkillLevel = (level: number | undefined) => {
+  const n = Number(level ?? 0);
+  if (!Number.isFinite(n)) return 0;
+  return clampPercent(n <= 1 ? n * 100 : n);
+};
+
 onMounted(async () => {
   refreshTheme();
   const safeMetrics = getMpSafeAreaMetrics();
   topSafeHeight.value = safeMetrics.topSafeHeight;
   rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   try {
-    agentProfile.value = await getAgentProfileApi();
+    const [profile, tags] = await Promise.all([
+      getAgentProfileApi(),
+      getProfileTagsApi(),
+    ]);
+    agentProfile.value = profile;
+    profileTagSummary.value = tags;
+    hydrateTagDrafts(tags);
   } catch { /* ignore */ }
 });
+
+const addTag = (category: ProfileTagCategory) => {
+  uni.showModal({
+    title: t('agent.profile.addTag'),
+    editable: true,
+    placeholderText: t('agent.profile.addTagPlaceholder'),
+    confirmText: t('common.save'),
+    cancelText: t('common.cancel'),
+    success: (res: any) => {
+      if (!res.confirm) return;
+      const value = String(res.content || '').trim();
+      if (!value) return;
+      if (!tagDrafts.value[category].includes(value)) {
+        tagDrafts.value[category] = [...tagDrafts.value[category], value];
+      }
+    },
+  });
+};
+
+const removeTag = (category: ProfileTagCategory, index: number) => {
+  tagDrafts.value[category] = tagDrafts.value[category].filter((_, i) => i !== index);
+};
+
+const saveProfileTags = async () => {
+  if (savingTags.value) return;
+  savingTags.value = true;
+  try {
+    const tags = tagSections.value.flatMap((section) =>
+      tagDrafts.value[section.category]
+        .filter(Boolean)
+        .map((label) => ({
+          category: section.category,
+          label,
+          weight: 80,
+          source: 'USER_EDITED',
+          evidence: 'user edited',
+          editable: true,
+        }))
+    );
+    const saved = await saveManualProfileTagsApi(tags);
+    profileTagSummary.value = saved;
+    hydrateTagDrafts(saved);
+    uni.showToast({ title: t('agent.profile.tagsSaved'), icon: 'success' });
+  } catch (e: any) {
+    uni.showToast({ title: e?.message || t('agent.profile.saveFailed'), icon: 'none' });
+  } finally {
+    savingTags.value = false;
+  }
+};
+
+const refreshProfileTags = async () => {
+  try {
+    const refreshed = await refreshProfileTagsApi();
+    profileTagSummary.value = refreshed;
+    hydrateTagDrafts(refreshed);
+    uni.showToast({ title: t('agent.profile.tagsRefreshed'), icon: 'success' });
+  } catch (e: any) {
+    uni.showToast({ title: e?.message || t('agent.profile.saveFailed'), icon: 'none' });
+  }
+};
 
 const saveInputs = async () => {
   if (saving.value) return;
@@ -273,13 +547,266 @@ const goBack = () => uni.navigateBack();
 .profile-banner-label { font-size: 12px; color: rgba(255,255,255,.85); }
 
 .profile-form { padding: 16rpx 28rpx; display: flex; flex-direction: column; gap: 20rpx; }
+.profile-quant-wrap { padding-bottom: 0; }
 .profile-section {
   padding: 24rpx; margin-bottom: 24rpx;
   display: flex; flex-direction: column; gap: 20rpx;
 }
+.profile-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
 .profile-section-title {
   font-size: 13px; font-weight: 700; color: var(--text-secondary, #64748b);
   border-left: 4rpx solid #1d4ed8; padding-left: 10rpx;
+}
+.profile-section-meta {
+  font-size: 10.5px;
+  color: var(--text-tertiary, #8e8e93);
+  white-space: nowrap;
+}
+.profile-target-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 14rpx;
+  background: var(--surface-2, #f8fafc);
+}
+.profile-target-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.profile-target-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-color, #2563eb);
+}
+.profile-target-role {
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.profile-target-source {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-secondary, #64748b);
+}
+.profile-score-ring {
+  width: 116rpx;
+  height: 116rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.profile-score-ring-inner {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: var(--surface-1, #ffffff);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  padding-top: 28rpx;
+  box-sizing: border-box;
+}
+.profile-score-ring-value {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.profile-score-ring-unit {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-secondary, #64748b);
+}
+.profile-readiness-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.profile-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.profile-metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.profile-metric-label,
+.profile-metric-value {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-secondary, #64748b);
+}
+.profile-metric-value { color: var(--text-primary, #0f172a); }
+.profile-metric-bar {
+  height: 10rpx;
+  background: #eef2f7;
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+.profile-metric-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  transition: width .35s ease;
+}
+.metric-strong { background: #10b981; }
+.metric-steady { background: #38bdf8; }
+.metric-risk { background: #f59e0b; }
+.profile-behavior-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+}
+.profile-behavior-item {
+  min-height: 96rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: var(--surface-2, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5rpx;
+  padding: 10rpx;
+}
+.profile-behavior-value {
+  font-size: 15px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.profile-behavior-label {
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--text-secondary, #64748b);
+  text-align: center;
+}
+.profile-signal-block,
+.profile-skill-list,
+.profile-tag-editor-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.profile-tag-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+.profile-small-action,
+.profile-tag-add {
+  border-radius: 999rpx;
+  background: var(--primary-soft, #eff6ff);
+  padding: 8rpx 16rpx;
+}
+.profile-small-action-text,
+.profile-tag-add-text {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+}
+.profile-tag-add {
+  width: 42rpx;
+  height: 42rpx;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-signal-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-secondary, #64748b);
+}
+.profile-signal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+.profile-signal-chip {
+  border-radius: 999rpx;
+  padding: 8rpx 16rpx;
+  background: #eef2ff;
+}
+.signal-high { background: #fee2e2; }
+.signal-medium { background: #fef3c7; }
+.signal-low { background: #e0f2fe; }
+.profile-signal-chip-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+.profile-edit-chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e5e7eb;
+}
+.profile-edit-chip-x {
+  font-size: 12px;
+  font-weight: 900;
+  color: #ef4444;
+}
+.profile-tags-save {
+  margin-top: 4rpx;
+  border-radius: 999rpx;
+  background: var(--primary-color, #2563eb);
+  padding: 18rpx 0;
+  text-align: center;
+}
+.profile-tags-saving { opacity: .65; }
+.profile-tags-save-text {
+  font-size: 13px;
+  font-weight: 900;
+  color: #ffffff;
+}
+.profile-skill-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160rpx 54rpx;
+  align-items: center;
+  gap: 12rpx;
+}
+.profile-skill-name {
+  font-size: 12px;
+  color: var(--text-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-skill-bar {
+  height: 8rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+  background: #eef2f7;
+}
+.profile-skill-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+.profile-skill-score {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-secondary, #64748b);
+  text-align: right;
 }
 .profile-field { display: flex; flex-direction: column; gap: 8rpx; }
 .profile-label { font-size: 12.5px; color: var(--text-secondary, #64748b); }

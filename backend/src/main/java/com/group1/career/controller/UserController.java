@@ -102,7 +102,15 @@ public class UserController {
         Long uid = SecurityUtil.requireCurrentUserId();
         snapshotService.mergeOnboarding(uid, UserProfileSnapshot.OnboardingBlock.builder()
                 .identityType(dto.getIdentityType())
+                .stage(dto.getStage())
+                .painPoint(dto.getPainPoint())
                 .hasResume(dto.getHasResume())
+                .resumeStatus(dto.getResumeStatus())
+                .timeline(dto.getTimeline())
+                .education(dto.getEducation())
+                .weeklyAvailability(dto.getWeeklyAvailability())
+                .priorityHelp(dto.getPriorityHelp())
+                .recommendedEntry(dto.getRecommendedEntry())
                 .onboardingCompletedAt(dto.getOnboardingCompletedAt())
                 .build());
 
@@ -113,6 +121,11 @@ public class UserController {
             if (!dto.getTargetRole().isBlank()) {
                 careerPlanService.regenerateWithRoleAsync(uid, dto.getTargetRole());
             }
+        }
+        if (dto.getEducation() != null) {
+            UserProfileSnapshot.EducationBlock edu = dto.getEducation();
+            userService.updateUser(uid, null, null, blankToNull(edu.getSchool()), blankToNull(edu.getMajor()),
+                    parseYear(edu.getGraduationYear()));
         }
         agentProfileService.refresh(uid);
         return Result.success(snapshotService.read(uid));
@@ -152,6 +165,20 @@ public class UserController {
         }
     }
 
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static Integer parseYear(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            int year = Integer.parseInt(value.trim());
+            return year >= 1970 && year <= 2100 ? year : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     @Data
     public static class UpdateUserDto {
         private String nickname;
@@ -173,8 +200,16 @@ public class UserController {
     public static class UpdateOnboardingDto {
         /** student | new_graduate | internship_seeker | career_switcher */
         private String identityType;
+        private String stage;
+        private String painPoint;
         /** User self-reported resume state from onboarding: yes | no | unsure. */
         private String hasResume;
+        private String resumeStatus;
+        private String timeline;
+        private UserProfileSnapshot.EducationBlock education;
+        private String weeklyAvailability;
+        private String priorityHelp;
+        private String recommendedEntry;
         private String onboardingCompletedAt;
         /** Optional target role; persisted to preferences.targetRole, not duplicated in onboarding. */
         private String targetRole;

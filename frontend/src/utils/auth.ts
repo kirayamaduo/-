@@ -48,6 +48,9 @@ export const clearAuthState = () => {
   uni.removeStorageSync('userId');
   uni.removeStorageSync('userInfo');
   uni.removeStorageSync('isGuest');
+  uni.removeStorageSync('onboarding_v1_seen');
+  uni.removeStorageSync('career_onboarding_setup');
+  uni.removeStorageSync('career_onboarding_pending');
 };
 
 /**

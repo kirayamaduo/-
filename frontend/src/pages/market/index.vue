@@ -44,12 +44,10 @@
           v-model="contributePosition"
           :placeholder="t('market.positionPlaceholder')"
         />
-        <picker mode="selector" :range="contributeDifficultyLabels" @change="onPickDifficulty">
-          <view class="meta-picker">
-            <text class="meta-picker-text">{{ contributeDifficultyLabel }}</text>
-            <text class="meta-picker-arrow">▾</text>
-          </view>
-        </picker>
+        <view class="meta-picker" @click="showDifficultySheet = true">
+          <text class="meta-picker-text">{{ contributeDifficultyLabel }}</text>
+          <text class="meta-picker-arrow ri-arrow-down-s-line"></text>
+        </view>
       </view>
       <textarea
         class="contribute-input ui-input"
@@ -116,6 +114,13 @@
     </view>
 
     <view class="bottom-safe"></view>
+    <SlActionSheet
+      v-model:visible="showDifficultySheet"
+      title="选择题目难度"
+      :options="contributeDifficultySheetOptions"
+      :selected-value="contributeDifficulty"
+      @select="onPickDifficulty"
+    />
   </SlPage>
 </template>
 
@@ -128,6 +133,7 @@ import { listMarketApi, likeQuestionApi, contributeQuestionApi, type MarketQuest
 import { useTheme } from '@/utils/theme';
 import SlPage from '@/style-library/components/SlPage.vue';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
+import SlActionSheet from '@/style-library/components/SlActionSheet.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
@@ -153,6 +159,7 @@ const loading = ref(false);
 
 const contributePosition = ref('');
 const contributeDifficulty = ref('Normal');
+const showDifficultySheet = ref(false);
 const contributeContent = ref('');
 const contributing = ref(false);
 const contributeDifficultyOptions = computed(() => [
@@ -160,7 +167,12 @@ const contributeDifficultyOptions = computed(() => [
   { value: 'Normal', label: t('market.diffNormalLabel') },
   { value: 'Hard', label: t('market.diffHardLabel') },
 ]);
-const contributeDifficultyLabels = computed(() => contributeDifficultyOptions.value.map((item) => item.label));
+const contributeDifficultySheetOptions = computed(() => contributeDifficultyOptions.value.map((item) => ({
+  label: item.label,
+  value: item.value,
+  subtitle: item.value === 'Easy' ? '适合热身和基础问题' : item.value === 'Hard' ? '适合压力面和深挖追问' : '适合常规模拟面试',
+  icon: item.value === 'Hard' ? 'ri-fire-line' : item.value === 'Easy' ? 'ri-seedling-line' : 'ri-focus-3-line',
+})));
 const contributeDifficultyLabel = computed(() =>
   contributeDifficultyOptions.value.find((item) => item.value === contributeDifficulty.value)?.label || contributeDifficulty.value
 );
@@ -183,10 +195,10 @@ const toggleAnswer = (id: number) => {
   expandedId.value = expandedId.value === id ? null : id;
 };
 
-const onPickDifficulty = (e: any) => {
-  const v = e?.detail?.value;
-  const item = contributeDifficultyOptions.value[v];
-  if (typeof v === 'number' && item) contributeDifficulty.value = item.value;
+const onPickDifficulty = ({ value }: { value: string }) => {
+  if (contributeDifficultyOptions.value.some((item) => item.value === value)) {
+    contributeDifficulty.value = value;
+  }
 };
 
 const diffClass = (d: string) => {

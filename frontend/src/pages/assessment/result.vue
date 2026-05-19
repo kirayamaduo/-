@@ -1,5 +1,6 @@
 <template>
-  <view class="result-container app-soft-bg" :class="[themeClass, fontClass]" :style="{ paddingTop: topSafeHeight + 24 + 'px' }">
+  <view class="result-container app-soft-bg" :class="[themeClass, fontClass]">
+    <SlNavBar :title="t('assessmentResult.navTitle')" show-back @back="goBack" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
     <!-- Loading + error states -->
     <view class="loading-state app-surface" v-if="loading">
       <view class="spinner"></view>
@@ -22,6 +23,10 @@
 
       <view class="section-title">{{ t('assessmentResult.dimensionBreakdown') }}</view>
       <view class="radar-card app-card-soft">
+        <view class="score-basis">
+          <text class="score-basis-title">评分依据</text>
+          <text class="score-basis-text">测评维度由你的选项按量表规则计数得出，AI 只负责解释画像、总结优势和推荐岗位方向。</text>
+        </view>
         <view class="skill-bars">
           <view class="skill-row" v-for="(d, i) in dimensions" :key="i">
             <text class="skill-name">{{ d.name }}</text>
@@ -84,10 +89,12 @@ import {
 import { updatePreferencesApi } from '@/api/user';
 import { useTheme } from '@/utils/theme';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import SlNavBar from '@/style-library/components/SlNavBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
+const rightAvoidWidth = ref(20);
 const loading = ref(true);
 const errorMsg = ref('');
 const recordId = ref<number>(0);
@@ -199,8 +206,8 @@ const insight = computed<InsightView>(() => {
   }
   return {
     fromAi: false,
-    strengths: 'Your answers reveal a unique combination of traits. Use the dimension breakdown above to identify where you naturally lean.',
-    growth:    'Pay attention to the dimensions where the score is lowest \u2014 those are growth areas worth deliberate practice.',
+    strengths: '你的答案呈现出一组独特的倾向组合，可以先参考上方维度条判断自己更自然的工作方式。',
+    growth:    '优先关注得分较低或波动明显的维度，把它们作为后续训练和岗位选择时的校准点。',
     suggestedRoles: [],
   };
 });
@@ -324,7 +331,9 @@ const goBack = () => {
 
 onMounted(() => {
   refreshTheme();
-  topSafeHeight.value = getMpSafeAreaMetrics().contentTop;
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   const pages = getCurrentPages();
   const opts = (pages[pages.length - 1] as any).options || {};
   recordId.value = parseInt(opts.recordId || '0');
@@ -391,6 +400,27 @@ onShow(() => {
 
 .radar-card {
   margin-bottom: 32px;
+}
+
+.score-basis {
+  margin-bottom: 16px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid #dbeafe;
+}
+.score-basis-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  color: #2563eb;
+  margin-bottom: 5px;
+}
+.score-basis-text {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
 }
 
 .skill-bars { display: flex; flex-direction: column; gap: 20px; }
@@ -483,6 +513,15 @@ onShow(() => {
   background: rgba(37, 99, 235, 0.18);
   border-color: rgba(147, 197, 253, 0.32);
   color: #bfdbfe;
+}
+
+.result-container.is-dark .score-basis {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: #1e3a8a;
+}
+
+.result-container.is-dark .score-basis-text {
+  color: #94a3b8;
 }
 
 .result-container.is-dark .bottom-action {

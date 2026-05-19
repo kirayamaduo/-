@@ -58,7 +58,7 @@ public class ChatHistoryController {
         Long uid = SecurityUtil.requireCurrentUserId();
         AssistantSession session = AssistantSession.builder()
                 .userId(uid)
-                .title(request.getTitle() != null ? request.getTitle() : "New Conversation")
+                .title(request.getTitle() != null ? request.getTitle() : "新的求职对话")
                 .persona(request.getPersona() != null ? request.getPersona() : "MENTOR")
                 .build();
         return Result.success(sessionRepository.save(session));
@@ -86,7 +86,7 @@ public class ChatHistoryController {
                 .content(request.getAssistantReply())
                 .build());
 
-        if ("New Conversation".equals(session.getTitle())) {
+        if ("New Conversation".equals(session.getTitle()) || "新的求职对话".equals(session.getTitle())) {
             String firstMsg = request.getUserMessage();
             if (firstMsg != null && !firstMsg.isBlank()) {
                 session.setTitle(firstMsg.length() > 20 ? firstMsg.substring(0, 20) + "..." : firstMsg);

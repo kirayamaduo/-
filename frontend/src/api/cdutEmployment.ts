@@ -20,6 +20,17 @@ export interface CdutEmploymentTrendPoint {
   postgraduateRate?: number;
 }
 
+export type CdutEmploymentCoverageStatus = 'VERIFIED_FULL' | 'PARTIAL' | 'MISSING' | 'NEEDS_MANUAL_REVIEW';
+
+export interface CdutEmploymentCoverageItem {
+  school: string;
+  year: number;
+  status: CdutEmploymentCoverageStatus;
+  label: string;
+  reason: string;
+  sourceUrl?: string;
+}
+
 export interface CdutEmploymentInsight {
   school: string;
   major: string;
@@ -33,6 +44,7 @@ export interface CdutEmploymentInsight {
   updatedAt?: string;
   destinationHighlights: string[];
   trend: CdutEmploymentTrendPoint[];
+  coverage: CdutEmploymentCoverageItem[];
   sources: CdutEmploymentSource[];
 }
 

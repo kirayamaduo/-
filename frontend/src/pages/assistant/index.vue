@@ -18,19 +18,6 @@
           <text class="ri-history-line nav-action-icon"></text>
         </view>
       </view>
-      <!-- F15: Persona switcher -->
-      <view class="persona-bar">
-        <view
-          v-for="p in PERSONAS"
-          :key="p.key"
-          class="persona-chip ui-list-item"
-          :class="{ 'persona-active': persona === p.key }"
-          @click="switchPersona(p.key)"
-        >
-          <text class="persona-emoji" :class="p.emoji"></text>
-          <text class="persona-label">{{ p.label }}</text>
-        </view>
-      </view>
     </view>
 
     <!-- Chat messages area -->
@@ -81,7 +68,7 @@
         :class="msg.role === 'user' ? 'row-user' : 'row-ai'"
       >
         <!-- AI avatar (top-left of bubble) -->
-        <view class="bot-avatar" v-if="msg.role === 'ai'">
+        <view class="bot-avatar" v-if="msg.role === 'assistant'">
           <text class="bot-emoji ri-robot-2-line"></text>
         </view>
 
@@ -103,7 +90,15 @@
 
     <!-- Input area -->
     <view class="input-bar">
+      <text class="mode-caption">三种对话模式</text>
       <view class="input-row">
+        <view class="mode-picker-wrap" @click="showPersonaSheet = true">
+          <view class="mode-picker">
+            <text class="mode-picker-icon" :class="currentPersona.emoji"></text>
+            <text class="mode-picker-text">{{ currentPersona.label }}</text>
+            <text class="mode-picker-arrow ri-arrow-down-s-line"></text>
+          </view>
+        </view>
         <input
           class="chat-input"
           v-model="inputText"
@@ -114,13 +109,20 @@
         />
         <view
           class="send-btn"
-          :class="{ 'send-active': inputText.trim().length > 0 }"
+          :class="{ 'send-active': canSend, 'send-disabled': !canSend }"
           @click="sendMessage"
         >
           <text class="send-label">{{ t('assistant.send') }}</text>
         </view>
       </view>
     </view>
+    <SlActionSheet
+      v-model:visible="showPersonaSheet"
+      title="选择对话模式"
+      :options="personaOptions"
+      :selected-value="persona"
+      @select="onPersonaSheetSelect"
+    />
   </view>
 </template>
 
@@ -131,12 +133,13 @@ import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import request from '@/utils/request';
 import { useTheme } from '@/utils/theme';
 import { useI18n } from '@/locales';
+import SlActionSheet from '@/style-library/components/SlActionSheet.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 interface ChatMessage {
-  role: 'user' | 'ai';
+  role: 'user' | 'assistant';
   content: string;
   isTyping?: boolean;
 }
@@ -144,7 +147,7 @@ interface ChatMessage {
 interface AssistantMessage {
   msgId: number;
   sessionId: number;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'USER' | 'ASSISTANT' | 'SYSTEM';
   content: string;
   createdAt?: string;
 }
@@ -156,7 +159,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'MENTOR',
     emoji: 'ri-compass-3-line',
-    label: '教练',
+    label: '求职教练',
     name: t('assistantPage.personas.MENTOR.name'),
     tagline: t('assistantPage.personas.MENTOR.tagline'),
     intro: t('assistantPage.personas.MENTOR.intro'),
@@ -172,7 +175,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'CHALLENGER',
     emoji: 'ri-shield-star-line',
-    label: '反馈',
+    label: '严格反馈',
     name: t('assistantPage.personas.CHALLENGER.name'),
     tagline: t('assistantPage.personas.CHALLENGER.tagline'),
     intro: t('assistantPage.personas.CHALLENGER.intro'),
@@ -188,7 +191,7 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
   {
     key: 'INTERVIEWER',
     emoji: 'ri-mic-line',
-    label: '练习',
+    label: '面试练习',
     name: t('assistantPage.personas.INTERVIEWER.name'),
     tagline: t('assistantPage.personas.INTERVIEWER.tagline'),
     intro: t('assistantPage.personas.INTERVIEWER.intro'),
@@ -205,6 +208,13 @@ const PERSONAS: { key: PersonaKey; emoji: string; label: string; name: string; t
 
 const persona = ref<PersonaKey>('MENTOR');
 const currentPersona = computed(() => PERSONAS.find(p => p.key === persona.value) || PERSONAS[0]);
+const showPersonaSheet = ref(false);
+const personaOptions = computed(() => PERSONAS.map((p) => ({
+  label: p.label,
+  value: p.key,
+  subtitle: p.bestFor,
+  icon: p.emoji,
+})));
 
 const messages = ref<ChatMessage[]>([]);
 const apiHistory = ref<{ role: string; content: string }[]>([]);
@@ -216,6 +226,7 @@ const rightAvoidWidth = ref(20);
 const isSending = ref(false);
 const chatTimeLabel = ref('');
 const sessionId = ref<number | null>(null);
+const canSend = computed(() => inputText.value.trim().length > 0 && !isSending.value);
 
 const onListScroll = (event: any) => {
   // scrolling logic if needed
@@ -228,6 +239,13 @@ const openHistory = () => {
 const isPersonaKey = (value: string): value is PersonaKey =>
   value === 'MENTOR' || value === 'CHALLENGER' || value === 'INTERVIEWER';
 
+const normalizeChatRole = (role: AssistantMessage['role']): ChatMessage['role'] | 'system' => {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'user') return 'user';
+  if (normalized === 'system') return 'system';
+  return 'assistant';
+};
+
 const loadSessionMessages = async (sid: number, selectedPersona?: string) => {
   const nextPersona = selectedPersona && isPersonaKey(selectedPersona) ? selectedPersona : persona.value;
   persona.value = nextPersona;
@@ -237,12 +255,12 @@ const loadSessionMessages = async (sid: number, selectedPersona?: string) => {
       url: `/api/chat/history/session/${sid}`,
       method: 'GET',
     });
-    const rows = Array.isArray(res) ? res.filter((m) => m.role !== 'system') : [];
+    const rows = Array.isArray(res) ? res.filter((m) => normalizeChatRole(m.role) !== 'system') : [];
     messages.value = rows.length > 0
-      ? rows.map((m) => ({ role: m.role === 'user' ? 'user' : 'ai', content: m.content }))
-      : [{ role: 'ai', content: currentPersona.value.intro }];
+      ? rows.map((m) => ({ role: normalizeChatRole(m.role) === 'user' ? 'user' : 'assistant', content: m.content }))
+      : [{ role: 'assistant', content: currentPersona.value.intro }];
     apiHistory.value = rows.map((m) => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
+      role: normalizeChatRole(m.role) === 'assistant' ? 'assistant' : 'user',
       content: m.content,
     }));
     scrollToBottom();
@@ -265,8 +283,12 @@ const switchPersona = (key: PersonaKey) => {
   // Clear history for fresh start with new persona
   apiHistory.value = [];
   messages.value = [
-    { role: 'ai', content: currentPersona.value.intro },
+    { role: 'assistant', content: currentPersona.value.intro },
   ];
+};
+
+const onPersonaSheetSelect = (payload: { value: string }) => {
+  if (isPersonaKey(payload.value)) switchPersona(payload.value);
 };
 
 const scrollToBottom = () => {
@@ -290,7 +312,7 @@ const sendMessage = async () => {
   scrollToBottom();
 
   const typingIdx = messages.value.length;
-  messages.value.push({ role: 'ai', content: '', isTyping: true });
+  messages.value.push({ role: 'assistant', content: '', isTyping: true });
   scrollToBottom();
 
   try {
@@ -306,7 +328,7 @@ const sendMessage = async () => {
       },
     });
     const reply = (res as any)?.reply ?? res ?? '';
-    messages.value[typingIdx] = { role: 'ai', content: reply || t('assistantPage.noResponse') };
+    messages.value[typingIdx] = { role: 'assistant', content: reply || t('assistantPage.noResponse') };
     apiHistory.value.push(
       { role: 'user', content: text },
       { role: 'assistant', content: String(reply) },
@@ -316,7 +338,7 @@ const sendMessage = async () => {
     }
   } catch {
     messages.value[typingIdx] = {
-      role: 'ai',
+      role: 'assistant',
       content: t('assistantPage.requestFailed'),
     };
   } finally {
@@ -359,7 +381,7 @@ onMounted(() => {
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   chatTimeLabel.value = t('messages.timeToday', { time: timeStr });
   // Initialise with persona greeting
-  messages.value = [{ role: 'ai', content: currentPersona.value.intro }];
+  messages.value = [{ role: 'assistant', content: currentPersona.value.intro }];
   openPendingSessionIfAny();
 });
 
@@ -643,7 +665,7 @@ onShow(() => {
 }
 
 .row-user {
-  flex-direction: row-reverse;
+  justify-content: flex-end;
 }
 
 .bot-avatar {
@@ -667,6 +689,13 @@ onShow(() => {
 
 .bubble-area {
   max-width: 72%;
+  min-width: 0;
+}
+
+.row-user .bubble-area {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 78%;
 }
 
 .bubble {
@@ -686,7 +715,7 @@ onShow(() => {
 }
 
 .bubble-user {
-  background: var(--gradient-primary);
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #8b5cf6 100%));
   color: #ffffff;
   border-radius: 20px 4px 20px 20px;
   box-shadow: var(--shadow-sm);
@@ -695,6 +724,10 @@ onShow(() => {
 
 .bubble-text {
   display: block;
+}
+
+.bubble-user .bubble-text {
+  color: #ffffff !important;
 }
 
 /* ---- Typing dots ---- */
@@ -727,7 +760,7 @@ onShow(() => {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);
-  padding: 10px 16px;
+  padding: 8px 16px 10px;
   position: fixed;
   bottom: var(--window-bottom, 0);
   left: 0;
@@ -736,24 +769,70 @@ onShow(() => {
   box-sizing: border-box;
 }
 
+.mode-caption {
+  display: block;
+  margin: 0 0 6px 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-tertiary, #8e8e93);
+}
+
 .input-row {
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 0;
   background: var(--card-bg, #ffffff);
   border-radius: 24px;
-  padding: 4px 4px 4px 16px;
+  padding: 4px 4px 4px 6px;
   border: 1px solid var(--border-color, #e2e8f0);
   box-shadow: var(--shadow-sm);
 }
 
+.mode-picker-wrap {
+  flex-shrink: 0;
+}
+
+.mode-picker {
+  height: 36px;
+  width: 96px;
+  max-width: 96px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 18px;
+  background: var(--primary-soft, #eff6ff);
+  color: var(--primary-color, #2563eb);
+}
+
+.mode-picker-icon,
+.mode-picker-arrow {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.mode-picker-text {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-input {
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
   height: 40px;
   font-size: 15px;
   color: var(--text-primary, #0f172a);
   background: transparent;
   border: none;
   outline: none;
+  padding-left: 8px;
 }
 
 .input-ph {
@@ -762,22 +841,28 @@ onShow(() => {
 }
 
 .send-btn {
-  min-width: 64px;
+  width: 58px;
+  min-width: 58px;
   height: 36px;
-  padding: 0 14px;
+  padding: 0;
+  box-sizing: border-box;
   border-radius: 18px;
   background: #e5e5ea;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
+  margin-left: 6px;
   transition: background 0.2s;
   flex-shrink: 0;
 }
 
 .send-active {
-  background: var(--gradient-primary);
+  background: var(--primary-color, #2563eb);
   border: none;
+}
+
+.send-disabled {
+  opacity: 0.72;
 }
 
 .send-label {
@@ -787,7 +872,7 @@ onShow(() => {
   letter-spacing: 0.02em;
 }
 .send-active .send-label {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 /* ---- Dark mode ---- */
@@ -850,6 +935,11 @@ onShow(() => {
   border-color: var(--text-secondary, #64748b);
 }
 
+.is-dark .mode-picker {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+
 .is-dark .chat-input {
   color: #f8fafc;
 }
@@ -871,7 +961,8 @@ onShow(() => {
 .is-dark .time-text { color: var(--text-tertiary, #8e8e93); background: rgba(100, 116, 139, 0.15); }
 .is-dark .send-btn { background: #334155; }
 .is-dark .send-label { color: var(--text-secondary, #64748b); }
-.is-dark .send-active .send-label { color: #ffffff; }
+.is-dark .send-active { background: var(--primary-color, #2563eb) !important; }
+.is-dark .send-active .send-label { color: #ffffff !important; }
 .is-dark .dot { background: #64748b; }
 
 .is-dark .chat-list-surface {

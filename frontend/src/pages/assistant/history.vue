@@ -23,22 +23,36 @@
         <view
           v-for="session in sessions"
           :key="session.sessionId"
-          class="session-card app-card-soft app-surface"
-          @click="openSession(session)"
+          class="swipe-row"
         >
-          <view class="session-top">
-            <view class="persona-pill">
-              <text class="persona-emoji" :class="personaMeta(session.persona).emoji"></text>
-              <text class="persona-name">{{ personaMeta(session.persona).label }}</text>
+          <view
+            class="session-card app-card-soft app-surface"
+            :class="{ 'session-card-swiped': (swipeOffsets[session.sessionId] ?? 0) < 0 }"
+            :style="{ transform: `translateX(${swipeOffsets[session.sessionId] ?? 0}px)` }"
+            @click="openSession(session)"
+            @touchstart="onItemTouchStart($event, session.sessionId)"
+            @touchmove="onItemTouchMove($event, session.sessionId)"
+            @touchend="onItemTouchEnd($event, session.sessionId)"
+          >
+            <view class="session-top">
+              <view class="persona-pill">
+                <text class="persona-emoji" :class="personaMeta(session.persona).emoji"></text>
+                <text class="persona-name">{{ personaMeta(session.persona).label }}</text>
+              </view>
+              <text class="session-time">{{ formatTime(session.updatedAt || session.createdAt) }}</text>
             </view>
-            <text class="session-time">{{ formatTime(session.updatedAt || session.createdAt) }}</text>
+            <text class="session-title">{{ session.title || t('assistantHistory.newConversation') }}</text>
+            <view class="session-bottom">
+              <text class="session-hint">{{ t('assistantHistory.tapToContinue') }}</text>
+              <text class="session-delete-hint">左滑删除</text>
+            </view>
           </view>
-          <text class="session-title">{{ session.title || t('assistantHistory.newConversation') }}</text>
-          <view class="session-bottom">
-            <text class="session-hint">{{ t('assistantHistory.tapToContinue') }}</text>
-            <view class="delete-btn" @click.stop="confirmDelete(session)">
-              <text class="delete-text">{{ t('assistantHistory.deleteBtn') }}</text>
-            </view>
+          <view
+            class="swipe-delete-btn"
+            :class="{ 'swipe-delete-visible': (swipeOffsets[session.sessionId] ?? 0) < 0 }"
+            @click.stop="confirmDelete(session)"
+          >
+            <text class="swipe-delete-text">{{ t('assistantHistory.deleteBtn') }}</text>
           </view>
         </view>
       </view>
@@ -71,6 +85,14 @@ const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafe = ref(44);
 const loading = ref(true);
 const sessions = ref<AssistantSession[]>([]);
+const swipeOffsets = ref<Record<number, number>>({});
+const activeSwipeId = ref<number | null>(null);
+let touchStartX = 0;
+let touchStartY = 0;
+let touchBaseOffset = 0;
+let dirLocked = false;
+let isHorizontal = false;
+const DELETE_BTN_W = 80;
 
 const personaMeta = (persona?: string) => {
   const map: Record<string, { emoji: string; label: string }> = {
@@ -105,7 +127,7 @@ const formatTime = (value?: string) => {
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  if (sameDay) return t('messages.timeToday', { time }) || `Today ${time}`;
+  if (sameDay) return t('messages.timeToday', { time }) || `今天 ${time}`;
   return `${d.getMonth() + 1}/${d.getDate()} ${time}`;
 };
 
@@ -115,6 +137,41 @@ const openSession = (session: AssistantSession) => {
     persona: session.persona || 'MENTOR',
   });
   uni.switchTab({ url: '/pages/assistant/index' });
+};
+
+const onItemTouchStart = (e: any, id: number) => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchBaseOffset = swipeOffsets.value[id] ?? 0;
+  dirLocked = false;
+  isHorizontal = false;
+  if (activeSwipeId.value !== null && activeSwipeId.value !== id) {
+    swipeOffsets.value[activeSwipeId.value] = 0;
+    activeSwipeId.value = null;
+  }
+};
+
+const onItemTouchMove = (e: any, id: number) => {
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (!dirLocked && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+    dirLocked = true;
+    isHorizontal = Math.abs(dx) > Math.abs(dy);
+  }
+  if (!isHorizontal) return;
+  swipeOffsets.value[id] = Math.max(-DELETE_BTN_W, Math.min(0, touchBaseOffset + dx));
+};
+
+const onItemTouchEnd = (_e: any, id: number) => {
+  if (!isHorizontal) return;
+  const offset = swipeOffsets.value[id] ?? 0;
+  if (offset < -DELETE_BTN_W / 2) {
+    swipeOffsets.value[id] = -DELETE_BTN_W;
+    activeSwipeId.value = id;
+  } else {
+    swipeOffsets.value[id] = 0;
+    activeSwipeId.value = null;
+  }
 };
 
 const confirmDelete = (session: AssistantSession) => {
@@ -128,6 +185,8 @@ const confirmDelete = (session: AssistantSession) => {
       try {
         await request({ url: `/api/chat/history/session/${session.sessionId}`, method: 'DELETE' });
         sessions.value = sessions.value.filter((s) => s.sessionId !== session.sessionId);
+        delete swipeOffsets.value[session.sessionId];
+        activeSwipeId.value = null;
         uni.showToast({ title: t('assistantHistory.deleteSuccess'), icon: 'success' });
       } catch (e: any) {
         uni.showToast({ title: e?.message || t('assistantHistory.deleteFailed'), icon: 'none' });
@@ -161,8 +220,16 @@ onMounted(() => {
 .empty-title { display: block; font-size: 17px; font-weight: 800; color: var(--text-primary, #0f172a); margin-bottom: 8px; }
 .empty-desc { display: block; font-size: 13px; line-height: 1.55; color: var(--text-secondary, #64748b); }
 .session-list { display: flex; flex-direction: column; gap: 12px; }
-.session-card { padding: 14px; }
+.swipe-row { position: relative; overflow: hidden; border-radius: var(--radius-lg, 18px); }
+.session-card {
+  position: relative;
+  z-index: 1;
+  padding: 14px;
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
+}
 .session-card:active { transform: scale(0.99); background: var(--surface-2, #f8fafc); }
+.session-card-swiped:active { transform: none; }
 .session-top, .session-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .persona-pill { display: flex; align-items: center; gap: 5px; background: var(--primary-soft, #eff6ff); border-radius: 999px; padding: 5px 9px; }
 .persona-emoji { font-size: 14px; }
@@ -170,8 +237,24 @@ onMounted(() => {
 .session-time { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 .session-title { display: block; font-size: 15px; font-weight: 800; line-height: 1.45; color: var(--text-primary, #0f172a); margin: 12px 0; }
 .session-hint { font-size: 12px; color: var(--text-secondary, #64748b); }
-.delete-btn { border: 1px solid #fecaca; border-radius: 999px; padding: 5px 10px; }
-.delete-text { font-size: 12px; font-weight: 700; color: var(--danger-color, #ef4444); }
+.session-delete-hint { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
+.swipe-delete-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: var(--danger-color, #ef4444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 var(--radius-lg, 18px) var(--radius-lg, 18px) 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.swipe-delete-visible { opacity: 1; }
+.swipe-delete-text { font-size: 14px; font-weight: 800; color: #ffffff; }
 .bottom-safe { height: 48px; }
 .is-dark .retention-title, .is-dark .session-title, .is-dark .empty-title { color: #f8fafc; }
 .is-dark .retention-card, .is-dark .loading-card, .is-dark .session-card { background: #1e293b; border-color: #334155; box-shadow: none; }

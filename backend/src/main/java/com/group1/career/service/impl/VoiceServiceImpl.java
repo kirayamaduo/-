@@ -102,7 +102,7 @@ public class VoiceServiceImpl implements VoiceService {
                     // upstream ever changes we'll surface a clear error from
                     // the SDK rather than silently degrade transcript quality.
                     .sampleRate(16000)
-                    .parameter("language_hints", new String[]{"en", "zh"})
+                    .parameter("language_hints", new String[]{"zh", "en"})
                     .build();
 
             long t0 = System.currentTimeMillis();
@@ -112,7 +112,7 @@ public class VoiceServiceImpl implements VoiceService {
             return extractTranscriptText(raw);
         } catch (Exception e) {
             log.error("ASR failed", e);
-            throw new BizException("Speech recognition failed: " + e.getMessage());
+            throw new BizException("语音识别失败，请稍后重试：" + e.getMessage());
         } finally {
             // Closing the duplex API releases the underlying WebSocket; the
             // SDK keeps it open by default so it can be reused, but we want
@@ -186,7 +186,7 @@ public class VoiceServiceImpl implements VoiceService {
     @Override
     public TtsResult synthesize(String text) {
         if (text == null || text.isBlank()) {
-            throw new BizException("TTS text is empty");
+            throw new BizException("语音合成文本为空");
         }
         // CosyVoice hard-caps a single call at 20 000 chars; an interviewer
         // turn is always two sentences, so the cap is academic. Defensive
@@ -212,7 +212,7 @@ public class VoiceServiceImpl implements VoiceService {
             ByteBuffer audio = synthesizer.call(clipped);
             long elapsed = System.currentTimeMillis() - t0;
             if (audio == null || audio.remaining() == 0) {
-                throw new BizException("TTS returned empty audio"
+                throw new BizException("语音合成没有返回音频"
                         + " (requestId=" + synthesizer.getLastRequestId()
                         + ", firstPacketDelay=" + synthesizer.getFirstPackageDelay() + "ms)");
             }
@@ -232,7 +232,7 @@ public class VoiceServiceImpl implements VoiceService {
             return new TtsResult(key, durationMs);
         } catch (Exception e) {
             log.error("TTS failed", e);
-            throw new BizException("Speech synthesis failed: " + e.getMessage());
+            throw new BizException("语音合成失败，请稍后重试：" + e.getMessage());
         } finally {
             try { synthesizer.getDuplexApi().close(1000, "bye"); } catch (Exception ignored) {}
         }

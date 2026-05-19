@@ -126,11 +126,17 @@ export const generateResumeFromTemplateApi = (data: Record<string, any>) => {
   });
 };
 
+export interface TailorResumeResponse {
+  resume: Resume;
+  changeItems: string[];
+  changeSummary?: string;
+}
+
 /**
  * Tailor an existing resume against a target Job Description.
  */
 export const tailorResumeApi = (data: { userId: number; resumeId: number; jobDescription: string }) => {
-  return request<Resume>({
+  return request<TailorResumeResponse>({
     url: '/api/resume-gen/tailor',
     method: 'POST',
     data,

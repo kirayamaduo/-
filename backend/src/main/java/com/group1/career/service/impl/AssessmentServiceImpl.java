@@ -138,9 +138,9 @@ public class AssessmentServiceImpl implements AssessmentService {
         notificationService.push(
                 userId,
                 NotificationTypes.ASSESSMENT_RESULT,
-                scale.getTitle() + " completed",
-                "Your result: " + (portrait == null || portrait.isBlank() ? "calculated" : portrait) +
-                        ". Tap to read the full breakdown.",
+                scale.getTitle() + " 已完成",
+                "你的测评结果是：" + (portrait == null || portrait.isBlank() ? "已计算完成" : portrait) +
+                        "。点击查看维度拆解和岗位建议。",
                 "/pages/assessment/result?recordId=" + record.getRecordId()
         );
 
@@ -191,19 +191,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (portrait == null || portrait.isBlank() || "N/A".equals(portrait)) return null;
         try {
             String prompt = """
-                    You are a senior career counsellor analysing a candidate's %s assessment result.
-                    The candidate's profile code is "%s" and their per-dimension scores are: %s.
+                    你是一名资深职业咨询师，正在分析候选人的 %s 测评结果。
+                    候选人的画像代码是 "%s"，各维度计数是：%s。
 
-                    Reply with ONLY a single JSON object, no markdown fences and no prose around it,
-                    matching this exact schema:
+                    请只返回一个 JSON 对象，不要 Markdown，不要额外说明。所有文本必须使用简体中文，结构如下：
                     {
-                      "strengths": "2-3 sentences describing concrete career strengths this profile suggests, including which kinds of work it suits.",
-                      "growth": "2-3 sentences describing the most useful growth areas to work on, framed as actionable advice (not weaknesses).",
-                      "suggestedRoles": ["a short list of 3-5 well-suited job titles"]
+                      "strengths": "2-3 句中文，说明该画像对应的职业优势和适合的工作类型。",
+                      "growth": "2-3 句中文，说明最值得提升的方向，要写成可执行建议，不要简单贴弱点标签。",
+                      "suggestedRoles": ["3-5 个中文岗位名称"]
                     }
 
-                    Be specific and grounded in the candidate's actual code -- do not give generic
-                    advice that would apply to any code. Tone: warm, direct, no clichés.
+                    必须基于该画像代码和维度计数，不要给任何画像都适用的套话。语气温和、直接、具体。
                     """.formatted(scaleTitle, portrait, traitsJson);
 
             long t0 = System.currentTimeMillis();

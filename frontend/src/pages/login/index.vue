@@ -4,7 +4,7 @@
 
     <view class="hero" :style="{ paddingRight: rightAvoidWidth + 'px' }">
       <view class="status-bar-spacer" :style="{ height: statusTopPx + 'px' }"></view>
-      <text class="hero-kicker">CAREER LOOP</text>
+      <text class="hero-kicker">智绘职路</text>
       <text class="hero-title">{{ t('login.heroTitle') }}</text>
       <text class="hero-subtitle">{{ t('login.heroSubtitle') }}</text>
     </view>
@@ -215,13 +215,13 @@ import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { sendCodeApi, resetPasswordApi, registerApi, loginApi, wechatLoginApi, checkEmailApi } from '@/api/user';
 import { enterGuestMode } from '@/utils/auth';
 import { useTheme } from '@/utils/theme';
-import { readPendingOnboarding, syncPendingOnboarding } from '@/utils/onboardingSync';
+import { syncPendingOnboarding } from '@/utils/onboardingSync';
+import { shouldForceOnboarding } from '@/utils/onboardingGate';
 
 const { t } = useI18n();
 const statusTopPx = ref(52);
 const rightAvoidWidth = ref(20);
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
-const RESUME_AUTO_UPLOAD_KEY = 'resume_auto_upload_once';
 
 // ─── 动态计算 scroll-view 高度 ─────────────────────────────────────
 // uni-app 的 scroll-view 必须给一个明确的 px 高度才能滚动。
@@ -255,7 +255,6 @@ const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info')
 };
 
 const routeAfterAuth = async () => {
-  const pending = readPendingOnboarding();
   try {
     await syncPendingOnboarding();
   } catch {
@@ -263,16 +262,13 @@ const routeAfterAuth = async () => {
   }
 
   setTimeout(() => {
-    if (pending?.hasResume === 'yes' || pending?.recommendedEntry === 'resume') {
-      uni.setStorageSync(RESUME_AUTO_UPLOAD_KEY, '1');
-      uni.switchTab({ url: '/pages/resume/index' });
-      return;
-    }
-    if (pending) {
-      uni.reLaunch({ url: '/pages/assessment/index' });
-      return;
-    }
-    uni.switchTab({ url: '/pages/home/index' });
+    shouldForceOnboarding().then((force) => {
+      if (force) {
+        uni.reLaunch({ url: '/pages/onboarding/index' });
+        return;
+      }
+      uni.switchTab({ url: '/pages/home/index' });
+    });
   }, 1000);
 };
 
@@ -487,9 +483,13 @@ const handleSubmit = async () => {
   try {
     if (mode.value === 'register') {
       await registerApi({ nickname: nickname.value, identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value, code: verifyCode.value });
-      const loginRes = await loginApi({ identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value });
-      storeRealSession(loginRes.token, loginRes.user);
-      showSnack(t('login.accountCreated'), 'success');
+      password.value = '';
+      confirmPassword.value = '';
+      verifyCode.value = '';
+      nickname.value = '';
+      mode.value = 'login';
+      showSnack('注册成功，请登录', 'success');
+      return;
     } else {
       const res = await loginApi({ identityType: 'EMAIL_PASSWORD', identifier: account.value, credential: password.value });
       storeRealSession(res.token, res.user);
@@ -552,17 +552,13 @@ const guestLogin = () => {
   enterGuestMode();
   showSnack(t('login.guestEnabled'), 'info');
   setTimeout(() => {
-    const pending = readPendingOnboarding();
-    if (pending?.hasResume === 'yes' || pending?.recommendedEntry === 'resume') {
-      uni.setStorageSync(RESUME_AUTO_UPLOAD_KEY, '1');
-      uni.switchTab({ url: '/pages/resume/index' });
-      return;
-    }
-    if (pending) {
-      uni.reLaunch({ url: '/pages/assessment/index' });
-      return;
-    }
-    uni.switchTab({ url: '/pages/home/index' });
+    shouldForceOnboarding().then((force) => {
+      if (force) {
+        uni.reLaunch({ url: '/pages/onboarding/index' });
+        return;
+      }
+      uni.switchTab({ url: '/pages/home/index' });
+    });
   }, 800);
 };
 </script>

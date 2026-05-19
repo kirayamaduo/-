@@ -59,5 +59,10 @@ public interface InterviewService {
      * its final_score in one transaction.
      */
     Interview saveReport(Long interviewId, String reportJson, Integer overallScore);
+
+    /**
+     * Delete a user's interview and its message history.
+     */
+    void deleteInterview(Long userId, Long interviewId);
 }
 

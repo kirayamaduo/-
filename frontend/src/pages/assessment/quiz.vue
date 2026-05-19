@@ -74,6 +74,9 @@ import { useTheme } from '@/utils/theme';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 
 const currentIndex = ref(0);
+// 防止自动前进与手动点击"下一题"竞态导致跳出题目范围
+const advancing = ref(false);
+let advanceTimer: ReturnType<typeof setTimeout> | null = null;
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
@@ -128,14 +131,30 @@ const selectOption = (optionId: number) => {
   answers.value[q.questionId] = optionId;
   // Auto-advance feels great on a long quiz, but only when this isn't the
   // last question -- the final tap should require an explicit submit.
-  if (!isLastQuestion.value) {
-    setTimeout(() => {
-      currentIndex.value++;
+  // Use the `advancing` flag + a stored timer ID to prevent a race where the
+  // user taps the manual "Next" button within the 250 ms window, which would
+  // cause the index to increment twice and land on a non-existent question.
+  if (!isLastQuestion.value && !advancing.value) {
+    advancing.value = true;
+    if (advanceTimer !== null) clearTimeout(advanceTimer);
+    advanceTimer = setTimeout(() => {
+      advanceTimer = null;
+      advancing.value = false;
+      const next = currentIndex.value + 1;
+      if (next < questions.value.length) {
+        currentIndex.value = next;
+      }
     }, 250);
   }
 };
 
 const handlePrev = () => {
+  // 取消任何待执行的自动前进，避免"上一题"后又被弹回去
+  if (advanceTimer !== null) {
+    clearTimeout(advanceTimer);
+    advanceTimer = null;
+    advancing.value = false;
+  }
   if (currentIndex.value > 0) currentIndex.value--;
 };
 
@@ -164,8 +183,19 @@ const handleNext = () => {
   }
   if (isLastQuestion.value) {
     submitQuiz();
-  } else {
-    currentIndex.value++;
+    return;
+  }
+  // 如果自动前进的定时器还在跑，取消它并立即前进一次，避免重复计数
+  if (advanceTimer !== null) {
+    clearTimeout(advanceTimer);
+    advanceTimer = null;
+    advancing.value = false;
+  }
+  if (!advancing.value) {
+    const next = currentIndex.value + 1;
+    if (next < questions.value.length) {
+      currentIndex.value = next;
+    }
   }
 };
 
@@ -240,7 +270,7 @@ onShow(() => {
 
 .progress-fill { height: 100%; background-color: #007aff; border-radius: 3px; transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
 
-.progress-text { font-size: 13px; font-weight: 500; color: #8e8e93; width: 40px; text-align: right; }
+.progress-text { font-size: 13px; font-weight: 500; color: #8e8e93; min-width: 52px; white-space: nowrap; flex-shrink: 0; text-align: right; }
 
 .question-card { margin-bottom: 40px; padding: 0 8px; }
 

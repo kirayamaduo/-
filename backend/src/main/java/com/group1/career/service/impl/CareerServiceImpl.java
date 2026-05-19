@@ -58,9 +58,7 @@ public class CareerServiceImpl implements CareerService {
                         .status("UNLOCKED")
                         .build());
 
-        if ("LOCKED".equals(progress.getStatus())) {
-            progress.setStatus("UNLOCKED");
-        }
+        progress.setStatus("UNLOCKED");
 
         progressRepository.save(progress);
     }
@@ -87,36 +85,36 @@ public class CareerServiceImpl implements CareerService {
     public void initializeDefaultPaths() {
         CareerPath javaPath = pathRepository.findByCode("java-backend")
                 .orElse(CareerPath.builder().code("java-backend").build());
-        javaPath.setName("Java Backend Engineer");
-        javaPath.setDescription("Become an excellent Java backend developer, mastering core skills such as Spring Boot, microservices, and databases.");
+        javaPath.setName("Java 后端工程师");
+        javaPath.setDescription("成为优秀的 Java 后端开发者，掌握 Spring Boot、微服务、数据库等核心技能。");
         javaPath = pathRepository.save(javaPath);
 
         if (nodeRepository.findByPathIdOrderByLevelAsc(javaPath.getPathId()).isEmpty()) {
             CareerNode node1 = nodeRepository.save(CareerNode.builder()
-                    .pathId(javaPath.getPathId()).name("Java Basics").level(1).parentId(0L).build());
+                    .pathId(javaPath.getPathId()).name("Java 基础").level(1).parentId(0L).build());
             CareerNode node2 = nodeRepository.save(CareerNode.builder()
-                    .pathId(javaPath.getPathId()).name("Spring Boot Intro").level(2).parentId(node1.getNodeId()).build());
+                    .pathId(javaPath.getPathId()).name("Spring Boot 入门").level(2).parentId(node1.getNodeId()).build());
             nodeRepository.save(CareerNode.builder()
-                    .pathId(javaPath.getPathId()).name("Database Design").level(2).parentId(node1.getNodeId()).build());
+                    .pathId(javaPath.getPathId()).name("数据库设计").level(2).parentId(node1.getNodeId()).build());
             nodeRepository.save(CareerNode.builder()
-                    .pathId(javaPath.getPathId()).name("Spring Cloud Microservices").level(3).parentId(node2.getNodeId()).build());
+                    .pathId(javaPath.getPathId()).name("Spring Cloud 微服务").level(3).parentId(node2.getNodeId()).build());
         }
 
         CareerPath frontendPath = pathRepository.findByCode("frontend-engineer")
                 .orElse(CareerPath.builder().code("frontend-engineer").build());
-        frontendPath.setName("Frontend Engineer");
-        frontendPath.setDescription("Become a modern frontend developer, mastering tech stacks like Vue, React, and TypeScript.");
+        frontendPath.setName("前端工程师");
+        frontendPath.setDescription("成为现代前端开发者，掌握 Vue、React、TypeScript 等主流技术栈。");
         frontendPath = pathRepository.save(frontendPath);
 
         if (nodeRepository.findByPathIdOrderByLevelAsc(frontendPath.getPathId()).isEmpty()) {
             CareerNode fe1 = nodeRepository.save(CareerNode.builder()
-                    .pathId(frontendPath.getPathId()).name("HTML/CSS Basics").level(1).parentId(0L).build());
+                    .pathId(frontendPath.getPathId()).name("HTML/CSS 基础").level(1).parentId(0L).build());
             CareerNode fe2 = nodeRepository.save(CareerNode.builder()
-                    .pathId(frontendPath.getPathId()).name("JavaScript Core").level(2).parentId(fe1.getNodeId()).build());
+                    .pathId(frontendPath.getPathId()).name("JavaScript 核心").level(2).parentId(fe1.getNodeId()).build());
             nodeRepository.save(CareerNode.builder()
-                    .pathId(frontendPath.getPathId()).name("Vue.js Framework").level(3).parentId(fe2.getNodeId()).build());
+                    .pathId(frontendPath.getPathId()).name("Vue.js 框架").level(3).parentId(fe2.getNodeId()).build());
         }
 
-        log.info("Initialized/Updated career paths: Java Backend, Frontend Engineer");
+        log.info("Initialized/Updated career paths: Java 后端工程师, 前端工程师");
     }
 }

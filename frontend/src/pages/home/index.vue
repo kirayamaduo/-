@@ -5,12 +5,12 @@
 
     <view class="workbench-hero" :style="{ paddingRight: rightAvoidWidth + 'px' }">
       <view class="brand-row">
+        <image class="user-avatar workbench-avatar" :src="avatarSrc" mode="aspectFill" @click="handleAvatarClick" />
         <view class="brand-copy">
-          <text class="brand-kicker">CareerLoop</text>
+          <text class="brand-kicker">智绘职路</text>
           <text class="brand-title">{{ welcomeTitle }}</text>
           <text class="brand-subtitle">{{ stageLabel }} · {{ targetRoleLabel }}</text>
         </view>
-        <image class="user-avatar workbench-avatar" :src="avatarSrc" mode="aspectFill" @click="handleAvatarClick" />
       </view>
     </view>
 
@@ -31,6 +31,29 @@
       <view class="gap-row">
         <text class="gap-label">最大短板</text>
         <text class="gap-text">{{ biggestGap }}</text>
+      </view>
+      <view class="readiness-dims">
+        <view v-for="d in readinessDimensions" :key="d.label" class="readiness-dim">
+          <text class="readiness-dim-label">{{ d.label }}</text>
+          <view class="readiness-dim-track">
+            <view class="readiness-dim-fill" :style="{ width: d.value + '%' }"></view>
+          </view>
+          <text class="readiness-dim-val">{{ d.value }}</text>
+        </view>
+      </view>
+      <text class="score-rule">评分依据：方向清晰度、简历诊断分、面试表现分、行动连续性和求职计划加权；仅完成动作不会直接视为准备充分。</text>
+    </view>
+
+    <view class="intake-card app-card-soft app-surface compact-card">
+      <view class="section-lite-head">
+        <text class="section-lite-title">你的求职画像</text>
+        <text class="section-lite-action" @click="startProfileCalibration">更新校准 ›</text>
+      </view>
+      <view class="intake-grid">
+        <view v-for="item in intakeSummary" :key="item.label" class="intake-item">
+          <text class="intake-label">{{ item.label }}</text>
+          <text class="intake-value">{{ item.value }}</text>
+        </view>
       </view>
     </view>
 
@@ -67,6 +90,67 @@
       </view>
     </view>
 
+    <view v-if="hasLoggedInUser || growthClusters.length" class="growth-tree-card app-card-soft app-surface">
+      <view class="section-lite-head">
+        <view class="section-title-stack">
+          <text class="section-lite-title">成长树</text>
+          <text class="section-lite-sub">求职画像的可视化表达</text>
+        </view>
+        <text class="section-lite-action" @click="navTo('/pages/agent/profile')">编辑画像 →</text>
+      </view>
+      <scroll-view v-if="growthClusters.length" class="growth-tree-scroll" scroll-x :show-scrollbar="false" enhanced>
+        <view class="gtree-canvas" :style="{ width: growthCanvasWidth + 'rpx' }">
+
+          <!-- 簇间连接线 (斜线/折线，构成树状) -->
+          <view v-for="conn in growthConnectors" :key="conn.key" class="gtree-connector" :class="{ 'is-arc': conn.arc }"
+            :style="{ left: conn.x1 + 'rpx', top: conn.y1 + 'rpx', width: conn.len + 'rpx', transform: 'rotate(' + conn.angle + 'rad)' }">
+          </view>
+
+          <!-- 根节点 -->
+          <view class="gtree-root">
+            <text class="gtree-root-name">{{ growthRootName }}</text>
+            <text class="gtree-root-sub">起点</text>
+          </view>
+
+          <!-- 每个簇：节点列 + 年份标签 -->
+          <template v-for="cluster in growthClusters" :key="cluster.key">
+            <view class="gtree-cluster-hub" :class="'gtree-cat-' + cluster.category.toLowerCase()"
+              :style="{ left: cluster.x + 'rpx', top: cluster.y + 'rpx' }">
+              <text class="gtree-cluster-title">{{ cluster.title }}</text>
+              <text v-if="cluster.timeLabel" class="gtree-cluster-time">{{ cluster.timeLabel }}</text>
+            </view>
+            <!-- 年份标签 -->
+            <view v-if="cluster.timeLabel" class="gtree-year-chip"
+              :style="{ left: cluster.x + 'rpx', top: (cluster.y - 58) + 'rpx' }">
+              <text class="gtree-year-text">{{ cluster.timeLabel }}</text>
+            </view>
+            <!-- 簇内节点 (垂直叠放) -->
+            <view v-for="node in cluster.nodes" :key="node.key"
+              class="gtree-node" :class="'gtree-cat-' + node.category.toLowerCase()"
+              :style="{ left: (cluster.x + node.dx) + 'rpx', top: (cluster.y + node.dy) + 'rpx' }">
+              <text class="gtree-node-label">{{ node.label }}</text>
+              <text v-if="node.time" class="gtree-node-time">{{ node.time }}</text>
+            </view>
+            <!-- 簇内垂直连线 -->
+            <view v-for="node in cluster.nodes" :key="node.key + '-branch'" class="gtree-branch"
+              :style="branchStyle(cluster, node)">
+            </view>
+          </template>
+
+          <!-- 目标节点 -->
+          <view class="gtree-target" :style="{ left: growthTargetX + 'rpx' }">
+            <text class="gtree-target-label">目标</text>
+            <text class="gtree-target-title">{{ targetRoleLabel }}</text>
+          </view>
+
+        </view>
+      </scroll-view>
+      <view v-else class="growth-tree-empty" @click="navTo('/pages/resume/index')">
+        <text class="growth-tree-empty-title">画像还在生成中</text>
+        <text class="growth-tree-empty-desc">上传或解析简历后，这里会把经历、技能和目标整理成成长树。</text>
+      </view>
+    </view>
+
     <view class="core-entry-grid">
       <view v-for="entry in coreEntries" :key="entry.label" class="core-entry app-surface" @click="navTo(entry.target)">
         <view class="core-entry-icon" :class="entry.tone">
@@ -77,7 +161,7 @@
       </view>
     </view>
 
-    <view class="recent-card app-card-soft app-surface">
+    <view class="recent-card app-card-soft app-surface compact-card">
       <view class="section-lite-head">
         <text class="section-lite-title">最近进展</text>
         <text class="section-lite-action" @click="navTo('/pages/user/index')">查看全部 ›</text>
@@ -106,7 +190,7 @@
 
     <view v-if="cdutInsight" class="support-card app-surface" @click="navTo('/pages/cdut-employment/index')">
       <view class="support-main">
-        <text class="support-title">{{ t('cdut.homeTitle') }}</text>
+        <text class="support-title">{{ cdutInsight.school ? cdutInsight.school + '就业数据' : t('cdut.homeTitle') }}</text>
         <text class="support-desc">{{ cdutInsight.matchLabel }} · {{ cdutInsight.latestYear || t('cdut.publicSources') }}</text>
       </view>
       <text class="support-link">就业数据 ›</text>
@@ -179,17 +263,10 @@
           :key="a.id"
           @click="openArticle(a)"
         >
-          <view class="article-cover" :class="'cover-tone-' + (idx % 4)">
-            <view v-if="articleSourceRemixIcon(a)" class="article-source-icon">
-              <text class="article-source-glyph" :class="articleSourceRemixIcon(a)"></text>
-            </view>
-            <image
-              v-else
-              class="article-cover-img"
-              :src="articleImageSrc(a, idx)"
-              :mode="articleImageMode(a)"
-              @error="onArticleImageError(a.id)"
-            />
+          <view class="article-cover article-cover-art" :class="articleCoverClass(a, idx)">
+            <view class="article-cover-pattern"></view>
+            <text class="article-cover-icon" :class="articleCoverIcon(a)"></text>
+            <text class="article-cover-label">{{ articleCoverLabel(a) }}</text>
           </view>
           <view class="article-body">
             <text class="article-title">{{ displayText(a.title) }}</text>
@@ -271,6 +348,29 @@
     </view>
 
     <view class="bottom-safe"></view>
+
+    <view v-if="calibrating" class="calibration-mask">
+      <view class="calibration-panel app-surface">
+        <view class="calibration-orbit">
+          <view v-for="signal in calibrationSignals" :key="signal.label" class="calibration-signal" :class="signal.cls">
+            <text :class="signal.icon"></text>
+          </view>
+          <view class="calibration-core">
+            <text class="calibration-core-icon ri-user-search-line"></text>
+          </view>
+        </view>
+        <text class="calibration-title">{{ calibrationDone ? calibrationDoneTitle : '正在根据最新记录整理画像' }}</text>
+        <text class="calibration-desc">{{ calibrationDone ? calibrationDoneDesc : '测评、简历、面试、打卡和就业数据正在汇聚为新的求职画像。' }}</text>
+        <view class="calibration-actions" v-if="calibrationDone">
+          <view class="calibration-primary" @click="closeCalibration">
+            <text class="calibration-primary-text">查看新画像</text>
+          </view>
+          <view class="calibration-secondary" @click="editBasicProfile">
+            <text class="calibration-secondary-text">编辑基础信息</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -293,12 +393,15 @@ import {
   getAgentBundleApi,
   completeAgentTaskApi,
   dismissAgentTaskApi,
+  refreshAgentProfileApi,
   type CareerAgentToday,
   type AgentTask,
   type AgentUserProfile,
 } from '@/api/agent';
+import { getProfileTagsApi, refreshProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
 import { getProfileSnapshotApi, type UserProfileSnapshot } from '@/api/user';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
+import { readStoredOnboardingSetup } from '@/utils/onboardingGate';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { useTheme } from '@/utils/theme';
 import { normalizeProductCopy, normalizeRoleLabel } from '@/utils/displayText';
@@ -307,7 +410,6 @@ import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const displayText = normalizeProductCopy;
 
 const userInfo = ref<{
@@ -342,12 +444,29 @@ const cdutInsight = ref<CdutEmploymentInsight | null>(null);
 const agentToday = ref<CareerAgentToday | null>(null);
 const agentTasks = ref<AgentTask[]>([]);
 const agentProfile = ref<AgentUserProfile | null>(null);
+const profileTags = ref<UserProfileTag[]>([]);
 const profileSnapshot = ref<UserProfileSnapshot | null>(null);
+const localOnboardingSetup = ref<any>(null);
+const calibrating = ref(false);
+const calibrationDone = ref(false);
+const calibrationHadChange = ref(false);
+const calibrationSignals = [
+  { label: '测评', icon: 'ri-compass-3-line', cls: 'signal-assessment' },
+  { label: '简历', icon: 'ri-file-text-line', cls: 'signal-resume' },
+  { label: '面试', icon: 'ri-mic-2-line', cls: 'signal-interview' },
+  { label: '打卡', icon: 'ri-checkbox-circle-line', cls: 'signal-checkin' },
+  { label: '就业', icon: 'ri-building-4-line', cls: 'signal-employment' },
+  { label: '标签', icon: 'ri-price-tag-3-line', cls: 'signal-tags' },
+];
 const checkinPercent = computed(() => {
   if (!checkin.value || !checkin.value.todayTotal) return 0;
   return Math.round((checkin.value.todayCompleted / checkin.value.todayTotal) * 100);
 });
-const tkKey = (key: string | undefined, fallback: string) => (key ? t(key) : fallback);
+const tkKey = (key: string | undefined, fallback: string) => {
+  if (!key) return fallback;
+  const translated = t(key);
+  return translated && translated !== key ? translated : fallback;
+};
 const agentHeadline = computed(() => tkKey(agentToday.value?.headlineKey, agentToday.value?.headline || ''));
 const agentFocus = computed(() => tkKey(agentToday.value?.focusKey, agentToday.value?.todayFocus || ''));
 const agentReason = computed(() => tkKey(agentToday.value?.reasonKey, agentToday.value?.reason || ''));
@@ -368,13 +487,27 @@ const welcomeTitle = computed(() => {
 const targetRoleLabel = computed(() => {
   const role = agentProfile.value?.target?.role
     || profileSnapshot.value?.preferences?.targetRole
+    || onboardingProfile.value?.targetRole
     || profileSnapshot.value?.resume?.targetJob
     || profileSnapshot.value?.interview?.positionName;
   return normalizeRoleLabel(role) || '还未锁定目标岗位';
 });
 
+const onboardingProfile = computed(() => profileSnapshot.value?.onboarding || localOnboardingSetup.value || null);
+
 const stageLabel = computed(() => {
   const stage = agentProfile.value?.currentStage || agentToday.value?.stage || '';
+  const onboardingStage = onboardingProfile.value?.stage || onboardingProfile.value?.identityType;
+  if (!stage && onboardingStage) {
+    const stageMap: Record<string, string> = {
+      student: '在校探索',
+      new_graduate: '应届求职',
+      internship_seeker: '实习冲刺',
+      career_switcher: '转岗定位',
+      experienced: '社招提升',
+    };
+    return stageMap[onboardingStage] || '求职准备中';
+  }
   const map: Record<string, string> = {
     DIRECTION_DISCOVERY: '探索方向',
     TARGET_ROLE_SELECTION: '选择目标岗位',
@@ -392,21 +525,111 @@ const stageLabel = computed(() => {
   return map[stage] || '求职准备中';
 });
 
+const labelMap = {
+  pain: {
+    direction_unclear: '方向不清',
+    resume_weak: '简历薄弱',
+    project_lacking: '项目不足',
+    interview_anxiety: '面试没底',
+    no_plan: '缺少计划',
+  },
+  timeline: {
+    now: '马上投递',
+    within_1_month: '1 个月内',
+    within_3_months: '3 个月内',
+    prepare_early: '提前准备',
+  },
+  weekly: {
+    lt_5h: '< 5 小时',
+    '5_10h': '5-10 小时',
+    '10_20h': '10-20 小时',
+    gt_20h: '> 20 小时',
+  },
+  priority: {
+    resume: '优先改简历',
+    direction: '优先定方向',
+    interview: '优先练面试',
+    plan: '优先做计划',
+  },
+  resume: {
+    ready: '已有可投简历',
+    draft: '有草稿待优化',
+    none: '还没有简历',
+    unsure: '不确定质量',
+    yes: '已有简历',
+    no: '暂无简历',
+  },
+} as const;
+
+const mapLabel = (group: keyof typeof labelMap, value?: string) => {
+  if (!value) return '待补充';
+  return (labelMap[group] as Record<string, string>)[value] || value;
+};
+
+const intakeSummary = computed(() => {
+  const onboarding = onboardingProfile.value || {};
+  return [
+    { label: '当前痛点', value: mapLabel('pain', onboarding.painPoint) },
+    { label: '简历状态', value: mapLabel('resume', onboarding.resumeStatus || onboarding.hasResume) },
+    { label: '求职时间线', value: mapLabel('timeline', onboarding.timeline) },
+    { label: '每周投入', value: mapLabel('weekly', onboarding.weeklyAvailability) },
+    { label: '优先帮助', value: mapLabel('priority', onboarding.priorityHelp) },
+    { label: '背景', value: [onboarding.education?.school, onboarding.education?.major].filter(Boolean).join(' · ') || '待补充' },
+  ];
+});
+
+const clampPercent = (value?: number) => {
+  const normalized = Number(value ?? 0);
+  if (!Number.isFinite(normalized)) return 0;
+  return Math.max(0, Math.min(100, Math.round(normalized)));
+};
+
+const fallbackReadinessMetrics = () => {
+  const snap = profileSnapshot.value;
+  const directionClarity = Math.min(100, (targetRoleLabel.value !== '还未锁定目标岗位' ? 60 : 0) + (snap?.assessment ? 40 : 0));
+  const resumeReadiness = snap?.resume
+    ? clampPercent(snap.resume.diagnosisScore ?? 35)
+    : 0;
+  const interviewReadiness = snap?.interview
+    ? clampPercent(snap.interview.lastScore ?? 30)
+    : 0;
+  const actionContinuity = Math.min(100, (checkin.value?.weeklyDays ?? 0) * 20 + ((checkin.value?.todayCompleted ?? 0) > 0 ? 20 : 0));
+  const overall = clampPercent(
+    directionClarity * 0.2
+      + resumeReadiness * 0.3
+      + interviewReadiness * 0.3
+      + actionContinuity * 0.2,
+  );
+  return { directionClarity, resumeReadiness, interviewReadiness, actionContinuity, overall };
+};
+
 const readinessPercent = computed(() => {
   if (agentProfile.value?.readiness?.overallPercent !== undefined) {
-    return Math.max(0, Math.min(100, Math.round(agentProfile.value.readiness.overallPercent)));
+    return clampPercent(agentProfile.value.readiness.overallPercent);
   }
   if (agentToday.value?.progressPercent !== undefined) {
-    return Math.max(0, Math.min(100, Math.round(agentToday.value.progressPercent)));
+    return clampPercent(agentToday.value.progressPercent);
   }
-  const snap = profileSnapshot.value;
-  let score = 0;
-  if (targetRoleLabel.value !== '还未锁定目标岗位') score += 20;
-  if (snap?.assessment) score += 20;
-  if (snap?.resume) score += 25;
-  if (snap?.interview) score += 25;
-  if (checkin.value?.todayCompleted) score += 10;
-  return score;
+  return fallbackReadinessMetrics().overall;
+});
+
+const readinessDimensions = computed(() => {
+  const readiness = agentProfile.value?.readiness;
+  if (readiness) {
+    return [
+      { label: '方向', value: clampPercent(readiness.directionClarityPercent ?? 0) },
+      { label: '简历', value: clampPercent(readiness.resumeReadinessPercent ?? 0) },
+      { label: '面试', value: clampPercent(readiness.interviewReadinessPercent ?? 0) },
+      { label: '行动', value: clampPercent(readiness.actionContinuityPercent ?? 0) },
+    ];
+  }
+  const metrics = fallbackReadinessMetrics();
+  return [
+    { label: '方向', value: metrics.directionClarity },
+    { label: '简历', value: metrics.resumeReadiness },
+    { label: '面试', value: metrics.interviewReadiness },
+    { label: '行动', value: metrics.actionContinuity },
+  ];
 });
 
 const readinessSummary = computed(() => {
@@ -463,6 +686,205 @@ const biggestGap = computed(() => {
   if (agentRiskReasons.value.length) return agentRiskReasons.value[0];
   return '继续用今日任务保持节奏';
 });
+const homeUserId = ref('');
+
+const growthRootName = computed(() => (
+  userInfo.value.nickname && userInfo.value.nickname !== 'Guest' ? userInfo.value.nickname : '同学'
+));
+const hasLoggedInUser = computed(() => {
+  const uid = Number(homeUserId.value || uni.getStorageSync('userId'));
+  return uid > 0;
+});
+
+const TREE_ROOT = { x: 172, y: 112 };
+const TREE_TARGET_Y = 112;
+const CLUSTER_Y = [78, 134, 104, 152];
+const NODE_OFFSETS = [
+  { dx: -36, dy: -48 },
+  { dx: 64, dy: -34 },
+  { dx: -60, dy: 42 },
+  { dx: 72, dy: 44 },
+];
+
+interface GrowthCluster {
+  key: string;
+  timeLabel: string;
+  title: string;
+  category: string;
+  nodes: Array<{ key: string; label: string; category: string; time: string; dx: number; dy: number }>;
+  x: number;   // 节点列中心 X
+  y: number;   // 首节点中心 Y（所在泳道）
+  lane: number; // 0 顶 | 1 中 | 2 底
+}
+
+interface GrowthConnector {
+  key: string;
+  x1: number; y1: number;
+  x2: number; y2: number;
+  len: number;
+  angle: number;
+  arc?: boolean;
+}
+
+const growthClusters = computed<GrowthCluster[]>(() => {
+  const order: Record<string, number> = { BACKGROUND: 1, SKILL: 2, GROWTH: 3, GOAL: 4 };
+  const seen = new Set<string>();
+  const filtered = profileTags.value
+    .filter((tag) => tag.category !== 'GOAL')
+    .filter((tag) => {
+      const label = String(tag.label || '').trim();
+      if (!isGrowthKeyword(label) || seen.has(label.toLowerCase())) return false;
+      seen.add(label.toLowerCase());
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = extractNodeTime(a.label);
+      const timeB = extractNodeTime(b.label);
+      if (timeA && timeB && timeA !== timeB) return timeA.localeCompare(timeB);
+      if (timeA && !timeB) return -1;
+      if (!timeA && timeB) return 1;
+      return (order[a.category] || 9) - (order[b.category] || 9) || (b.weight || 0) - (a.weight || 0);
+    });
+
+  const buckets: Array<{ key: string; tags: typeof filtered }> = [];
+  for (const tag of filtered) {
+    const time = extractNodeTime(tag.label);
+    const key = time ? time.slice(0, 4) : semanticClusterKey(tag);
+    const existing = buckets.find((b) => b.key === key && b.tags.length < 4);
+    if (existing) existing.tags.push(tag);
+    else buckets.push({ key, tags: [tag] });
+  }
+
+  const capped = buckets
+    .sort((a, b) => bucketSortKey(a).localeCompare(bucketSortKey(b)))
+    .slice(0, 7);
+  const n = capped.length;
+  const spacing = n > 0 ? Math.max(190, Math.min(238, 1420 / n)) : 210;
+
+  return capped.map(({ key: cKey, tags }, idx) => {
+    const x = Math.round(270 + idx * spacing);
+    const lane = idx % CLUSTER_Y.length;
+    const y = CLUSTER_Y[lane];
+    const sortedTags = [...tags].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+    return {
+      key: cKey + '-' + idx,
+      timeLabel: clusterTimeLabel(sortedTags),
+      title: clusterTitle(sortedTags),
+      category: dominantCategory(sortedTags),
+      nodes: sortedTags.map((t, ni) => ({
+        key: `n-${idx}-${ni}`,
+        label: cleanNodeLabel(t.label),
+        category: t.category,
+        time: extractNodeTime(t.label),
+        dx: NODE_OFFSETS[ni % NODE_OFFSETS.length].dx,
+        dy: NODE_OFFSETS[ni % NODE_OFFSETS.length].dy,
+      })),
+      x, y, lane,
+    };
+  });
+});
+
+const growthConnectors = computed<GrowthConnector[]>(() => {
+  const clusters = growthClusters.value;
+  if (!clusters.length) return [];
+  const makeConn = (key: string, x1: number, y1: number, x2: number, y2: number, arc = true): GrowthConnector => {
+    const dx = x2 - x1, dy = y2 - y1;
+    return { key, x1, y1, x2, y2, len: Math.round(Math.sqrt(dx * dx + dy * dy)), angle: Math.atan2(dy, dx), arc };
+  };
+  const conns: GrowthConnector[] = [];
+  conns.push(makeConn('root', TREE_ROOT.x, TREE_ROOT.y, clusters[0].x - 76, clusters[0].y));
+  for (let i = 0; i < clusters.length - 1; i++) {
+    conns.push(makeConn(`c${i}`, clusters[i].x + 76, clusters[i].y, clusters[i + 1].x - 76, clusters[i + 1].y));
+  }
+  const last = clusters[clusters.length - 1];
+  conns.push(makeConn('tgt', last.x + 76, last.y, growthTargetX.value, TREE_TARGET_Y, false));
+  return conns;
+});
+
+const growthCanvasWidth = computed(() => {
+  if (!growthClusters.value.length) return 1040;
+  return Math.max(1040, growthTargetX.value + 230);
+});
+
+const growthTargetX = computed(() => {
+  if (!growthClusters.value.length) return 820;
+  return growthClusters.value[growthClusters.value.length - 1].x + 210;
+});
+
+const branchStyle = (
+  cluster: GrowthCluster,
+  node: GrowthCluster['nodes'][number],
+) => {
+  const dx = node.dx;
+  const dy = node.dy;
+  const len = Math.max(34, Math.round(Math.sqrt(dx * dx + dy * dy)) - 28);
+  const angle = Math.atan2(dy, dx);
+  return {
+    left: cluster.x + 'rpx',
+    top: cluster.y + 'rpx',
+    width: len + 'rpx',
+    transform: `rotate(${angle}rad)`,
+  };
+};
+
+const extractNodeTime = (label?: string) => {
+  const match = String(label || '').match(/(?:19|20)\d{2}(?:\.\d{1,2})?/);
+  return match?.[0] || '';
+};
+
+const semanticClusterKey = (tag: UserProfileTag) => {
+  const label = cleanNodeLabel(tag.label);
+  if (/项目|实践|比赛|实习|工作|经历/.test(label)) return 'experience';
+  if (/课程|专业|学校|学院|本科|硕士|博士|排名/.test(label)) return 'education';
+  if (/学习|探索|准备|提升|训练|成长/.test(label)) return 'growth';
+  return String(tag.category || 'OTHER');
+};
+
+const bucketSortKey = (bucket: { key: string; tags: UserProfileTag[] }) => {
+  const time = bucket.tags.map((tag) => extractNodeTime(tag.label)).find(Boolean);
+  if (time) return `0-${time}`;
+  const first = bucket.tags[0];
+  const order: Record<string, number> = { BACKGROUND: 1, SKILL: 2, GROWTH: 3, GOAL: 4 };
+  return `1-${order[first?.category] || 9}-${bucket.key}`;
+};
+
+const dominantCategory = (tags: UserProfileTag[]) => {
+  const scores = new Map<string, number>();
+  for (const tag of tags) scores.set(tag.category, (scores.get(tag.category) || 0) + (tag.weight || 1));
+  return [...scores.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'GROWTH';
+};
+
+const clusterTimeLabel = (tags: UserProfileTag[]) => {
+  const years = [...new Set(tags.map((tag) => extractNodeTime(tag.label).slice(0, 4)).filter(Boolean))];
+  if (!years.length) return '';
+  if (years.length === 1) return years[0];
+  return `${years[0]}-${years[years.length - 1]}`;
+};
+
+const clusterTitle = (tags: UserProfileTag[]) => {
+  const time = clusterTimeLabel(tags);
+  if (time) return time;
+  const cat = dominantCategory(tags);
+  if (cat === 'BACKGROUND') return '背景';
+  if (cat === 'SKILL') return '技能';
+  if (cat === 'GROWTH') return '探索';
+  return '阶段';
+};
+const isGrowthKeyword = (label?: string) => {
+  const text = String(label || '').trim();
+  if (!text || text.length > 20) return false;
+  if (/^\d+$/.test(text)) return false;
+  // 纯年份/日期格式排除（如 "2020"、"2020.3"、"2021年"）
+  if (/^(?:19|20)\d{2}(?:[.年\-\/]\d{0,2})?[年月]?$/.test(text)) return false;
+  if (['用户', '目标', '岗位', '状态', '待补充', '简历状态', '简历匹配'].includes(text)) return false;
+  // 必须含有实际文字（中文2字以上或英文2字以上）
+  return /[A-Za-z]{2,}|[\u4e00-\u9fa5]{2,}|AI|UI|UX/.test(text);
+};
+
+// 去掉标签里的日期前缀，只保留有意义的文字部分
+const cleanNodeLabel = (label: string): string => {
+  return String(label || '').replace(/^(?:19|20)\d{2}(?:[.年\-\/]\d{0,2})?[年月]?\s*/, '').trim() || String(label || '').trim();
+};
 
 interface HomeTaskView {
   title: string;
@@ -487,25 +909,35 @@ const primaryTask = computed<HomeTaskView>(() => {
   }
 
   const snap = profileSnapshot.value;
-  if (targetRoleLabel.value === '还未锁定目标岗位' || !snap?.assessment) {
+  const onboarding = onboardingProfile.value || {};
+  if (onboarding.priorityHelp === 'plan' || onboarding.painPoint === 'no_plan') {
+    return {
+      title: '先生成一份本周求职行动表',
+      desc: '把你的目标、时间线和每周投入拆成可执行任务，避免只收藏资料不推进。',
+      outcome: '本周重点 + 今日任务 + 后续行动顺序',
+      cta: '查看计划',
+      target: '/pages/agent/index',
+    };
+  }
+  if (targetRoleLabel.value === '还未锁定目标岗位' || onboarding.priorityHelp === 'direction' || onboarding.painPoint === 'direction_unclear' || !snap?.assessment) {
     return {
       title: '先完成一次职业测评',
-      desc: '用测评结果建立第一份职业画像，并得到可选择的目标岗位。',
+      desc: '用测评结果建立第一份职业画像，并把模糊方向收敛到可准备的岗位。',
       outcome: '目标方向 + 推荐岗位 + 下一步准备建议',
       cta: '开始测评',
       target: '/pages/assessment/index',
     };
   }
-  if (!snap?.resume) {
+  if (!snap?.resume || onboarding.priorityHelp === 'resume' || ['resume_weak', 'project_lacking'].includes(onboarding.painPoint)) {
     return {
       title: `为「${targetRoleLabel.value}」准备简历`,
-      desc: '上传或创建简历，再用目标 JD 做匹配诊断。',
-      outcome: '简历匹配分数 + 可修改建议',
+      desc: '上传或创建简历，再用目标岗位做匹配诊断，优先补经历证据和关键词。',
+      outcome: '简历匹配分数 + 项目/关键词修改建议',
       cta: '匹配诊断',
       target: '/pages/resume-ai/index',
     };
   }
-  if (!snap?.interview) {
+  if (!snap?.interview || onboarding.priorityHelp === 'interview' || onboarding.painPoint === 'interview_anxiety') {
     return {
       title: `练一次「${targetRoleLabel.value}」模拟面试`,
       desc: '用目标岗位做一次 10 分钟练习，找到真实表达短板。',
@@ -604,18 +1036,6 @@ const filteredVideos = computed(() => filterBySearch(videos.value));
 const filteredArticles = computed(() => filterBySearch(articles.value));
 const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
-/**
- * Local fallback covers guarantee that article cards always have an image,
- * even when remote URLs expire (e.g. seeded 3rd-party links returning 404).
- */
-const ARTICLE_FALLBACK_COVERS = [
-  '/static/logo.png',
-];
-const articleImageStageMap = ref<Record<number, number>>({});
-
-const fallbackByIndex = (idx: number) =>
-  ARTICLE_FALLBACK_COVERS[Math.abs(idx) % ARTICLE_FALLBACK_COVERS.length];
-
 const extractOrigin = (raw?: string): string => {
   const match = raw?.match(/^https?:\/\/[^/]+/i);
   return match?.[0] || '';
@@ -636,57 +1056,27 @@ const articleSourceText = (a: HomeArticle): string => {
   ].filter(Boolean).join(' ').toLowerCase();
 };
 
-const ARTICLE_SOURCE_ICON_RULES: Array<[RegExp, string]> = [
-  [/linkedin/, 'ri-linkedin-box-fill'],
-  [/github/, 'ri-github-fill'],
-  [/zhihu|知乎/, 'ri-zhihu-line'],
-  [/wechat|weixin|微信|公众号/, 'ri-wechat-fill'],
-  [/medium/, 'ri-medium-fill'],
-  [/youtube|youtu\.be/, 'ri-youtube-fill'],
-  [/bilibili|b23\.tv|哔哩|b站/, 'ri-bilibili-fill'],
-  [/twitter|x\.com/, 'ri-twitter-x-fill'],
-  [/google/, 'ri-google-fill'],
-  [/microsoft|linkedin/, 'ri-microsoft-fill'],
-  [/apple/, 'ri-apple-fill'],
-  [/stack\s*overflow|stackoverflow/, 'ri-stack-overflow-fill'],
-  [/reddit/, 'ri-reddit-fill'],
-];
+const articleTopicText = (a: HomeArticle): string =>
+  [a.title, a.summary, a.category, articleSourceText(a)].filter(Boolean).join(' ').toLowerCase();
 
-const articleSourceRemixIcon = (a: HomeArticle): string => {
-  const sourceText = articleSourceText(a);
-  if (!sourceText) return '';
-  return ARTICLE_SOURCE_ICON_RULES.find(([rule]) => rule.test(sourceText))?.[1] || '';
+const articleCoverMeta = (a: HomeArticle) => {
+  const text = articleTopicText(a);
+  if (/简历|resume|cv/.test(text)) return { label: '简历', icon: 'ri-file-text-line', tone: 'resume' };
+  if (/面试|interview|mock/.test(text)) return { label: '面试', icon: 'ri-mic-2-line', tone: 'interview' };
+  if (/规划|职业|career|方向/.test(text)) return { label: '规划', icon: 'ri-compass-3-line', tone: 'career' };
+  if (/编程|代码|开发|java|python|前端|后端|算法|coding|developer/.test(text)) return { label: '编程', icon: 'ri-code-s-slash-line', tone: 'code' };
+  if (/数据|分析|bi|sql|算法|趋势|data|analytics/.test(text)) return { label: '数据', icon: 'ri-bar-chart-box-line', tone: 'data' };
+  if (/就业|校招|招聘|岗位|offer|趋势|employment/.test(text)) return { label: '就业', icon: 'ri-building-4-line', tone: 'employment' };
+  if (/沟通|表达|汇报|presentation|communication/.test(text)) return { label: '表达', icon: 'ri-chat-voice-line', tone: 'comm' };
+  return { label: '学习', icon: 'ri-graduation-cap-line', tone: 'default' };
 };
 
-const articleSourceIconSrc = (a: HomeArticle): string => {
-  if (a.sourceIconUrl) return a.sourceIconUrl;
-  const origin = extractOrigin(a.sourceUrl || a.url);
-  return origin ? `${origin}/favicon.ico` : '';
-};
+const articleCoverClass = (a: HomeArticle, idx: number): string =>
+  `cover-topic-${articleCoverMeta(a).tone} cover-tone-${idx % 4}`;
 
-const articleThumbnailSrc = (a: HomeArticle): string => {
-  if (a.thumbnailUrl) return a.thumbnailUrl;
-  if (a.imageUrl) return a.imageUrl;
-  if (a.sourceUrl) return `${API_BASE_URL}/api/homepage/articles/${a.id}/cover`;
-  return '';
-};
+const articleCoverIcon = (a: HomeArticle): string => articleCoverMeta(a).icon;
 
-const articleImageSrc = (a: HomeArticle, idx: number): string => {
-  const stage = articleImageStageMap.value[a.id] || 0;
-  const sourceIcon = articleSourceIconSrc(a);
-  const thumbnail = articleThumbnailSrc(a);
-  if (stage <= 0 && sourceIcon) return sourceIcon;
-  if (stage <= 1 && thumbnail) return thumbnail;
-  return fallbackByIndex(idx);
-};
-
-const articleImageMode = (a: HomeArticle): 'aspectFill' | 'aspectFit' => {
-  return (articleImageStageMap.value[a.id] || 0) === 0 && !!articleSourceIconSrc(a) ? 'aspectFit' : 'aspectFill';
-};
-
-const onArticleImageError = (id: number) => {
-  articleImageStageMap.value[id] = Math.min((articleImageStageMap.value[id] || 0) + 1, 2);
-};
+const articleCoverLabel = (a: HomeArticle): string => articleCoverMeta(a).label;
 
 const filteredConsultations = computed(() => {
   if (!searchQuery.value) return consultations.value;
@@ -829,12 +1219,30 @@ const loadProfileSnapshot = async () => {
   }
 };
 
+const loadLocalOnboarding = () => {
+  localOnboardingSetup.value = readStoredOnboardingSetup();
+};
+
+const loadProfileTags = async () => {
+  const uid = Number(uni.getStorageSync('userId'));
+  if (!uid || uid <= 0) {
+    profileTags.value = [];
+    return;
+  }
+  try {
+    const summary = await getProfileTagsApi();
+    profileTags.value = summary.tags || [];
+  } catch {
+    profileTags.value = [];
+  }
+};
+
 const completeAgentTask = async (taskId: number) => {
   try {
     await completeAgentTaskApi(taskId);
     agentTasks.value = agentTasks.value.filter((task) => task.taskId !== taskId);
     uni.showToast({ title: '已完成，下一步已更新', icon: 'success' });
-    await Promise.allSettled([loadAgentToday(), loadProfileSnapshot(), loadCheckin()]);
+    await Promise.allSettled([loadAgentToday(), loadProfileSnapshot(), loadProfileTags(), loadCheckin()]);
   } catch {
     uni.showToast({ title: t('common.failed'), icon: 'none' });
   }
@@ -850,7 +1258,58 @@ const dismissAgentTask = async (taskId: number) => {
   }
 };
 
+const profileSignature = () => JSON.stringify({
+  snapshot: profileSnapshot.value,
+  tags: profileTags.value.map((tag) => `${tag.category}:${tag.label}:${tag.weight}`).sort(),
+  profile: agentProfile.value,
+  today: agentToday.value,
+});
+
+const calibrationDoneTitle = computed(() => calibrationHadChange.value ? '已根据最新信息更新画像' : '当前画像已是最新');
+const calibrationDoneDesc = computed(() => calibrationHadChange.value
+  ? '首页画像、准备度、成长树和今日任务已经同步刷新。'
+  : '暂时没有发现新的测评、简历、面试或行动记录。');
+
+const startProfileCalibration = async () => {
+  if (calibrating.value) return;
+  const before = profileSignature();
+  calibrating.value = true;
+  calibrationDone.value = false;
+  calibrationHadChange.value = false;
+  try {
+    const results = await Promise.allSettled([
+      refreshAgentProfileApi(),
+      refreshProfileTagsApi(),
+      getCdutEmploymentInsightApi(),
+    ]);
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if ('tags' in (result.value as any)) profileTags.value = (result.value as any).tags || [];
+        if ('target' in (result.value as any)) agentProfile.value = result.value as AgentUserProfile;
+        if ('school' in (result.value as any)) cdutInsight.value = result.value as CdutEmploymentInsight;
+      }
+    }
+    await Promise.allSettled([loadAgentToday(), loadProfileSnapshot(), loadProfileTags(), loadCheckin(), loadCdutInsight()]);
+    calibrationHadChange.value = before !== profileSignature();
+  } catch {
+    calibrationHadChange.value = false;
+  } finally {
+    calibrationDone.value = true;
+  }
+};
+
+const closeCalibration = () => {
+  calibrating.value = false;
+  calibrationDone.value = false;
+};
+
+const editBasicProfile = () => {
+  closeCalibration();
+  navTo('/pages/onboarding/index');
+};
+
 const syncUserFromStorage = () => {
+  homeUserId.value = String(uni.getStorageSync('userId') || '');
   const info = uni.getStorageSync('userInfo');
   userInfo.value = info
     ? { avatarUrl: '', avatarViewUrl: '', nickname: '', ...info }
@@ -860,6 +1319,7 @@ const syncUserFromStorage = () => {
 onMounted(() => {
   syncUserFromStorage();
   refreshTheme();
+  loadLocalOnboarding();
   const safeMetrics = getMpSafeAreaMetrics();
   topSafeHeight.value = safeMetrics.topSafeHeight;
   rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
@@ -867,17 +1327,20 @@ onMounted(() => {
   loadCheckin();
   loadCdutInsight();
   loadAgentToday();
+  loadProfileTags();
   loadProfileSnapshot();
 });
 
 onShow(() => {
   syncUserFromStorage();
   refreshTheme();
+  loadLocalOnboarding();
   // Refresh streak on tab return so finishing an interview/assessment
   // immediately bumps the chip without requiring a pull-to-refresh.
   loadCheckin();
   loadCdutInsight();
   loadAgentToday();
+  loadProfileTags();
   loadProfileSnapshot();
 });
 
@@ -890,7 +1353,8 @@ onPullDownRefresh(async () => {
     // We deliberately do NOT await this — a 429 rate-limit or network
     // hiccup must never prevent the local content from reloading.
     refreshHomeContentApi(uid).catch(() => {/* rate-limited or offline, ignore */});
-    await Promise.all([loadHomeContent(), loadCheckin(), loadCdutInsight(), loadAgentToday(), loadProfileSnapshot()]);
+    loadLocalOnboarding();
+    await Promise.all([loadHomeContent(), loadCheckin(), loadCdutInsight(), loadAgentToday(), loadProfileTags(), loadProfileSnapshot()]);
     uni.showToast({ title: t('common.refreshed'), icon: 'success' });
   } catch {
     uni.showToast({ title: t('common.refreshFailed'), icon: 'none' });
@@ -1092,6 +1556,273 @@ const handleAvatarClick = () => {
   font-weight: 700;
   color: var(--text-primary, #0f172a);
 }
+.readiness-dims {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px 12px;
+}
+.readiness-dim {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px 1fr 26px;
+  align-items: center;
+  gap: 8px;
+}
+.readiness-dim-label,
+.readiness-dim-val {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--text-secondary, #64748b);
+}
+.readiness-dim-val { text-align: right; color: var(--text-primary, #0f172a); }
+.readiness-dim-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3, #e2e8f0);
+}
+.readiness-dim-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+.score-rule {
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-tertiary, #8e8e93);
+}
+
+.intake-card {
+  margin: 14px 20px 0;
+  padding: 16px;
+  border-radius: 18px;
+}
+.intake-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.intake-item {
+  min-width: 0;
+  padding: 10px 11px;
+  border-radius: 13px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.intake-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 900;
+  color: var(--text-tertiary, #8e8e93);
+  margin-bottom: 5px;
+}
+.intake-value {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.growth-tree-card {
+  margin: 14px 20px 0;
+  padding: 14px 0 14px 16px;
+  overflow: hidden;
+}
+.growth-tree-scroll {
+  width: 100%;
+  height: 250rpx;
+  margin-top: 4rpx;
+}
+.growth-tree-empty {
+  margin: 12rpx 16rpx 2rpx 0;
+  height: 156rpx;
+  border: 1rpx dashed rgba(37,99,235,.24);
+  border-radius: 18rpx;
+  background: var(--surface-2, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+}
+.growth-tree-empty-title {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.growth-tree-empty-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ══ Growth Tree (gtree-*) ══ */
+.gtree-canvas {
+  position: relative;
+  height: 238rpx;
+  min-width: 1040rpx;
+}
+/* 斜线连接器 */
+.gtree-connector {
+  position: absolute;
+  height: 3rpx;
+  background: linear-gradient(to right, rgba(37,99,235,.30), rgba(37,99,235,.14));
+  border-radius: 2rpx;
+  transform-origin: left center;
+  z-index: 0;
+}
+.gtree-connector.is-arc {
+  height: 22rpx;
+  background: transparent;
+  border-top: 3rpx solid rgba(37,99,235,.22);
+  border-radius: 999rpx 999rpx 0 0;
+}
+/* 根节点 */
+.gtree-root {
+  position: absolute;
+  left: 8rpx;
+  top: 72rpx;
+  width: 164rpx;
+  height: 80rpx;
+  border-radius: 26rpx;
+  padding: 14rpx 16rpx;
+  background: linear-gradient(135deg, #0f766e 0%, #3b82f6 100%);
+  box-shadow: 0 10rpx 26rpx rgba(37, 99, 235, .22);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 3;
+}
+.gtree-cluster-hub {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 82rpx;
+  height: 58rpx;
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(37,99,235,.16);
+  box-shadow: 0 8rpx 18rpx rgba(15,23,42,.08);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gtree-cluster-title {
+  display: block;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+  max-width: 70rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gtree-cluster-time {
+  display: block;
+  margin-top: 2rpx;
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(37,99,235,.62);
+}
+.gtree-root-name {
+  display: block; font-size: 13px; font-weight: 900; color: #fff;
+  line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gtree-root-sub {
+  display: block; margin-top: 4rpx; font-size: 9px; font-weight: 700; color: rgba(255,255,255,.68);
+}
+/* 泳道节点 */
+.gtree-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 18rpx;
+  padding: 7rpx 12rpx;
+  box-sizing: border-box;
+  max-width: 132rpx;
+  min-width: 62rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  border: 2rpx solid rgba(148,163,184,.30);
+  background: #ffffff;
+  box-shadow: 0 5rpx 14rpx rgba(15,23,42,.08);
+}
+.gtree-node-label {
+  display: block; font-size: 10px; font-weight: 800;
+  color: var(--text-primary, #0f172a); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 106rpx;
+}
+.gtree-node-time {
+  display: block; font-size: 8px; font-weight: 600; margin-top: 2rpx;
+  color: rgba(37,99,235,.60); text-align: center;
+}
+.gtree-branch {
+  position: absolute;
+  height: 2rpx;
+  border-top: 2rpx solid rgba(37,99,235,.16);
+  border-radius: 999rpx;
+  transform-origin: left center;
+  z-index: 1;
+}
+/* 簇内垂直连线 */
+.gtree-vline-cluster {
+  position: absolute;
+  width: 3rpx;
+  background: rgba(37,99,235,.18);
+  border-radius: 2rpx;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+/* 年份标签 */
+.gtree-year-chip {
+  position: absolute;
+  transform: translateX(-50%);
+  background: rgba(37,99,235,.09);
+  border-radius: 10rpx;
+  padding: 3rpx 10rpx;
+  z-index: 2;
+}
+.gtree-year-text { display: block; font-size: 9px; font-weight: 800; color: #2563eb; }
+/* 分类色 */
+.gtree-cat-skill      { border-color: #86efac !important; background: #f0fdf4 !important; }
+.gtree-cat-background { border-color: #93c5fd !important; background: #eff6ff !important; }
+.gtree-cat-growth     { border-color: #fcd34d !important; background: #fffbeb !important; }
+.gtree-cat-goal       { border-color: #c4b5fd !important; background: #f5f3ff !important; }
+/* 目标节点 */
+.gtree-target {
+  position: absolute;
+  top: 72rpx;
+  width: 160rpx;
+  min-height: 80rpx;
+  border-left: 4rpx dashed rgba(37,99,235,.30);
+  padding: 14rpx 16rpx;
+  box-sizing: border-box;
+  z-index: 2;
+}
+.gtree-target-label {
+  display: block; font-size: 9px; font-weight: 800; letter-spacing: .06em; color: var(--text-secondary, #64748b);
+}
+.gtree-target-title {
+  display: block; margin-top: 8rpx; font-size: 14px; line-height: 1.3;
+  font-weight: 900; color: var(--primary-color, #2563eb);
+  overflow: hidden; text-overflow: ellipsis;
+}
 
 .today-card {
   margin: 14px 20px 0;
@@ -1128,6 +1859,8 @@ const handleAvatarClick = () => {
   line-height: 1.3;
   font-weight: 900;
   color: #ffffff;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .today-desc {
   display: block;
@@ -1135,6 +1868,8 @@ const handleAvatarClick = () => {
   font-size: 13px;
   line-height: 1.55;
   color: #cbd5e1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .today-result {
   margin-top: 14px;
@@ -1224,8 +1959,11 @@ const handleAvatarClick = () => {
   border-radius: 18px;
 }
 .section-lite-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.section-title-stack { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .section-lite-title { font-size: 16px; font-weight: 900; color: var(--text-primary, #0f172a); }
+.section-lite-sub { font-size: 11px; line-height: 1.35; color: var(--text-tertiary, #8e8e93); }
 .section-lite-action { font-size: 12px; font-weight: 800; color: var(--primary-color, #2563eb); }
+.compact-card { padding-top: 14px; padding-bottom: 14px; }
 .progress-list { display: flex; flex-direction: column; gap: 8px; }
 .progress-item {
   min-height: 48px;
@@ -1356,7 +2094,7 @@ const handleAvatarClick = () => {
 .agent-icon { font-size: 21px; color: var(--primary-color, #2563eb); }
 .agent-head-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .agent-kicker { font-size: 10px; font-weight: 800; color: var(--primary-color, #2563eb); letter-spacing: 0.08em; text-transform: uppercase; }
-.agent-title { font-size: 17px; line-height: 1.25; font-weight: 900; color: var(--text-primary, #0f172a); }
+.agent-title { font-size: 17px; line-height: 1.25; font-weight: 900; color: var(--text-primary, #0f172a); overflow-wrap: anywhere; word-break: break-word; }
 .risk-pill { border-radius: 999px; padding: 5px 8px; background: var(--surface-3, #f1f5f9); flex-shrink: 0; }
 .risk-high { background: #fee2e2; }
 .risk-medium { background: #fef3c7; }
@@ -1657,6 +2395,50 @@ const handleAvatarClick = () => {
   border-radius: 12px; overflow: hidden;
   background: var(--surface-2, #f8fafc);
 }
+.article-cover-art {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 10px;
+  box-sizing: border-box;
+  color: #ffffff;
+}
+.article-cover-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,0.95) 0 2px, transparent 2px 16px),
+    radial-gradient(circle at 76% 18%, rgba(255,255,255,0.9) 0 18px, transparent 19px);
+}
+.article-cover-icon,
+.article-cover-label {
+  position: relative;
+  z-index: 1;
+}
+.article-cover-icon {
+  font-size: 27px;
+  line-height: 1;
+  margin-bottom: 9px;
+}
+.article-cover-label {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.22);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+.cover-topic-resume { background: linear-gradient(135deg, #2563eb, #0f766e); }
+.cover-topic-interview { background: linear-gradient(135deg, #dc2626, #f97316); }
+.cover-topic-career { background: linear-gradient(135deg, #4f46e5, #0891b2); }
+.cover-topic-code { background: linear-gradient(135deg, #0f172a, #2563eb); }
+.cover-topic-data { background: linear-gradient(135deg, #0f766e, #65a30d); }
+.cover-topic-employment { background: linear-gradient(135deg, #7c2d12, #ea580c); }
+.cover-topic-comm { background: linear-gradient(135deg, #be185d, #7c3aed); }
+.cover-topic-default { background: linear-gradient(135deg, #334155, #64748b); }
 .article-source-icon {
   width: 100%;
   height: 100%;
@@ -1732,6 +2514,114 @@ const handleAvatarClick = () => {
   border-radius: var(--radius-sm, 12px); height: 40px; line-height: 40px; border: none; width: 140px;
 }
 .bottom-safe { height: calc(var(--tab-bar-height, 50px) + 20px); }
+
+.calibration-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+.calibration-panel {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 18px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+}
+.calibration-orbit {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 18px;
+}
+.calibration-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #0f766e);
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.28);
+}
+.calibration-core-icon { font-size: 28px; color: #fff; }
+.calibration-signal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  margin-left: -19px;
+  margin-top: -19px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  animation: signalGather 1.8s ease-in-out infinite;
+}
+.calibration-signal text { font-size: 18px; }
+.signal-assessment { --sx: -64px; --sy: -58px; animation-delay: 0s; }
+.signal-resume { --sx: 58px; --sy: -62px; animation-delay: .1s; }
+.signal-interview { --sx: 72px; --sy: 14px; animation-delay: .2s; }
+.signal-checkin { --sx: 36px; --sy: 70px; animation-delay: .3s; }
+.signal-employment { --sx: -58px; --sy: 56px; animation-delay: .4s; }
+.signal-tags { --sx: -78px; --sy: 0px; animation-delay: .5s; }
+@keyframes signalGather {
+  0% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: .95; }
+  58% { transform: translate(0, 0) scale(.72); opacity: .42; }
+  100% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: .95; }
+}
+.calibration-title {
+  display: block;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.calibration-desc {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary, #64748b);
+}
+.calibration-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+.calibration-primary,
+.calibration-secondary {
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.calibration-primary { background: var(--primary-color, #2563eb); }
+.calibration-secondary {
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.calibration-primary-text,
+.calibration-secondary-text { font-size: 13px; font-weight: 900; }
+.calibration-primary-text { color: #fff; }
+.calibration-secondary-text { color: var(--text-secondary, #64748b); }
 
 /* ---- Dark Mode ---- */
 .is-dark { background-color: var(--text-primary, #0f172a); }

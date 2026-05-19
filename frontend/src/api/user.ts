@@ -174,6 +174,19 @@ export interface UserProfileSnapshot {
     identityType?: 'student' | 'new_graduate' | 'internship_seeker' | 'career_switcher' | string;
     /** User self-reported resume state from onboarding, not proof that a resume exists in the system. */
     hasResume?: 'yes' | 'no' | 'unsure' | string;
+    stage?: string;
+    painPoint?: string;
+    resumeStatus?: string;
+    timeline?: string;
+    education?: {
+      school?: string;
+      major?: string;
+      degree?: string;
+      graduationYear?: string;
+    };
+    weeklyAvailability?: string;
+    priorityHelp?: string;
+    recommendedEntry?: string;
     onboardingCompletedAt?: string;
   } | null;
 }
@@ -205,6 +218,19 @@ export interface UpdateOnboardingDTO {
   identityType?: 'student' | 'new_graduate' | 'internship_seeker' | 'career_switcher' | string;
   /** User self-reported resume state from onboarding, not proof that a resume exists in the system. */
   hasResume?: 'yes' | 'no' | 'unsure' | string;
+  stage?: string;
+  painPoint?: string;
+  resumeStatus?: string;
+  timeline?: string;
+  education?: {
+    school?: string;
+    major?: string;
+    degree?: string;
+    graduationYear?: string;
+  };
+  weeklyAvailability?: string;
+  priorityHelp?: string;
+  recommendedEntry?: string;
   onboardingCompletedAt?: string;
   /** Persisted server-side into preferences.targetRole. */
   targetRole?: string;

@@ -45,6 +45,14 @@
                 <text class="rc-badge-text">{{ item.statusLabel }}</text>
               </view>
             </view>
+            <view v-if="item.keywords.length" class="keyword-row">
+              <text
+                v-for="kw in item.keywords"
+                :key="kw"
+                class="keyword-pill"
+              >{{ kw }}</text>
+            </view>
+            <text v-else class="keyword-empty" @click="retryResumeKeywords(item)">{{ keywordStatusText(item) }}</text>
           </view>
           <view class="rc-actions">
             <view class="rc-action-btn" @click="handlePreview(item)">
@@ -90,6 +98,14 @@
                 <text class="rc-badge-text">{{ t('resume.tailoredResumes') }}</text>
               </view>
             </view>
+            <view v-if="item.keywords.length" class="keyword-row">
+              <text
+                v-for="kw in item.keywords"
+                :key="kw"
+                class="keyword-pill"
+              >{{ kw }}</text>
+            </view>
+            <text v-else class="keyword-empty" @click="retryResumeKeywords(item)">{{ keywordStatusText(item) }}</text>
           </view>
           <view class="rc-actions">
             <view class="rc-action-btn" @click="handlePreview(item)">
@@ -159,6 +175,13 @@ import {
 } from '@/api/resume';
 import { useTheme } from '@/utils/theme';
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
+import {
+  getResumeKeywordStatusApi,
+  startResumeKeywordExtractionApi,
+  type ResumeKeywordStatus,
+} from '@/api/profileTags';
+
+type KeywordStatus = 'idle' | 'loading' | 'done' | 'empty' | 'failed' | 'timeout';
 
 interface ResumeItem {
   resumeId?: number;
@@ -171,10 +194,13 @@ interface ResumeItem {
   /** Short-lived signed URL provided by the backend; safe to share / open. */
   fileViewUrl?: string;
   isTailored: boolean;
+  keywords: string[];
+  keywordStatus: KeywordStatus;
 }
 
 const resumeList = ref<ResumeItem[]>([]);
 const isLoading = ref(false);
+const keywordPollTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 const originalResumes = computed(() => resumeList.value.filter((r) => !r.isTailored));
 const tailoredResumes = computed(() => resumeList.value.filter((r) => r.isTailored));
@@ -202,7 +228,123 @@ const formatRelative = (ts?: string): string => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+const resumeKeywords = (resume: Resume): string[] => {
+  const raw = [
+    ...(resume.detail?.skills || []),
+    resume.targetJob,
+    resume.title,
+  ];
+  const seen = new Set<string>();
+  return raw
+    .flatMap((item) => splitKeywordText(String(item || '')))
+    .filter((kw) => {
+      const key = kw.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 6);
+};
+
+const splitKeywordText = (text: string): string[] => {
+  const terms = ['前端', '后端', '全栈', '算法', '数据', '产品', '运营', '设计', '测试', '开发', '工程师',
+    'Java', 'Python', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Spring', 'SpringBoot', 'Node',
+    'SQL', 'MySQL', 'Redis', 'Docker', 'Git', 'AI', 'UI', 'UX', '小程序', '项目', '实习', '面试'];
+  const out = new Set<string>();
+  terms.forEach((term) => {
+    if (text.toLowerCase().includes(term.toLowerCase())) out.add(term);
+  });
+  text.split(/[\s,，、。;；/|+()（）【】[\]{}:：]+/)
+    .map((part) => part.trim())
+    .filter((part) => /^[A-Za-z][A-Za-z0-9#.+-]{1,23}$/.test(part) || /^[\u4e00-\u9fa5]{2,8}$/.test(part))
+    .forEach((part) => out.add(part));
+  return Array.from(out).filter((kw) => !['目标', '岗位', '状态', '简历', '用户'].includes(kw));
+};
+
+const hydrateResumeKeywords = () => {
+  originalResumes.value.slice(0, 4).forEach((item) => {
+    if (item.resumeId && item.keywordStatus === 'idle') hydrateOneResumeKeywords(item.resumeId);
+  });
+};
+
+const mapKeywordStatus = (status?: string): KeywordStatus => {
+  if (status === 'READY') return 'done';
+  if (status === 'EMPTY') return 'empty';
+  if (status === 'FAILED') return 'failed';
+  if (status === 'PENDING' || status === 'PROCESSING') return 'loading';
+  return 'idle';
+};
+
+const applyResumeKeywordStatus = (resumeId: number, status: ResumeKeywordStatus) => {
+  const item = resumeList.value.find((resume) => resume.resumeId === resumeId);
+  if (!item) return;
+  const keywords = (status.keywords || []).map((tag) => tag.label).filter(Boolean).slice(0, 8);
+  item.keywords = keywords;
+  item.keywordStatus = keywords.length ? 'done' : mapKeywordStatus(status.status);
+};
+
+const clearKeywordPoll = (resumeId: number) => {
+  const timer = keywordPollTimers.get(resumeId);
+  if (timer) clearTimeout(timer);
+  keywordPollTimers.delete(resumeId);
+};
+
+const scheduleKeywordPoll = (resumeId: number, attempt = 0) => {
+  clearKeywordPoll(resumeId);
+  if (attempt >= 30) {
+    const item = resumeList.value.find((resume) => resume.resumeId === resumeId);
+    if (item && item.keywordStatus === 'loading') item.keywordStatus = 'timeout';
+    return;
+  }
+  const delay = attempt < 4 ? 1200 : 2500;
+  const timer = setTimeout(async () => {
+    try {
+      const status = await getResumeKeywordStatusApi(resumeId);
+      applyResumeKeywordStatus(resumeId, status);
+      const item = resumeList.value.find((resume) => resume.resumeId === resumeId);
+      if (item?.keywordStatus === 'loading') scheduleKeywordPoll(resumeId, attempt + 1);
+      else clearKeywordPoll(resumeId);
+    } catch {
+      const item = resumeList.value.find((resume) => resume.resumeId === resumeId);
+      if (item) item.keywordStatus = 'failed';
+      clearKeywordPoll(resumeId);
+    }
+  }, delay);
+  keywordPollTimers.set(resumeId, timer);
+};
+
+const hydrateOneResumeKeywords = async (resumeId: number, force = false) => {
+  const item = resumeList.value.find((resume) => resume.resumeId === resumeId);
+  if (!item) return;
+  if (!force && item.keywordStatus !== 'idle') return;
+  item.keywordStatus = 'loading';
+  try {
+    const status = await startResumeKeywordExtractionApi(resumeId, force);
+    applyResumeKeywordStatus(resumeId, status);
+    if (item.keywordStatus === 'loading') scheduleKeywordPoll(resumeId);
+  } catch {
+    item.keywordStatus = 'failed';
+  }
+};
+
+const keywordStatusText = (item: ResumeItem) => {
+  if (item.keywordStatus === 'loading') return '关键词后台提取中';
+  if (item.keywordStatus === 'timeout') return '提取较慢，点此重试';
+  if (item.keywordStatus === 'failed') return '提取失败，点此重试';
+  if (item.keywordStatus === 'empty') return '暂无可展示关键词';
+  return '等待提取关键词';
+};
+
+const retryResumeKeywords = (item: ResumeItem) => {
+  if (!item.resumeId || item.keywordStatus === 'loading') return;
+  clearKeywordPoll(item.resumeId);
+  item.keywords = [];
+  hydrateOneResumeKeywords(item.resumeId, true);
+};
+
 const loadResumes = async () => {
+  keywordPollTimers.forEach((timer) => clearTimeout(timer));
+  keywordPollTimers.clear();
   const userId = uni.getStorageSync('userId');
   const numericId = Number(userId);
   if (!userId || isNaN(numericId) || numericId <= 0) {
@@ -218,6 +360,7 @@ const loadResumes = async () => {
     const resumes: Resume[] = Array.isArray(raw) ? raw : [];
     resumeList.value = resumes.map((r: Resume) => {
       const title = r.title || r.fileUrl?.split('/').pop() || 'Untitled.pdf';
+      const localKeywords = resumeKeywords(r);
       return {
         resumeId: r.resumeId,
         name: title,
@@ -227,8 +370,11 @@ const loadResumes = async () => {
         fileUrl: r.fileUrl,
         fileViewUrl: r.fileViewUrl,
         isTailored: title.toLowerCase().includes('_tailored'),
+        keywords: localKeywords,
+        keywordStatus: localKeywords.length ? 'done' : 'idle',
       };
     });
+    hydrateResumeKeywords();
   } catch (e: any) {
     // Surface the actual error instead of silently showing an empty hub.
     // Common causes: stale token after a rebuild (signature mismatch),
@@ -316,7 +462,10 @@ const selectAction = (type: string) => {
             fileUrl: created.fileUrl,
             fileViewUrl: created.fileViewUrl,
             isTailored: false,
+            keywords: [],
+            keywordStatus: 'loading',
           });
+          if (created.resumeId) hydrateOneResumeKeywords(created.resumeId, true);
           uni.showToast({ title: t('resume.uploadSuccessful'), icon: 'success' });
         } catch (e: any) {
           uni.hideLoading();
@@ -340,7 +489,7 @@ const handlePreview = (item: ResumeItem) => {
   // Use authenticated backend proxy instead of the raw OSS URL.
   // This avoids the WeChat mini-program domain whitelist requirement
   // and enforces owner-only access on the server side.
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.careerloop.top';
   const token = uni.getStorageSync('token');
   uni.showLoading({ title: t('resume.opening') });
   uni.downloadFile({
@@ -611,6 +760,34 @@ onPageScroll(({ scrollTop }) => {
 
 .rc-time { font-size: 12px; color: var(--text-tertiary, #8e8e93); }
 
+.keyword-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  margin-top: 8rpx;
+}
+
+.keyword-pill {
+  max-width: 116rpx;
+  padding: 3rpx 9rpx;
+  border-radius: 999rpx;
+  background: var(--surface-3, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keyword-empty {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 10px;
+  color: var(--text-tertiary, #8e8e93);
+}
+
 .rc-badge { padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
 
 .badge-recent { background: var(--primary-soft, #eff6ff); }
@@ -880,6 +1057,11 @@ onPageScroll(({ scrollTop }) => {
 
 .resume-page.is-dark .rc-icon-text {
   color: #f8fafc;
+}
+
+.resume-page.is-dark .keyword-pill {
+  background: #334155;
+  color: #cbd5e1;
 }
 
 .resume-page.is-dark .badge-recent {

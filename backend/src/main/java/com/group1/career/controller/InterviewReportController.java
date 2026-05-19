@@ -54,6 +54,9 @@ public class InterviewReportController {
         if (interview.getReportJson() != null && !interview.getReportJson().isBlank()) {
             try {
                 InterviewReportDto cached = objectMapper.readValue(interview.getReportJson(), InterviewReportDto.class);
+                if (cached.getMode() == null || cached.getMode().isBlank()) {
+                    cached.setMode(interview.getMode());
+                }
                 return Result.success(cached);
             } catch (JsonProcessingException e) {
                 log.warn("Cached report JSON for interview {} is corrupt; regenerating", interviewId, e);
@@ -92,6 +95,7 @@ public class InterviewReportController {
         BodyLanguageService.Aggregate body = bodyLanguageService.consume(interviewId);
         if (body != null && body.getFrames() > 0) {
             report.getRadarChart().setBodyLanguage(body.getBodyLanguage());
+            report.setBodyLanguageAnalysis(toBodyLanguageAnalysis(body));
             // Recompute overallScore so the 6th dimension actually shifts
             // the headline number — otherwise body-language work feels
             // unrewarded.
@@ -114,8 +118,8 @@ public class InterviewReportController {
 
     // ============================================================
     private String buildEvaluationPrompt(String position, String difficulty, String transcript) {
-        return "You are a senior hiring manager. Evaluate the candidate based ONLY on the transcript " +
-               "below. Return STRICT JSON (no markdown, no prose) matching this exact shape:\n" +
+        return "你是一名资深招聘面试官。请只根据下面的面试记录评估候选人，不要引入记录之外的信息。 " +
+               "所有文本内容必须使用简体中文。返回严格 JSON，不要 Markdown，不要额外解释，结构如下：\n" +
                "{\n" +
                "  \"overallScore\": <int 0-100>,\n" +
                "  \"radarChart\": {\n" +
@@ -125,14 +129,13 @@ public class InterviewReportController {
                "    \"pressureResistance\": <int 0-100>,\n" +
                "    \"communication\": <int 0-100>\n" +
                "  },\n" +
-               "  \"strengths\": [ {\"title\": \"...\", \"detail\": \"...\"} ],\n" +
-               "  \"improvements\": [ {\"title\": \"...\", \"detail\": \"...\"} ],\n" +
-               "  \"summary\": \"2-3 sentence overall verdict.\"\n" +
+               "  \"strengths\": [ {\"title\": \"中文优势标题\", \"detail\": \"中文证据说明\"} ],\n" +
+               "  \"improvements\": [ {\"title\": \"中文改进标题\", \"detail\": \"中文改进建议\"} ],\n" +
+               "  \"summary\": \"2-3 句中文总体结论。\"\n" +
                "}\n\n" +
-               "Provide 1-3 strengths and 1-3 improvements. Be specific and reference what " +
-               "the candidate actually said. Keep each detail under 200 characters.\n\n" +
-               "=== Position ===\n" + position + " (difficulty: " + difficulty + ")\n\n" +
-               "=== Transcript ===\n" + transcript;
+               "请给出 1-3 条优势和 1-3 条改进建议。每条 detail 要引用候选人实际表达中的证据，控制在 200 个汉字以内。\n\n" +
+               "=== 岗位 ===\n" + position + "（难度：" + difficulty + "）\n\n" +
+               "=== 面试记录 ===\n" + transcript;
     }
 
     private InterviewReportDto parseReport(String raw, Long interviewId, Interview interview, int userTurns) {
@@ -168,6 +171,7 @@ public class InterviewReportController {
                     .interviewId(interviewId)
                     .positionName(interview.getPositionName())
                     .difficulty(interview.getDifficulty())
+                    .mode(interview.getMode())
                     .durationSeconds(interview.getDurationSeconds())
                     .overallScore(Math.max(0, Math.min(100, overall)))
                     .totalQuestions(userTurns)
@@ -202,6 +206,26 @@ public class InterviewReportController {
         return out;
     }
 
+    private BodyLanguageAnalysis toBodyLanguageAnalysis(BodyLanguageService.Aggregate body) {
+        return BodyLanguageAnalysis.builder()
+                .eyeContact(body.getEyeContact())
+                .expression(body.getExpression())
+                .posture(body.getPosture())
+                .bodyLanguage(body.getBodyLanguage())
+                .averageConfidence(body.getAverageConfidence())
+                .frames(body.getFrames())
+                .summary(buildBodySummary(body))
+                .build();
+    }
+
+    private String buildBodySummary(BodyLanguageService.Aggregate body) {
+        int score = body.getBodyLanguage();
+        if (score >= 85) return "行为表现稳定，眼神、表情和坐姿整体传递出较强的投入感。";
+        if (score >= 70) return "行为表现基本稳定，建议继续保持镜头视线和坐姿一致性。";
+        if (score >= 55) return "行为表现有一定波动，建议减少低头、晃动和表情空白时间。";
+        return "行为表现信号偏弱，建议练习看向镜头、保持坐姿稳定，并用自然表情回应问题。";
+    }
+
     // ================= DTO Classes =================
 
     @Data @Builder @AllArgsConstructor @NoArgsConstructor
@@ -209,10 +233,12 @@ public class InterviewReportController {
         private Long interviewId;
         private String positionName;
         private String difficulty;
+        private String mode;
         private Integer durationSeconds;
         private int overallScore;
         private int totalQuestions;
         private RadarChartData radarChart;
+        private BodyLanguageAnalysis bodyLanguageAnalysis;
         private List<AdviceItem> strengths;
         private List<AdviceItem> improvements;
         private String textSummary;
@@ -234,5 +260,16 @@ public class InterviewReportController {
     public static class AdviceItem {
         private String title;
         private String detail;
+    }
+
+    @Data @Builder @AllArgsConstructor @NoArgsConstructor
+    public static class BodyLanguageAnalysis {
+        private int eyeContact;
+        private int expression;
+        private int posture;
+        private int bodyLanguage;
+        private double averageConfidence;
+        private int frames;
+        private String summary;
     }
 }

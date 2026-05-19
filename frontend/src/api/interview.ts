@@ -50,7 +50,7 @@ export const startInterviewApi = (data: {
 /**
  * Send message in interview (get AI response)
  */
-export const sendInterviewMessageApi = (interviewId: number, content: string, language = 'en') => {
+export const sendInterviewMessageApi = (interviewId: number, content: string, language = 'zh') => {
   return request<MessageResponse>({
     url: `/api/interviews/${interviewId}/message`,
     method: 'POST',
@@ -83,7 +83,7 @@ export const endInterviewApi = (interviewId: number) => {
  * Trigger the AI interviewer's opening question. Idempotent: returns the
  * existing first message if the conversation is non-empty.
  */
-export const generateGreetingApi = (interviewId: number, language = 'en') => {
+export const generateGreetingApi = (interviewId: number, language = 'zh') => {
   return request<InterviewMessage>({
     url: `/api/interviews/${interviewId}/greeting`,
     method: 'POST',
@@ -122,7 +122,7 @@ export interface VoiceTurnResponse {
  * question and return a freshly synthesized audio URL. Safe to call on
  * every entry to room.vue.
  */
-export const voiceGreetingApi = (interviewId: number, language = 'en') => {
+export const voiceGreetingApi = (interviewId: number, language = 'zh') => {
   return request<VoiceTurnResponse>({
     url: `/api/interviews/${interviewId}/voice-greeting`,
     method: 'POST',
@@ -143,7 +143,7 @@ export const voiceTurnApi = (
   interviewId: number,
   filePath: string,
   format: 'mp3' | 'aac' | 'wav' = 'mp3',
-  language = 'en'
+  language = 'zh'
 ): Promise<VoiceTurnResponse> => {
   return uploadFileRequest<VoiceTurnResponse>({
     url: `/api/interviews/${interviewId}/voice-turn`,
@@ -175,10 +175,20 @@ export interface InterviewReport {
   interviewId: number;
   positionName: string;
   difficulty: string;
+  mode?: 'TEXT' | 'VOICE' | string;
   durationSeconds?: number;
   overallScore: number;
   totalQuestions: number;
   radarChart: RadarChartData;
+  bodyLanguageAnalysis?: {
+    eyeContact: number;
+    expression: number;
+    posture: number;
+    bodyLanguage: number;
+    averageConfidence: number;
+    frames: number;
+    summary: string;
+  };
   strengths: AdviceItem[];
   improvements: AdviceItem[];
   textSummary: string;
@@ -213,6 +223,13 @@ export const getInterviewByIdApi = (interviewId: number) => {
   return request<Interview>({
     url: `/api/interviews/${interviewId}`,
     method: 'GET',
+  });
+};
+
+export const deleteInterviewApi = (interviewId: number) => {
+  return request<string>({
+    url: `/api/interviews/${interviewId}`,
+    method: 'DELETE',
   });
 };
 

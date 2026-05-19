@@ -6,6 +6,7 @@ import com.group1.career.model.entity.Resume;
 import com.group1.career.service.AiService;
 import com.group1.career.service.FileService;
 import com.group1.career.service.ResumeService;
+import com.group1.career.service.UserProfileTagService;
 import com.group1.career.utils.PdfTextExtractor;
 import com.group1.career.utils.SecurityUtil;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * AI-driven resume generation:
@@ -34,6 +37,7 @@ public class ResumeGenController {
     private final AiService aiService;
     private final ResumeService resumeService;
     private final FileService fileService;
+    private final UserProfileTagService profileTagService;
 
     @Operation(summary = "Generate a brand-new resume from template form data")
     @PostMapping("/from-template")
@@ -42,7 +46,7 @@ public class ResumeGenController {
         Long uid = SecurityUtil.requireCurrentUserId();
         if (req.getName() == null || req.getName().isBlank()) throw new BizException("name is required");
 
-        String prompt = buildTemplatePrompt(req);
+        String prompt = buildTemplatePrompt(req, profileTagService.renderForPrompt(uid));
         String html = callAiForHtml(prompt);
 
         String fileKey = htmlToPdfAndUpload(html, "resumes/generated");
@@ -57,7 +61,7 @@ public class ResumeGenController {
     @PostMapping("/tailor")
     // 不加 @Transactional：AI rewrite + PDF render 耗时 30-90s，持有事务会耗尽连接池
     // assertOwnership / createResume 各自在自己的短事务中完成
-    public Result<Resume> tailor(@RequestBody TailorRequest req) {
+    public Result<TailorResponse> tailor(@RequestBody TailorRequest req) {
         Long uid = SecurityUtil.requireCurrentUserId();
         if (req.getResumeId() == null) throw new BizException("resumeId is required");
 
@@ -77,7 +81,8 @@ public class ResumeGenController {
             throw new BizException("Source resume has no readable content");
         }
 
-        String prompt = buildTailorPrompt(resumeText, req.getJobDescription() == null ? "" : req.getJobDescription());
+        String prompt = buildTailorPrompt(resumeText, req.getJobDescription() == null ? "" : req.getJobDescription(),
+                profileTagService.renderForPrompt(uid));
         long ts = System.currentTimeMillis();
         String html = callAiForHtml(prompt);
         log.info("[tailor] AI rewrite took {} ms ({} html chars)", System.currentTimeMillis() - ts, html.length());
@@ -92,36 +97,45 @@ public class ResumeGenController {
                         ? req.getJobDescription().substring(0, 60) : req.getJobDescription(),
                 fileKey, null);
         log.info("[tailor] DONE total {} ms, resumeId={}", System.currentTimeMillis() - t0, saved.getResumeId());
-        return Result.success(resumeService.hydrateUrl(saved));
+        TailorResponse response = new TailorResponse();
+        response.setResume(resumeService.hydrateUrl(saved));
+        response.setChangeItems(extractTailorChangeItems(html));
+        response.setChangeSummary(response.getChangeItems().isEmpty()
+                ? "已根据目标 JD 重新组织简历重点，并生成一份新的定制 PDF。"
+                : "已根据目标 JD 完成岗位定制，重点改动如下。");
+        return Result.success(response);
     }
 
     // ========================= Internals =========================
 
-    private String buildTemplatePrompt(TemplateRequest r) {
-        return "You are an expert resume writer. Produce a professional one-page resume in HTML " +
-               "(no <html>/<head> wrapper, only body content using <h1>, <h2>, <ul>, <li>, <p>, <strong>). " +
-               "Use the STAR method to expand the experience section. Polish wording. " +
-               "Return ONLY HTML, no markdown fences.\n\n" +
-               "Name: " + safe(r.getName()) + "\n" +
-               "Phone: " + safe(r.getPhone()) + "\n" +
-               "Email: " + safe(r.getEmail()) + "\n" +
-               "Target Role: " + safe(r.getTargetRole()) + "\n" +
-               "Preferred City: " + safe(r.getCity()) + "\n" +
-               "University: " + safe(r.getUniversity()) + "\n" +
-               "Major: " + safe(r.getMajor()) + "\n" +
-               "Degree: " + safe(r.getDegree()) + "\n" +
-               "Graduation Year: " + safe(r.getGraduationYear()) + "\n" +
-               "Skills: " + safe(r.getSkills()) + "\n" +
-               "Experience:\n" + safe(r.getExperience());
+    private String buildTemplatePrompt(TemplateRequest r, String profileContext) {
+        return "你是资深中文简历顾问。请生成一页中文求职简历 HTML，只输出 body 内容，使用 <h1>, <h2>, <ul>, <li>, <p>, <strong>。 " +
+               "请用 STAR 方法扩展经历，优化表达，但不要编造用户没有提供的项目、成果、奖项或数据。 " +
+               "可以参考结构化用户画像中的技能、成长方向、背景和目标。\n\n" +
+               safe(profileContext) + "\n\n" +
+               "请只返回 HTML，不要 Markdown 代码块。简历末尾加入一个小节 <h2>本次生成重点</h2>，用 2-3 条说明本次如何组织材料。\n\n" +
+               "姓名: " + safe(r.getName()) + "\n" +
+               "电话: " + safe(r.getPhone()) + "\n" +
+               "邮箱: " + safe(r.getEmail()) + "\n" +
+               "目标岗位: " + safe(r.getTargetRole()) + "\n" +
+               "意向城市: " + safe(r.getCity()) + "\n" +
+               "学校: " + safe(r.getUniversity()) + "\n" +
+               "专业: " + safe(r.getMajor()) + "\n" +
+               "学历: " + safe(r.getDegree()) + "\n" +
+               "毕业年份: " + safe(r.getGraduationYear()) + "\n" +
+               "技能: " + safe(r.getSkills()) + "\n" +
+               "经历:\n" + safe(r.getExperience());
     }
 
-    private String buildTailorPrompt(String resumeText, String jd) {
-        return "You are an expert resume writer. Rewrite the following resume to maximize its alignment " +
-               "with the target job description. Keep all factual content but reorder, rephrase, and " +
-               "highlight the most relevant skills/projects. Output as professional one-page HTML " +
-               "(body content only: <h1>, <h2>, <ul>, <li>, <p>, <strong>). Return ONLY HTML.\n\n" +
-               "=== Job Description ===\n" + jd + "\n\n" +
-               "=== Source Resume ===\n" + resumeText;
+    private String buildTailorPrompt(String resumeText, String jd, String profileContext) {
+        return "你是资深中文简历定制顾问。请根据目标 JD 对下面的简历做明显、可感知的岗位定制，而不是轻微润色。 " +
+               "必须完成：1) 按 JD 相关性重排模块；2) 强化岗位关键词；3) 重写项目/经历 bullet，让能力证据更清晰；" +
+               "4) 突出最匹配的技能和项目；5) 保留事实边界，不编造项目、数据、奖项或经历。 " +
+               "输出一页专业中文 HTML，只使用 <h1>, <h2>, <ul>, <li>, <p>, <strong>，只返回 body 内容。 " +
+               "请在简历末尾加入 <h2>本次定制说明</h2>，列出 3-5 条本次具体改动和原因，让用户感知修改价值。\n\n" +
+               safe(profileContext) + "\n\n" +
+               "=== 目标 JD ===\n" + jd + "\n\n" +
+               "=== 原始简历 ===\n" + resumeText;
     }
 
     private String callAiForHtml(String prompt) {
@@ -191,6 +205,37 @@ public class ResumeGenController {
         return html == null ? "" : html.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
     }
 
+    List<String> extractTailorChangeItems(String html) {
+        List<String> out = new ArrayList<>();
+        if (html == null || html.isBlank()) return out;
+
+        int marker = html.indexOf("本次定制说明");
+        if (marker < 0) return out;
+        String section = html.substring(marker);
+        int nextH2 = section.indexOf("<h2", 8);
+        if (nextH2 > 0) section = section.substring(0, nextH2);
+
+        java.util.regex.Matcher liMatcher = java.util.regex.Pattern
+                .compile("(?is)<li[^>]*>(.*?)</li>")
+                .matcher(section);
+        while (liMatcher.find() && out.size() < 5) {
+            String item = stripTags(liMatcher.group(1));
+            if (!item.isBlank()) out.add(item);
+        }
+
+        if (out.isEmpty()) {
+            java.util.regex.Matcher pMatcher = java.util.regex.Pattern
+                    .compile("(?is)<p[^>]*>(.*?)</p>")
+                    .matcher(section);
+            while (pMatcher.find() && out.size() < 5) {
+                String item = stripTags(pMatcher.group(1));
+                if (!item.isBlank() && !item.contains("本次定制说明")) out.add(item);
+            }
+        }
+
+        return out;
+    }
+
     private String safe(Object v) { return v == null ? "" : v.toString(); }
 
     // ========================= DTOs =========================
@@ -216,5 +261,12 @@ public class ResumeGenController {
         private Long userId;
         private Long resumeId;
         private String jobDescription;
+    }
+
+    @Data
+    public static class TailorResponse {
+        private Resume resume;
+        private List<String> changeItems;
+        private String changeSummary;
     }
 }

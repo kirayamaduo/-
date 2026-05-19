@@ -47,6 +47,40 @@
       </view>
     </view>
 
+    <view class="tag-cloud-card app-card-soft" v-if="isLoggedIn">
+      <view class="tag-cloud-head">
+        <view>
+          <text class="tag-cloud-title">{{ t('profile.profileTagsTitle') }}</text>
+          <text class="tag-cloud-subtitle">{{ t('profile.profileTagsSubtitle') }}</text>
+        </view>
+        <view class="tag-cloud-edit" @click="navTo('/pages/agent/profile')">
+          <text class="tag-cloud-edit-text">{{ t('profile.edit') }}</text>
+        </view>
+      </view>
+      <view v-if="wordCloudTags.length" class="tag-cloud">
+        <view
+          v-for="tag in wordCloudTags"
+          :key="tag.category + tag.label"
+          class="tag-cloud-word"
+          :class="'tag-cat-' + tag.category.toLowerCase()"
+          :style="{
+            left: tag.left + '%',
+            top: tag.top + '%',
+            fontSize: tag.fontSize + 'rpx',
+            transform: `translate(-50%, -50%) rotate(${tag.rotate}deg)`,
+            zIndex: tag.zIndex,
+            opacity: tag.opacity,
+          }"
+        >
+          <text class="tag-cloud-word-text">{{ tag.label }}</text>
+        </view>
+      </view>
+      <view v-else class="tag-cloud-empty" @click="navTo('/pages/resume/index')">
+        <text class="tag-cloud-empty-title">暂无可展示关键词</text>
+        <text class="tag-cloud-empty-desc">上传简历或编辑画像后，系统会提取小词元并汇总到这里。</text>
+      </view>
+    </view>
+
     <!-- Menu group 1: My Assets -->
     <text class="group-label">{{ t('profile.assets') }}</text>
     <view class="menu-card app-card-soft">
@@ -183,6 +217,7 @@ import { getUserInterviewsApi } from '@/api/interview';
 import { getUserResumesApi } from '@/api/resume';
 import { updateUserApi, getUserInfoApi, requestDeletionApi } from '@/api/user';
 import { uploadFileApi } from '@/api/file';
+import { getProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
 import { useTheme, type ThemeKey } from '@/utils/theme';
 import { setLocale, currentLocale, type LangCode } from '@/locales/index';
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
@@ -239,12 +274,47 @@ const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.val
 
 const statsInterviews = ref(0);
 const statsResumes = ref(0);
+const profileTags = ref<UserProfileTag[]>([]);
 const rightAvoidWidth = ref(20);
 
 const showProfileEdit = ref(false);
 const editForm = ref({ nickname: '', school: '', major: '', gradYear: '' });
 
 const isLoggedIn = computed(() => !!userId.value);
+const CLOUD_POINTS = [
+  [50, 44, 0], [25, 28, -7], [74, 29, 6], [28, 62, 5], [72, 62, -6], [50, 72, 4],
+  [15, 46, -4], [86, 45, 5], [39, 18, 3], [61, 18, -3], [38, 84, -5], [63, 84, 5],
+  [12, 73, 6], [89, 72, -6], [19, 15, 2], [82, 15, -2],
+];
+
+const wordCloudTags = computed(() =>
+  profileTags.value
+    .filter((tag) => isCloudKeyword(tag.label))
+    .slice()
+    .sort((a, b) => (b.weight || 0) - (a.weight || 0))
+    .slice(0, 16)
+    .map((tag, index) => {
+      const point = CLOUD_POINTS[index % CLOUD_POINTS.length];
+      const weight = Math.max(1, Math.min(100, tag.weight || 50));
+      return {
+      ...tag,
+      left: point[0],
+      top: point[1],
+      rotate: point[2],
+      fontSize: Math.round(22 + (weight / 100) * 20 + (index === 0 ? 4 : 0)),
+      zIndex: 30 - index,
+      opacity: (0.72 + (weight / 100) * 0.28).toFixed(2),
+    };
+  })
+);
+
+const isCloudKeyword = (label?: string) => {
+  const text = String(label || '').trim();
+  if (!text || text.length > 14) return false;
+  if (/^\d+$/.test(text)) return false;
+  if (['用户', '目标', '岗位', '状态', '待补充', '简历状态', '简历匹配'].includes(text)) return false;
+  return /[A-Za-z]{2,}|[\u4e00-\u9fa5]{2,}|AI|UI|UX/.test(text);
+};
 
 const goLogin = () => {
   uni.reLaunch({ url: LOGIN_PAGE });
@@ -442,6 +512,15 @@ const loadStats = async (uid: number) => {
   }
 };
 
+const loadProfileTags = async () => {
+  try {
+    const summary = await getProfileTagsApi();
+    profileTags.value = summary.tags || [];
+  } catch {
+    profileTags.value = [];
+  }
+};
+
 /**
  * Avatar URLs we store in localStorage are short-lived signed URLs that
  * expire ~30 min after issue. Re-fetch the user from the backend on every
@@ -482,6 +561,7 @@ const loadProfile = async () => {
   if (userId.value && !isNaN(numericId) && numericId > 0) {
     loadStats(numericId);
     refreshUserFromBackend(numericId);
+    loadProfileTags();
   }
 };
 </script>
@@ -595,6 +675,97 @@ const loadProfile = async () => {
   box-shadow: var(--shadow-sm);
   padding: 16px 0; margin-bottom: 24px;
 }
+
+.tag-cloud-card {
+  margin: 16px 0 6px;
+  padding: 18px;
+}
+.tag-cloud-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.tag-cloud-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.tag-cloud-subtitle {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+}
+.tag-cloud-edit {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--primary-soft, #eff6ff);
+}
+.tag-cloud-edit-text {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+}
+.tag-cloud {
+  position: relative;
+  height: 360rpx;
+  overflow: hidden;
+  border-radius: 24rpx;
+  background:
+    radial-gradient(circle at 24% 28%, rgba(37,99,235,.09), transparent 34%),
+    radial-gradient(circle at 72% 68%, rgba(20,184,166,.10), transparent 36%),
+  var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+.tag-cloud-empty {
+  height: 220rpx;
+  border-radius: 24rpx;
+  border: 1px dashed rgba(37,99,235,.24);
+  background: var(--surface-2, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 28rpx;
+  box-sizing: border-box;
+}
+.tag-cloud-empty-title {
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+}
+.tag-cloud-empty-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary, #64748b);
+}
+.tag-cloud-word {
+  position: absolute;
+  transform-origin: center;
+  max-width: 34%;
+  padding: 2rpx 4rpx;
+  white-space: nowrap;
+}
+.tag-cloud-word-text {
+  display: block;
+  line-height: 1.12;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+  text-shadow: 0 1px 0 rgba(255,255,255,.76);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag-cat-skill .tag-cloud-word-text { color: #047857; }
+.tag-cat-background .tag-cloud-word-text { color: #1d4ed8; }
+.tag-cat-growth .tag-cloud-word-text { color: #b45309; }
+.tag-cat-goal .tag-cloud-word-text { color: #6d28d9; }
 
 .stat-item {
   flex: 1; display: flex; flex-direction: column;

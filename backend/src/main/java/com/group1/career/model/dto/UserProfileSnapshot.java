@@ -113,9 +113,33 @@ public class UserProfileSnapshot {
     public static class OnboardingBlock {
         /** User self-selected career status: student, new_graduate, internship_seeker, career_switcher. */
         private String identityType;
+        /** Same signal as identityType, kept as a product-facing name for the Chinese onboarding flow. */
+        private String stage;
+        /** User's most urgent job-search blocker: direction, resume, project, interview, or planning. */
+        private String painPoint;
         /** User self-reported resume state from onboarding. This is not proof that a resume exists in the system. */
         private String hasResume;
+        /** More precise resume readiness from the first-run intake: ready, draft, none, unsure. */
+        private String resumeStatus;
+        /** Self-reported job-search timeline. */
+        private String timeline;
+        private EducationBlock education;
+        private String weeklyAvailability;
+        private String priorityHelp;
+        private String recommendedEntry;
         /** ISO timestamp from the client when the onboarding setup was completed. */
         private String onboardingCompletedAt;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class EducationBlock {
+        private String school;
+        private String major;
+        private String degree;
+        private String graduationYear;
     }
 }

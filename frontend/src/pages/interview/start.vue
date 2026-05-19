@@ -33,12 +33,10 @@
             <text class="label">{{ t('interview.positionLabel') }}</text>
             <text v-if="prefillSource" class="label-hint">{{ prefillSource }}</text>
           </view>
-          <picker :range="positions" :value="selectedPositionIndex" @change="onPositionChange">
-            <view class="picker-box ui-list-item" :class="{ 'picker-filled': selectedPosition }">
-              <text class="picker-val" :class="{ 'has-val': selectedPosition }">{{ selectedPosition || t('interview.chooseRole') }}</text>
-              <text class="picker-arrow">›</text>
-            </view>
-          </picker>
+          <view class="picker-box ui-list-item" :class="{ 'picker-filled': selectedPosition }" @click="showPositionSheet = true">
+            <text class="picker-val" :class="{ 'has-val': selectedPosition }">{{ selectedPosition || t('interview.chooseRole') }}</text>
+            <text class="picker-arrow ri-arrow-down-s-line"></text>
+          </view>
         </view>
       </view>
 
@@ -100,6 +98,13 @@
         <text class="btn-primary-label" v-else>{{ selectedPosition ? (selectedMode === 'voice' ? t('interview.startVoice') : t('interview.startText')) : t('interview.chooseFirst') }}</text>
       </view>
     </view>
+    <SlActionSheet
+      v-model:visible="showPositionSheet"
+      title="选择面试岗位"
+      :options="positionOptions"
+      :selected-value="selectedPosition"
+      @select="onPositionSelect"
+    />
   </view>
 </template>
 
@@ -113,11 +118,13 @@ import { LOGIN_PAGE } from '@/utils/auth';
 import { useTheme } from '@/utils/theme';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
+import SlActionSheet from '@/style-library/components/SlActionSheet.vue';
 
 const { t } = useI18n();
 const positions = ref<string[]>(['Java Backend Engineer', 'Frontend Engineer', 'Full Stack Engineer', 'Product Manager', 'Data Analyst']);
 const selectedPosition = ref('');
 const selectedPositionIndex = ref(0);
+const showPositionSheet = ref(false);
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
 const rightAvoidWidth = ref(20);
@@ -149,11 +156,18 @@ const selectedMode = ref<'voice' | 'text'>(
 );
 const loading = ref(false);
 
-const onPositionChange = (e: any) => {
-  const idx = Number(e.detail.value);
+const positionOptions = computed(() => positions.value.map((role) => ({
+  label: role,
+  value: role,
+  subtitle: role === selectedPosition.value && prefillSource.value ? prefillSource.value : '用于生成面试问题和评分参考',
+  icon: 'ri-briefcase-4-line',
+})));
+
+const onPositionSelect = ({ value }: { value: string }) => {
+  const idx = positions.value.findIndex((item) => item === value);
+  if (idx < 0) return;
   selectedPositionIndex.value = idx;
   selectedPosition.value = positions.value[idx];
-  // Manual choice -- the prefill hint no longer applies, so clear it.
   prefillSource.value = '';
 };
 

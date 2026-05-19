@@ -88,7 +88,7 @@ const aiTyping = ref(false);
 const typingElapsed = ref(0);
 let typingTimer: any = null;
 const { t } = useI18n();
-const interviewLang = (uni.getStorageSync('interview_language') as string) || 'en';
+const interviewLang = (uni.getStorageSync('interview_language') as string) || 'zh';
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
 const rightAvoidWidth = ref(20);
@@ -172,6 +172,29 @@ const sendMessage = async () => {
 };
 
 const endInterview = () => {
+  const hasUserAnswer = messages.value.some((m) =>
+    String(m.role || '').toUpperCase() === 'USER' && String(m.content || '').trim().length > 0
+  );
+  if (!hasUserAnswer) {
+    uni.showModal({
+      title: t('interviewRoom.noAnswerTitle'),
+      content: t('interviewRoom.noAnswerContent'),
+      confirmText: t('interviewRoom.noAnswerConfirm'),
+      cancelText: t('interviewRoom.noAnswerCancel'),
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await endInterviewApi(interviewId.value);
+        } catch {
+          // Best-effort: do not route to a report that cannot exist.
+        }
+        uni.redirectTo({ url: '/pages/interview/history' });
+      },
+    });
+    return;
+  }
+
   uni.showModal({
     title: t('interviewChat.endTitle'),
     content: t('interviewChat.endConfirm'),

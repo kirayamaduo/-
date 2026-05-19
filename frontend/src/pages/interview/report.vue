@@ -38,10 +38,51 @@
         </view>
       </view>
 
+      <view class="score-basis app-card-soft app-surface">
+        <text class="basis-title">评分依据</text>
+        <text class="basis-text">面试分由 AI 根据完整问答记录评估，重点看技术证据、沟通表达、逻辑结构、表达清晰度和抗压表现；语音面试会额外参考肢体语言采样。</text>
+      </view>
+
+      <view class="behavior-section" v-if="showBehaviorCard">
+        <text class="section-title">行为表现评估</text>
+        <view class="behavior-card app-card-soft app-surface" v-if="report.bodyLanguageAnalysis">
+          <view class="behavior-head">
+            <view>
+              <text class="behavior-score">{{ report.bodyLanguageAnalysis.bodyLanguage }}</text>
+              <text class="behavior-label">综合行为分</text>
+            </view>
+            <text class="behavior-samples">{{ report.bodyLanguageAnalysis.frames }} 帧采样</text>
+          </view>
+          <text class="behavior-summary">{{ report.bodyLanguageAnalysis.summary }}</text>
+          <view class="behavior-bars">
+            <view class="behavior-row" v-for="item in behaviorRows" :key="item.label">
+              <text class="behavior-name">{{ item.label }}</text>
+              <view class="behavior-track">
+                <view class="behavior-fill" :style="{ width: item.value + '%' }"></view>
+              </view>
+              <text class="behavior-value">{{ item.value }}</text>
+            </view>
+          </view>
+          <text class="behavior-note">行为表现来自语音面试期间摄像头采样聚合，只用于辅助反馈。</text>
+        </view>
+        <view class="behavior-card app-card-soft app-surface empty-behavior" v-else>
+          <text class="empty-behavior-title">本次未获得有效行为采样</text>
+          <text class="empty-behavior-text">可能是摄像头权限未开启、采样服务不可用，或有效画面不足。本次报告仅基于问答内容评分。</text>
+        </view>
+      </view>
+
       <!-- Dimensions breakdown -->
       <view class="dims-section">
         <text class="section-title">{{ t('interviewReport.dimensionBreakdown') }}</text>
         <view class="dims-card app-card-soft app-surface">
+          <view class="mini-chart">
+            <view v-for="(d, i) in dimensions" :key="'chart-' + i" class="mini-col">
+              <view class="mini-bar-wrap">
+                <view class="mini-bar" :class="'bar-' + i" :style="{ height: d.score + '%' }"></view>
+              </view>
+              <text class="mini-label">{{ d.short }}</text>
+            </view>
+          </view>
           <view class="dim-row" v-for="(d, i) in dimensions" :key="i">
             <text class="dim-name">{{ d.name }}</text>
             <view class="dim-bar-bg">
@@ -132,26 +173,40 @@ const goBack = () => uni.navigateBack({ delta: 1 });
 
 const dimensions = computed(() => {
   const r = report.value?.radarChart;
-  if (!r) return [] as Array<{ name: string; score: number }>;
-  const base: Array<{ name: string; score: number }> = [
-    { name: 'Technical', score: r.technical },
-    { name: 'Communication', score: r.communication },
-    { name: 'Logic', score: r.logic },
-    { name: 'Expression', score: r.expression },
-    { name: 'Resilience', score: r.pressureResistance },
+  if (!r) return [] as Array<{ name: string; short: string; score: number }>;
+  const base: Array<{ name: string; short: string; score: number }> = [
+    { name: '技术能力', short: '技术', score: r.technical },
+    { name: '沟通表达', short: '沟通', score: r.communication },
+    { name: '逻辑结构', short: '逻辑', score: r.logic },
+    { name: '表达清晰度', short: '表达', score: r.expression },
+    { name: '抗压表现', short: '抗压', score: r.pressureResistance },
   ];
   // Sprint C-1: surface the 6th dimension only when the sidecar actually
   // collected frames. Null bodyLanguage means "text interview", we don't
   // want to plot a fake zero score against it.
   if (r.bodyLanguage != null) {
-    base.push({ name: 'Body Language', score: r.bodyLanguage });
+    base.push({ name: '肢体语言', short: '体态', score: r.bodyLanguage });
   }
   return base;
 });
 
+const showBehaviorCard = computed(() =>
+  !!report.value?.bodyLanguageAnalysis || String(report.value?.mode || '').toUpperCase() === 'VOICE'
+);
+
+const behaviorRows = computed(() => {
+  const b = report.value?.bodyLanguageAnalysis;
+  if (!b) return [];
+  return [
+    { label: '眼神交流', value: b.eyeContact },
+    { label: '表情状态', value: b.expression },
+    { label: '坐姿稳定', value: b.posture },
+  ];
+});
+
 const scoreLabel = computed(() => {
   const s = report.value?.overallScore ?? 0;
-  if (s >= 85) return 'Excellent';
+  if (s >= 85) return '表现优秀';
   if (s >= 70) return t('interviewReport.scoreGood');
   if (s >= 55) return t('interviewReport.scoreFair');
   return t('interviewReport.scoreNeedsWork');
@@ -184,7 +239,10 @@ const loadReport = async () => {
   try {
     report.value = await getInterviewReportApi(interviewId.value);
   } catch (e: any) {
-    errorMsg.value = e?.message || t('interviewReport.generateFailed');
+    const msg = String(e?.message || '');
+    errorMsg.value = /no candidate answers|cannot evaluate|尚未作答|没有任何回答/i.test(msg)
+      ? t('interviewReport.noAnswer')
+      : (msg || t('interviewReport.generateFailed'));
   } finally {
     loading.value = false;
   }
@@ -266,6 +324,95 @@ onShow(() => {
   display: flex; gap: 20px; align-items: center; margin-bottom: 28px; margin-left: 20px; margin-right: 20px;
 }
 
+.score-basis { margin: -8px 20px 22px; padding: 14px 16px; }
+.basis-title { display: block; font-size: 14px; font-weight: 900; color: var(--text-primary, #0f172a); margin-bottom: 6px; }
+.basis-text { display: block; font-size: 12.5px; line-height: 1.55; color: var(--text-secondary, #64748b); }
+
+.behavior-section { margin-bottom: 28px; padding: 0 20px; }
+.behavior-card { padding: 16px; }
+.behavior-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.behavior-score {
+  display: block;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+}
+.behavior-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-tertiary, #8e8e93);
+}
+.behavior-samples {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft, #eff6ff);
+  color: var(--primary-color, #2563eb);
+  font-size: 11px;
+  font-weight: 900;
+}
+.behavior-summary {
+  display: block;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 14px;
+}
+.behavior-bars { display: flex; flex-direction: column; gap: 11px; }
+.behavior-row {
+  display: grid;
+  grid-template-columns: 66px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+}
+.behavior-name { font-size: 12px; font-weight: 800; color: var(--text-primary, #0f172a); }
+.behavior-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3, #f1f5f9);
+}
+.behavior-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+.behavior-value {
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
+  color: var(--text-primary, #0f172a);
+}
+.behavior-note {
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-tertiary, #8e8e93);
+}
+.empty-behavior-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 6px;
+}
+.empty-behavior-text {
+  display: block;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary, #64748b);
+}
+
 .score-ring-box {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   flex-shrink: 0;
@@ -313,6 +460,30 @@ onShow(() => {
 .dims-card {
   padding: 20px;
 }
+
+.mini-chart {
+  height: 132px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 2px 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.mini-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.mini-bar-wrap {
+  width: 100%;
+  max-width: 26px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--surface-3, #f1f5f9);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.mini-bar { width: 100%; min-height: 8%; border-radius: 999px 999px 0 0; }
+.mini-label { font-size: 10px; color: var(--text-tertiary, #8e8e93); white-space: nowrap; }
 
 .dim-row {
   display: flex; align-items: center; gap: 12px;

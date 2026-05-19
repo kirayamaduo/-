@@ -4,6 +4,7 @@ import com.group1.career.common.Result;
 import com.group1.career.exception.BizException;
 import com.group1.career.model.entity.Resume;
 import com.group1.career.service.FileService;
+import com.group1.career.service.ResumeKeywordService;
 import com.group1.career.service.ResumeService;
 import com.group1.career.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +28,7 @@ public class ResumeController {
 
     private final ResumeService resumeService;
     private final FileService fileService;
+    private final ResumeKeywordService resumeKeywordService;
 
     @Operation(summary = "Create Resume (uses authenticated user)")
     @PostMapping
@@ -41,6 +43,7 @@ public class ResumeController {
                 request.getFileUrl(),
                 request.getParsedContent()
         );
+        resumeKeywordService.triggerExtraction(uid, resume.getResumeId(), false);
         return Result.success(resumeService.hydrateUrl(resume));
     }
 

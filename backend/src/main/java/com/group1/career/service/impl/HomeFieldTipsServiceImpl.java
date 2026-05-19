@@ -12,6 +12,7 @@ import com.group1.career.service.AiService;
 import com.group1.career.service.HomeFieldTipsService;
 import com.group1.career.service.UserFactService;
 import com.group1.career.service.UserProfileSnapshotService;
+import com.group1.career.service.UserProfileTagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -32,7 +33,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class HomeFieldTipsServiceImpl implements HomeFieldTipsService {
 
-    private static final String CACHE_PREFIX = "career:home:fieldtips:v2:";
+    private static final String CACHE_PREFIX = "career:home:fieldtips:v3:";
     private static final String AI_MODEL = "qwen-turbo";
 
     private static final Set<String> ALLOWED_IN_APP_LINKS = Set.of(
@@ -47,6 +48,7 @@ public class HomeFieldTipsServiceImpl implements HomeFieldTipsService {
     private final AiService aiService;
     private final UserProfileSnapshotService profileSnapshotService;
     private final UserFactService userFactService;
+    private final UserProfileTagService profileTagService;
     private final InterviewRepository interviewRepository;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -93,7 +95,11 @@ public class HomeFieldTipsServiceImpl implements HomeFieldTipsService {
     private List<HomeConsultationFeedDto> generatePersonalisedTips(long userId, int limit) {
         String profile = profileSnapshotService.renderForPrompt(userId);
         String facts = userFactService.renderForPrompt(userId);
-        boolean sparse = (profile == null || profile.isBlank()) && (facts == null || facts.isBlank());
+        String tags = profileTagService.renderForPrompt(userId);
+        String portrait = String.join("\n",
+                profile == null ? "" : profile,
+                tags == null ? "" : tags).trim();
+        boolean sparse = portrait.isBlank() && (facts == null || facts.isBlank());
 
         int completed30 = interviewRepository
                 .findByUserIdAndStatusAndStartedAtBetween(
@@ -132,7 +138,7 @@ public class HomeFieldTipsServiceImpl implements HomeFieldTipsService {
                 5. 至少有一条建议要明确呼应画像或事实中的具体信息（学校、专业、目标岗、测评代码、简历关键词等）；若画像为空，则聚焦「本周可完成的求职准备动作」。
 
                 """.formatted(limit,
-                profile == null || profile.isBlank() ? "（暂无）" : profile,
+                portrait.isBlank() ? "（暂无）" : portrait,
                 facts == null || facts.isBlank() ? "（暂无）" : facts,
                 completed30,
                 lastRole,

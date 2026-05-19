@@ -96,8 +96,8 @@ public class InterviewServiceImpl implements InterviewService {
         notificationService.push(
                 saved.getUserId(),
                 NotificationTypes.INTERVIEW_REPORT,
-                "Interview completed",
-                "Your " + saved.getPositionName() + " mock interview is finished. Tap to see your AI report.",
+                "面试报告已生成",
+                "你的“" + saved.getPositionName() + "”模拟面试已结束，点击查看 AI 复盘报告。",
                 "/pages/interview/report?interviewId=" + saved.getInterviewId()
         );
 
@@ -149,6 +149,15 @@ public class InterviewServiceImpl implements InterviewService {
         Interview saved = interviewRepository.save(interview);
         mergeIntoSnapshot(saved, reportJson);
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public void deleteInterview(Long userId, Long interviewId) {
+        Interview interview = assertOwnership(interviewId, userId);
+        messageRepository.deleteByInterviewId(interviewId);
+        interviewRepository.delete(interview);
+        log.info("Deleted interview {} for user {}", interviewId, userId);
     }
 
     /**

@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface InterviewMessageRepository extends JpaRepository<InterviewMessage, Long> {
     List<InterviewMessage> findByInterviewIdOrderByCreatedAtAsc(Long interviewId);
+
+    void deleteByInterviewId(Long interviewId);
 }
 

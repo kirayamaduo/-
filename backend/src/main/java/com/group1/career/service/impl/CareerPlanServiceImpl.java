@@ -8,8 +8,10 @@ import com.group1.career.service.AiService;
 import com.group1.career.service.CareerPlanService;
 import com.group1.career.service.UserFactService;
 import com.group1.career.service.UserProfileSnapshotService;
+import com.group1.career.service.UserProfileTagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,7 @@ public class CareerPlanServiceImpl implements CareerPlanService {
     private final AiService aiService;
     private final UserProfileSnapshotService profileSnapshotService;
     private final UserFactService userFactService;
+    private final ObjectProvider<UserProfileTagService> profileTagServiceProvider;
     private final ObjectMapper objectMapper;
 
     private static final String PLAN_MODEL = "qwen-max";
@@ -42,11 +45,14 @@ public class CareerPlanServiceImpl implements CareerPlanService {
     public UserCareerPlan generate(Long userId, String targetRole) {
         String profileCtx = profileSnapshotService.renderForPrompt(userId);
         String factsCtx   = userFactService.renderForPrompt(userId);
+        String tagsCtx    = profileTagServiceProvider.getObject().renderForPrompt(userId);
 
         String target = (targetRole != null && !targetRole.isBlank())
                 ? targetRole.trim() : "互联网行业职位";
 
-        String userPrompt = buildUserPrompt(target, profileCtx, factsCtx);
+        String userPrompt = buildUserPrompt(target,
+                String.join("\n", profileCtx == null ? "" : profileCtx, tagsCtx == null ? "" : tagsCtx).trim(),
+                factsCtx);
 
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "system", "content", SYSTEM_PROMPT),

@@ -144,7 +144,7 @@ public class WeeklyReportService {
         notificationService.push(
                 userId,
                 "WEEKLY_REPORT",
-                "Your weekly interview recap",
+                "本周面试复盘",
                 summary,
                 "/pages/interview/history"
         );
@@ -159,9 +159,8 @@ public class WeeklyReportService {
     /** Ask Qwen for a short, concrete recap. Falls back to a deterministic summary on AI failure. */
     private String buildSummary(Map<String, DimensionDelta> deltas, int interviewCount) {
         String factSheet = buildFactSheet(deltas, interviewCount);
-        String prompt = "You are a career coach writing a short weekly recap for a candidate using a mock-interview app. " +
-                "Use the facts below to praise one improvement and call out one focus area. " +
-                "Reply in English, plain text, under 60 words, no markdown, no lists.\n\nFacts:\n" + factSheet;
+        String prompt = "你是求职教练，正在为用户生成一段本周模拟面试复盘。请基于下面事实，指出一个进步点和一个下周重点。 " +
+                "只用简体中文，纯文本，80 个汉字以内，不要 Markdown，不要列表。\n\n事实：\n" + factSheet;
         try {
             String ai = aiService.chat(prompt);
             if (ai != null && !ai.isBlank()) return ai.trim();
@@ -190,15 +189,15 @@ public class WeeklyReportService {
     private String fallbackSummary(Map<String, DimensionDelta> deltas, int interviewCount) {
         String biggestGain = pickExtreme(deltas, true);
         String biggestDrop = pickExtreme(deltas, false);
-        StringBuilder sb = new StringBuilder("This week you wrapped ");
-        sb.append(interviewCount).append(" mock interview").append(interviewCount == 1 ? "" : "s").append(". ");
+        StringBuilder sb = new StringBuilder("本周你完成了 ");
+        sb.append(interviewCount).append(" 次模拟面试。");
         if (biggestGain != null) {
-            sb.append("Biggest gain: ").append(biggestGain).append(". ");
+            sb.append("进步最明显的是：").append(biggestGain).append("。");
         }
         if (biggestDrop != null) {
-            sb.append("Watch out for: ").append(biggestDrop).append(". ");
+            sb.append("下周重点关注：").append(biggestDrop).append("。");
         } else {
-            sb.append("Keep going — every session adds clarity. ");
+            sb.append("继续保持，每次练习都会让表达更清晰。");
         }
         return sb.toString().trim();
     }
@@ -217,11 +216,11 @@ public class WeeklyReportService {
     private String humanize(String key) {
         if (key == null) return "";
         switch (key) {
-            case "technical": return "technical";
-            case "communication": return "communication";
-            case "logic": return "logic";
-            case "expression": return "expression";
-            case "pressureResistance": return "pressure resistance";
+            case "technical": return "技术能力";
+            case "communication": return "沟通表达";
+            case "logic": return "逻辑结构";
+            case "expression": return "表达清晰度";
+            case "pressureResistance": return "抗压表现";
             default: return key;
         }
     }

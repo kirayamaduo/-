@@ -134,6 +134,13 @@ const startQuiz = (s: AssessmentScale) => {
 };
 
 const goBack = () => {
+  const pages = getCurrentPages();
+  if (pages.length <= 1) {
+    // 从注册/onboarding 用 reLaunch 进入时页面栈只有当前页，无法 navigateBack，
+    // 直接跳到首页 tab 让用户可以离开。
+    uni.switchTab({ url: '/pages/home/index' });
+    return;
+  }
   uni.navigateBack({ delta: 1 });
 };
 

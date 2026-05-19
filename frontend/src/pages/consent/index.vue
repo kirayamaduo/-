@@ -117,6 +117,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/locales';
 import { isLoggedIn, LOGIN_PAGE } from '@/utils/auth';
+import { shouldForceOnboarding } from '@/utils/onboardingGate';
 import request from '@/utils/request';
 import { useTheme } from '@/utils/theme';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
@@ -188,7 +189,7 @@ const recordConsentOnServer = () => {
   }).catch(() => {/* best-effort, non-blocking */});
 };
 
-const onAgree = () => {
+const onAgree = async () => {
   if (!canAgree.value) {
     uni.showToast({ title: t('consent.checkBoth'), icon: 'none' });
     return;
@@ -196,11 +197,11 @@ const onAgree = () => {
   uni.setStorageSync(CONSENT_KEY, '1');
   recordConsentOnServer();
   if (isLoggedIn()) {
+    if (await shouldForceOnboarding()) {
+      uni.reLaunch({ url: '/pages/onboarding/index' });
+      return;
+    }
     uni.switchTab({ url: '/pages/home/index' });
-  } else if (!uni.getStorageSync('onboarding_v1_seen')) {
-    // F20: First-time users see onboarding after accepting consent,
-    // before they reach the login page.
-    uni.reLaunch({ url: '/pages/onboarding/index' });
   } else {
     uni.reLaunch({ url: LOGIN_PAGE });
   }

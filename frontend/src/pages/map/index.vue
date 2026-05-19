@@ -32,8 +32,8 @@
     <!-- Role header card -->
     <view class="role-card">
       <view class="role-info">
-        <text class="role-name" @click="switchRole">{{ currentPath?.name || t('map.pickRole') }}</text>
-        <text class="role-desc">{{ currentPath?.description || t('map.defaultRoleDesc') }}</text>
+        <text class="role-name" @click="switchRole">{{ currentPathName || t('map.pickRole') }}</text>
+        <text class="role-desc">{{ currentPathDesc || t('map.defaultRoleDesc') }}</text>
       </view>
       <view class="progress-ring">
         <text class="ring-val">{{ overallPercent }}%</text>
@@ -71,8 +71,8 @@
           </view>
           <view class="tl-card app-surface" :class="cardClass(node)">
             <text class="tl-level">{{ t('map.stageLabel', { level: node.level, stage: idx + 1 }) }}</text>
-            <text class="tl-title">{{ node.name }}</text>
-            <text class="tl-desc" v-if="node.description">{{ node.description }}</text>
+            <text class="tl-title">{{ careerText(node.name) }}</text>
+            <text class="tl-desc" v-if="node.description">{{ careerText(node.description) }}</text>
             <view class="tl-meta-row">
               <text class="tl-meta" v-if="node.estimatedHours">约 {{ node.estimatedHours }} 小时</text>
               <view class="tl-badge" :class="badgeClass(node)">
@@ -90,12 +90,12 @@
       <view class="detail-sheet app-surface" :class="{ 'sheet-open': showDetail }" v-if="selectedNode">
         <view class="sheet-handle"></view>
         <view class="sheet-header">
-          <text class="sheet-title">{{ selectedNode.name }}</text>
+          <text class="sheet-title">{{ careerText(selectedNode.name) }}</text>
           <text class="sheet-mastery">{{ statusLabel(selectedNode) }} · 约 {{ selectedNode.estimatedHours || 10 }} 小时</text>
         </view>
         <view class="sheet-section">
           <text class="sheet-label">{{ t('map.sheetCovers') }}</text>
-          <text class="sheet-advice">{{ selectedNode.description || t('map.sheetDescriptionEmpty') }}</text>
+          <text class="sheet-advice">{{ careerText(selectedNode.description) || t('map.sheetDescriptionEmpty') }}</text>
         </view>
         <view class="sheet-section" v-if="prerequisiteName">
           <text class="sheet-label">{{ t('map.sheetPrereq') }}</text>
@@ -244,11 +244,47 @@ const activeTab    = ref<'map' | 'plan'>('plan');
 const showDetail = ref(false);
 const loading    = ref(true);
 
+type RouteNode = CareerNode & {
+  source?: 'PLAN' | 'TEMPLATE';
+  dynamicKey?: string;
+  horizon?: string;
+};
+
 const paths = ref<CareerPath[]>([]);
 const currentPath = ref<CareerPath | null>(null);
-const nodes = ref<CareerNode[]>([]);
+const nodes = ref<RouteNode[]>([]);
 const progress = ref<UserCareerProgress[]>([]);
-const selectedNode = ref<CareerNode | null>(null);
+const selectedNode = ref<RouteNode | null>(null);
+
+const CAREER_TEXT_ZH: Record<string, string> = {
+  'Java Backend Engineer': 'Java 后端工程师',
+  'Become an excellent Java backend developer, mastering core skills such as Spring Boot, microservices, and databases.': '成为优秀的 Java 后端开发者，掌握 Spring Boot、微服务、数据库等核心技能。',
+  'Frontend Engineer': '前端工程师',
+  'Become a modern frontend developer, mastering tech stacks like Vue, React, and TypeScript.': '成为现代前端开发者，掌握 Vue、React、TypeScript 等主流技术栈。',
+  'Java Basics': 'Java 基础',
+  'Spring Boot Intro': 'Spring Boot 入门',
+  'Database Design': '数据库设计',
+  'Spring Cloud Microservices': 'Spring Cloud 微服务',
+  'HTML/CSS Basics': 'HTML/CSS 基础',
+  'JavaScript Core': 'JavaScript 核心',
+  'Vue.js Framework': 'Vue.js 框架',
+  'Master variables, control flow, OOP, collections, generics, and exception handling. The bedrock for everything that follows.': '掌握变量、流程控制、面向对象、集合、泛型和异常处理，这是后续学习的基础。',
+  'Build REST APIs with Spring Boot. Cover dependency injection, MVC, JPA, transactions, and basic error handling.': '使用 Spring Boot 构建 REST API，覆盖依赖注入、MVC、JPA、事务和基础错误处理。',
+  'Design normalized schemas, write efficient SQL, understand indexes, transactions, and isolation levels.': '设计规范化表结构，编写高效 SQL，理解索引、事务和隔离级别。',
+  'Service discovery, gateway, circuit breakers, distributed config, and how microservices communicate at scale.': '学习服务发现、网关、熔断、分布式配置，以及微服务在规模化场景下的通信方式。',
+  'Semantic markup, modern CSS layouts (flexbox + grid), responsive design, and accessibility fundamentals.': '学习语义化标签、现代 CSS 布局、响应式设计和基础可访问性。',
+  'ES2015+, async/await, the event loop, modules, and the DOM API. Skip nothing here.': '掌握 ES2015+、async/await、事件循环、模块系统和 DOM API。',
+  'Composition API, reactivity, single-file components, Pinia state, Vue Router, and build tooling with Vite.': '学习 Composition API、响应式系统、单文件组件、Pinia、Vue Router 和 Vite 构建工具。',
+};
+
+const careerText = (text?: string | null) => {
+  if (!text) return '';
+  return CAREER_TEXT_ZH[text] || text;
+};
+
+const currentPathName = computed(() => careerText(currentPath.value?.name));
+const currentPathDesc = computed(() => careerText(currentPath.value?.description));
+const isPersonalizedRoute = computed(() => currentPath.value?.code === 'personalized-plan');
 
 /**
  * Order nodes the way the timeline reads top-to-bottom: by level first,
@@ -272,7 +308,7 @@ const progressByNode = computed(() => {
  * Status of a node for the current user. We treat parent_id as a
  * prerequisite: a node is LOCKED until its parent is COMPLETED.
  */
-const nodeStatus = (n: CareerNode): 'COMPLETED' | 'IN_PROGRESS' | 'UNLOCKED' | 'LOCKED' => {
+const nodeStatus = (n: RouteNode): 'COMPLETED' | 'IN_PROGRESS' | 'UNLOCKED' | 'LOCKED' => {
   const p = progressByNode.value.get(n.nodeId ?? -1);
   if (p?.status === 'COMPLETED') return 'COMPLETED';
   if (p?.status === 'UNLOCKED') return 'IN_PROGRESS';
@@ -283,37 +319,37 @@ const nodeStatus = (n: CareerNode): 'COMPLETED' | 'IN_PROGRESS' | 'UNLOCKED' | '
   return parentDone ? 'UNLOCKED' : 'LOCKED';
 };
 
-const isLocked = (n: CareerNode | null) => !!n && nodeStatus(n) === 'LOCKED';
+const isLocked = (n: RouteNode | null) => !!n && nodeStatus(n) === 'LOCKED';
 
-const dotClass = (n: CareerNode) => {
+const dotClass = (n: RouteNode) => {
   const s = nodeStatus(n);
   if (s === 'COMPLETED') return 'dot-done';
   if (s === 'IN_PROGRESS') return 'dot-active';
   if (s === 'LOCKED') return 'dot-locked';
   return 'dot-ready';
 };
-const dotIcon = (n: CareerNode) => {
+const dotIcon = (n: RouteNode) => {
   const s = nodeStatus(n);
   if (s === 'COMPLETED') return 'ri-check-line';
   if (s === 'IN_PROGRESS') return '…';
   if (s === 'LOCKED') return 'ri-lock-line';
   return '●';
 };
-const cardClass = (n: CareerNode) => {
+const cardClass = (n: RouteNode) => {
   const s = nodeStatus(n);
   if (s === 'COMPLETED') return 'card-done';
   if (s === 'IN_PROGRESS') return 'card-active';
   if (s === 'LOCKED') return 'card-locked';
   return 'card-ready';
 };
-const badgeClass = (n: CareerNode) => {
+const badgeClass = (n: RouteNode) => {
   const s = nodeStatus(n);
   if (s === 'COMPLETED') return 'badge-done';
   if (s === 'IN_PROGRESS') return 'badge-active';
   if (s === 'LOCKED') return 'badge-locked';
   return 'badge-ready';
 };
-const statusLabel = (n: CareerNode) => {
+const statusLabel = (n: RouteNode) => {
   switch (nodeStatus(n)) {
     case 'COMPLETED':   return t('map.statusCompleted');
     case 'IN_PROGRESS': return t('map.statusInProgress');
@@ -321,7 +357,7 @@ const statusLabel = (n: CareerNode) => {
     default:            return t('map.statusAvailable');
   }
 };
-const ctaLabel = (n: CareerNode) => {
+const ctaLabel = (n: RouteNode) => {
   switch (nodeStatus(n)) {
     case 'COMPLETED':   return t('map.ctaMarkInProgress');
     case 'IN_PROGRESS': return t('map.ctaMarkCompleted');
@@ -339,10 +375,10 @@ const overallPercent = computed(() => {
 const prerequisiteName = computed(() => {
   const n = selectedNode.value;
   if (!n || !n.parentId || n.parentId === 0) return '';
-  return nodes.value.find((x) => x.nodeId === n.parentId)?.name ?? '';
+  return careerText(nodes.value.find((x) => x.nodeId === n.parentId)?.name);
 });
 
-const openDetail = (node: CareerNode) => {
+const openDetail = (node: RouteNode) => {
   selectedNode.value = node;
   showDetail.value = true;
 };
@@ -360,7 +396,7 @@ const getUid = (): number => {
  * COMPLETED. We treat the CTA as a 3-state cycle: ready -> unlocked ->
  * completed -> back to unlocked. Locked nodes are no-ops.
  */
-const toggleNodeStatus = async (node: CareerNode) => {
+const toggleNodeStatus = async (node: RouteNode) => {
   if (isLocked(node)) return;
   const uid = getUid();
   if (!uid) {
@@ -415,13 +451,104 @@ const loadPath = async (path: CareerPath) => {
   }
 };
 
+const buildPersonalizedPath = (): CareerPath | null => {
+  if (!plan.value) return null;
+  return {
+    pathId: -1,
+    code: 'personalized-plan',
+    name: plan.value.targetRole ? `${plan.value.targetRole}求职路线` : '我的求职路线',
+    description: '根据你的画像、长期目标和本周重点动态生成，重新生成职业计划后会同步变化。',
+  };
+};
+
+const joinParts = (label: string, items?: string[]) => {
+  const clean = (items || []).map((item) => String(item || '').trim()).filter(Boolean).slice(0, 3);
+  return clean.length ? `${label}：${clean.join('；')}` : '';
+};
+
+const stablePlanNodeId = (key: string) => {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  }
+  return -1000000000 - Math.abs(hash % 900000000);
+};
+
+const buildPlanRouteNodes = (): RouteNode[] => {
+  if (!plan.value) return [];
+  const routeNodes: RouteNode[] = [];
+  let previousId = 0;
+  const planKey = `${plan.value.userId || getUid() || 'guest'}:${plan.value.version || plan.value.lastUpdatedAt || 'draft'}:${plan.value.targetRole || ''}`;
+
+  weeklyFocus.value.slice(0, 3).forEach((item, idx) => {
+    const dynamicKey = `${planKey}:week:${idx}:${item}`;
+    const nodeId = stablePlanNodeId(dynamicKey);
+    routeNodes.push({
+      nodeId,
+      pathId: -1,
+      name: item,
+      level: 1,
+      parentId: previousId,
+      sortOrder: idx,
+      estimatedHours: 2,
+      description: '本周优先行动，完成后会推动今日任务和长期路线对齐。',
+      source: 'PLAN',
+      dynamicKey,
+    });
+    previousId = nodeId;
+  });
+
+  milestones.value.forEach((ms, idx) => {
+    const dynamicKey = `${planKey}:milestone:${ms.horizon}:${idx}:${ms.title || ''}`;
+    const nodeId = stablePlanNodeId(dynamicKey);
+    const desc = [
+      joinParts('行动', ms.actions),
+      joinParts('技能', ms.skills),
+      joinParts('衡量', ms.kpis),
+    ].filter(Boolean).join('\n');
+    routeNodes.push({
+      nodeId,
+      pathId: -1,
+      name: ms.title || horizonLabel(ms.horizon),
+      level: idx + 2,
+      parentId: previousId,
+      sortOrder: idx + 10,
+      estimatedHours: Math.max(8, (ms.actions?.length || 1) * 4 + (ms.skills?.length || 0) * 3),
+      description: desc || `${horizonLabel(ms.horizon)}阶段目标`,
+      source: 'PLAN',
+      dynamicKey,
+      horizon: ms.horizon,
+    });
+    previousId = nodeId;
+  });
+
+  return routeNodes;
+};
+
+const applyPersonalizedRoute = async () => {
+  const path = buildPersonalizedPath();
+  if (!path) return false;
+  currentPath.value = path;
+  nodes.value = buildPlanRouteNodes();
+  await refreshProgress();
+  loading.value = false;
+  return nodes.value.length > 0;
+};
+
 const switchRole = async () => {
-  if (paths.value.length === 0) return;
+  if (paths.value.length === 0) {
+    try { paths.value = await getCareerPathsApi(); } catch { paths.value = []; }
+  }
+  const personalized = buildPersonalizedPath();
+  const options = personalized ? [personalized, ...paths.value] : paths.value;
+  if (options.length === 0) return;
   uni.showActionSheet({
-    itemList: paths.value.map((p) => p.name),
+    itemList: options.map((p) => careerText(p.name)),
     success: async (res) => {
-      const picked = paths.value[res.tapIndex];
-      if (picked) await loadPath(picked);
+      const picked = options[res.tapIndex];
+      if (!picked) return;
+      if (picked.code === 'personalized-plan') await applyPersonalizedRoute();
+      else await loadPath(picked);
     }
   });
 };
@@ -429,6 +556,10 @@ const switchRole = async () => {
 const loadAll = async (preferredPathId?: number) => {
   loading.value = true;
   try {
+    if (!preferredPathId) {
+      await loadPlan();
+      if (await applyPersonalizedRoute()) return;
+    }
     paths.value = await getCareerPathsApi();
     if (paths.value.length === 0) {
       loading.value = false;
@@ -511,10 +642,15 @@ const loadPlan = async () => {
 };
 
 const handleGenerate = async (targetRole?: string) => {
+  if (!targetRole || !targetRole.trim()) {
+    uni.showToast({ title: '请先填写目标岗位', icon: 'none' });
+    return;
+  }
   planLoading.value = true;
   plan.value = null;
   try {
-    plan.value = await generateCareerPlanApi(targetRole);
+    plan.value = await generateCareerPlanApi(targetRole.trim());
+    await applyPersonalizedRoute();
     uni.showToast({ title: t('map.planDone'), icon: 'success' });
   } catch (e: any) {
     uni.showToast({ title: e?.message || t('map.planFail'), icon: 'none' });

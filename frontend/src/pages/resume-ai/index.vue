@@ -74,6 +74,10 @@
             <text class="score-val">{{ result.overallScore }}</text>
           </view>
         </view>
+        <view class="score-basis">
+          <text class="score-basis-title">评分依据</text>
+          <text class="score-basis-text">简历分由 AI 根据简历与目标岗位/JD 的匹配度评估，重点看岗位关键词、项目证据、能力表达清晰度和经历相关性；系统不会编造未提供的项目或成果。</text>
+        </view>
 
         <view class="r-body">
           <view class="point-block strengths" v-if="result.strengths && result.strengths.length">
@@ -110,8 +114,15 @@
         <view v-else class="tailor-success-card">
           <text class="ts-icon ri-check-line"></text>
           <text class="ts-title">{{ t('resumeAi.tailorSuccessTitle') }}</text>
-          <text class="ts-hint">{{ tailorResult.title }}</text>
-          <text class="ts-sub">{{ t('resumeAi.tailorSuccessHint') }}</text>
+          <text class="ts-hint">{{ tailorResult.resume.title }}</text>
+          <text class="ts-sub">{{ tailorResult.changeSummary || t('resumeAi.tailorSuccessHint') }}</text>
+          <view class="change-list" v-if="tailorResult.changeItems?.length">
+            <text class="change-title">{{ t('resumeAi.tailorChangesTitle') }}</text>
+            <view class="change-item" v-for="(item, idx) in tailorResult.changeItems" :key="idx">
+              <text class="change-index">{{ idx + 1 }}</text>
+              <text class="change-text">{{ item }}</text>
+            </view>
+          </view>
           <view class="ts-actions">
             <button class="ts-btn-primary" :loading="openingPdf" @click="viewTailoredPdf">
               {{ t('resumeAi.viewPdf') }}
@@ -123,6 +134,13 @@
         </view>
       </view>
     </view>
+    <SlActionSheet
+      v-model:visible="showResumeSheet"
+      title="选择用于分析的简历"
+      :options="resumeOptions"
+      :selected-value="selectedResumeId ? String(selectedResumeId) : ''"
+      @select="onResumeSelect"
+    />
   </SlPage>
 </template>
 
@@ -137,14 +155,19 @@ import {
   tailorResumeApi,
   type Resume,
   type DiagnosisResult,
+  type TailorResumeResponse,
 } from '@/api/resume';
 import { getProfileSnapshotApi } from '@/api/user';
+import { getAgentProfileApi } from '@/api/agent';
+import { normalizeRoleLabel } from '@/utils/displayText';
 import { useTheme } from '@/utils/theme';
 import SlPage from '@/style-library/components/SlPage.vue';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
+import SlActionSheet from '@/style-library/components/SlActionSheet.vue';
 
 const selectedResume = ref('');
 const selectedResumeId = ref<number | null>(null);
+const showResumeSheet = ref(false);
 const userResumes = ref<Resume[]>([]);
 const jdText = ref('');
 const { t } = useI18n();
@@ -155,11 +178,11 @@ const tailoring = ref(false);
 const openingPdf = ref(false);
 const showResult = ref(false);
 const result = ref<DiagnosisResult | null>(null);
-const tailorResult = ref<Resume | null>(null);
+const tailorResult = ref<TailorResumeResponse | null>(null);
 const loadingMessage = ref('');
 const loadingProgress = ref(0);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://api.careerloop.top';
 
 const scoreClass = computed(() => {
   const s = result.value?.overallScore ?? 0;
@@ -167,6 +190,16 @@ const scoreClass = computed(() => {
   if (s >= 60) return 'ring-warn';
   return 'ring-bad';
 });
+
+const resumeOptions = computed(() => userResumes.value.map((r) => {
+  const label = r.title || r.fileUrl?.split('/').pop() || `Resume #${r.resumeId}`;
+  return {
+    label,
+    value: String(r.resumeId || ''),
+    subtitle: r.targetJob ? `目标岗位：${r.targetJob}` : '用于生成匹配分、短板和定制简历',
+    icon: 'ri-file-text-line',
+  };
+}));
 
 const goBack = () => {
   uni.navigateBack({ delta: 1 });
@@ -193,7 +226,17 @@ const loadResumes = async () => {
 const applyPrefill = async () => {
   jdPlaceholder.value = t('resumeAi.jdPlaceholder');
   try {
-    const snap = await getProfileSnapshotApi();
+    // Fetch user snapshot AND the AI agent profile in parallel — the agent
+    // profile is the source of truth for "AI's understanding of the user"
+    // (it merges preferences / resume / interview / assessment with a
+    // confidence score), so we want it to drive the banner instead of the
+    // raw assessment suggestion list.
+    const [snapRes, agentRes] = await Promise.allSettled([
+      getProfileSnapshotApi(),
+      getAgentProfileApi(),
+    ]);
+    const snap = snapRes.status === 'fulfilled' ? snapRes.value : null;
+    const agentProfile = agentRes.status === 'fulfilled' ? agentRes.value : null;
 
     // 预选上次使用的简历
     const lastResumeId = snap?.resume?.lastResumeId;
@@ -205,18 +248,32 @@ const applyPrefill = async () => {
       }
     }
 
-    // 从测评结果或偏好设置中读取推荐岗位，展示预填充 banner
+    // Build the recommendation list in confidence order:
+    //   1. AI agent's primary target role  (highest confidence — this is
+    //      "what the AI thinks you're aiming at", merging every signal)
+    //   2. Whatever the user explicitly set as a preference
+    //   3. The target job baked into their resume
+    //   4. Roles the personality assessment suggested  (lowest confidence —
+    //      these were ranked first before but felt random to users, so they
+    //      become a fallback now rather than the primary source)
+    // Each label is run through normalizeRoleLabel so anything the LLM
+    // returned in English ("Frontend Engineer") becomes Chinese ("前端工程师").
     const roles: string[] = [];
-    if (snap?.assessment?.suggestedRoles?.length) {
-      roles.push(...snap.assessment.suggestedRoles);
-    } else if (snap?.preferences?.targetRole) {
-      roles.push(snap.preferences.targetRole);
-    } else if (snap?.resume?.targetJob) {
-      roles.push(snap.resume.targetJob);
-    }
-    assessmentRoles.value = roles.slice(0, 3); // 最多显示 3 个
+    const pushRole = (raw?: string | null) => {
+      const label = normalizeRoleLabel(raw || '');
+      if (label) roles.push(label);
+    };
+    pushRole(agentProfile?.target?.role);
+    pushRole(snap?.preferences?.targetRole);
+    pushRole(snap?.resume?.targetJob);
+    (snap?.assessment?.suggestedRoles || []).forEach(pushRole);
+
+    // Stable dedupe (preserve confidence-ordering above), top 3
+    assessmentRoles.value = Array.from(new Set(roles)).slice(0, 3);
   } catch {
-    // Snapshot is best-effort.
+    // Snapshot / agent profile are best-effort enrichment for the banner —
+    // a network blip should never prevent the user from analyzing their
+    // resume, so we just swallow.
   }
 };
 
@@ -229,19 +286,15 @@ const selectResume = () => {
     uni.showToast({ title: t('resume.noResumes'), icon: 'none' });
     return;
   }
-  const itemList = userResumes.value.map(
-    (r) => r.title || r.fileUrl?.split('/').pop() || `Resume #${r.resumeId}`
-  );
-  uni.showActionSheet({
-    itemList,
-    success: (res) => {
-      const r = userResumes.value[res.tapIndex];
-      if (r && r.resumeId) {
-        selectedResume.value = itemList[res.tapIndex];
-        selectedResumeId.value = r.resumeId;
-      }
-    },
-  });
+  showResumeSheet.value = true;
+};
+
+const onResumeSelect = ({ value }: { value: string }) => {
+  const r = userResumes.value.find((item) => String(item.resumeId || '') === value);
+  if (r && r.resumeId) {
+    selectedResume.value = r.title || r.fileUrl?.split('/').pop() || `Resume #${r.resumeId}`;
+    selectedResumeId.value = r.resumeId;
+  }
 };
 
 let progressTimers: number[] = [];
@@ -352,7 +405,7 @@ const generateTailored = async () => {
 };
 
 const viewTailoredPdf = () => {
-  const resumeId = tailorResult.value?.resumeId;
+  const resumeId = tailorResult.value?.resume?.resumeId;
   if (!resumeId) return;
   const token = uni.getStorageSync('token');
   openingPdf.value = true;
@@ -579,6 +632,27 @@ onShow(() => {
 
 .score-val { font-size: 26px; font-weight: 800; line-height: 1; }
 
+.score-basis {
+  margin: -4px 0 18px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.score-basis-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary-color, #2563eb);
+  margin-bottom: 5px;
+}
+.score-basis-text {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #64748b);
+}
+
 .r-body { margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; }
 
 .point-block {
@@ -658,6 +732,45 @@ onShow(() => {
 .ts-title { font-size: 18px; font-weight: 800; color: #15803d; }
 .ts-hint  { font-size: 14px; font-weight: 600; color: #166534; }
 .ts-sub   { font-size: 12px; color: #4ade80; text-align: center; line-height: 1.5; }
+.change-list {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-sizing: border-box;
+}
+.change-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  color: #166534;
+  margin-bottom: 8px;
+}
+.change-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+}
+.change-index {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 20px;
+  text-align: center;
+}
+.change-text {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #166534;
+}
 .ts-actions {
   display: flex; flex-direction: column; gap: 10px;
   width: 100%; margin-top: 8px;
@@ -688,6 +801,9 @@ onShow(() => {
 .is-dark .ts-title { color: #4ade80; }
 .is-dark .ts-hint  { color: #86efac; }
 .is-dark .ts-sub   { color: #166534; }
+.is-dark .change-list { background: rgba(5, 46, 22, 0.8); }
+.is-dark .change-title,
+.is-dark .change-text { color: #bbf7d0; }
 
 .loading-overlay {
   position: fixed;
@@ -758,6 +874,8 @@ onShow(() => {
 .is-dark .score-ring.ring-warn .score-val { color: #fbbf24; }
 .is-dark .score-ring.ring-bad { border-color: #ef4444; background: #450a0a; }
 .is-dark .score-ring.ring-bad .score-val { color: #f87171; }
+.is-dark .score-basis { background: #0f172a; border-color: #334155; }
+.is-dark .score-basis-text { color: #94a3b8; }
 .is-dark .point-block { border-left-color: #475569; }
 .is-dark .point-block.strengths { border-left-color: #10b981; }
 .is-dark .point-block.strengths .point-title { color: #34d399; }

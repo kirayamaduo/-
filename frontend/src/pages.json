@@ -158,6 +158,15 @@
 			}
 		},
 		{
+			"path": "pages/landing/index",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom",
+				"backgroundColor": "#f6f8fb",
+				"disableScroll": true
+			}
+		},
+		{
 			"path": "pages/webview/index",
 			"style": {
 				"navigationBarTitleText": "加载中",
@@ -216,6 +225,13 @@
 				"navigationBarTitleText": "",
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/cdut-employment/detail",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
 			}
 		}
 	],

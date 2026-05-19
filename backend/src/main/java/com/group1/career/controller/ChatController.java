@@ -9,6 +9,7 @@ import com.group1.career.service.AiService;
 import com.group1.career.service.ConversationSummaryService;
 import com.group1.career.service.UserFactService;
 import com.group1.career.service.UserProfileSnapshotService;
+import com.group1.career.service.UserProfileTagService;
 import com.group1.career.service.ai.FunctionCallingService;
 import com.group1.career.config.AiPersonas;
 import com.group1.career.utils.SecurityUtil;
@@ -38,6 +39,7 @@ public class ChatController {
     private final AgentProfileService agentProfileService;
     private final ConversationSummaryService summaryService;
     private final UserFactService userFactService;
+    private final UserProfileTagService profileTagService;
     private final AssistantSessionRepository sessionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -149,6 +151,11 @@ public class ChatController {
         String facts = userFactService.renderForPrompt(uid);
         if (!facts.isBlank()) {
             sb.append("\n\n").append(facts);
+        }
+
+        String tags = profileTagService.renderForPrompt(uid);
+        if (!tags.isBlank()) {
+            sb.append("\n\n").append(tags);
         }
 
         return sb.toString();

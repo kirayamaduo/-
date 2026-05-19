@@ -32,28 +32,44 @@
           <view
             v-for="item in group.items"
             :key="item.interviewId"
-            class="interview-card app-card-soft app-surface"
-            @click="viewDetail(item)"
+            class="swipe-row"
           >
-            <view class="card-top">
-              <text class="position">{{ item.positionName }}</text>
-              <view :class="['status-pill', (item.status ?? '').toLowerCase()]">
-                <text class="pill-text">{{ item.status === 'COMPLETED' ? t('interviewHistory.statusCompleted') : t('interviewHistory.statusOngoing') }}</text>
+            <view
+              class="interview-card app-card-soft app-surface"
+              :class="{ 'interview-card-swiped': item.interviewId && (swipeOffsets[item.interviewId] ?? 0) < 0 }"
+              :style="{ transform: `translateX(${item.interviewId ? (swipeOffsets[item.interviewId] ?? 0) : 0}px)` }"
+              @click="viewDetail(item)"
+              @touchstart="item.interviewId && onItemTouchStart($event, item.interviewId)"
+              @touchmove="item.interviewId && onItemTouchMove($event, item.interviewId)"
+              @touchend="item.interviewId && onItemTouchEnd($event, item.interviewId)"
+            >
+              <view class="card-top">
+                <text class="position">{{ item.positionName }}</text>
+                <view :class="['status-pill', (item.status ?? '').toLowerCase()]">
+                  <text class="pill-text">{{ item.status === 'COMPLETED' ? t('interviewHistory.statusCompleted') : t('interviewHistory.statusOngoing') }}</text>
+                </view>
+              </view>
+              <view class="card-bottom">
+                <view class="info-item">
+                  <text class="info-label">{{ t('interviewHistory.difficultyLabel') }}</text>
+                  <text class="info-val">{{ difficultyLabel(item.difficulty) }}</text>
+                </view>
+                <view class="info-item" v-if="item.finalScore != null">
+                  <text class="info-label">{{ t('interviewHistory.scoreLabel') }}</text>
+                  <text class="info-val score-val">{{ item.finalScore }}</text>
+                </view>
+                <view class="info-item info-item-time">
+                  <text class="info-label">{{ t('interviewHistory.timeLabel') }}</text>
+                  <text class="info-val">{{ formatTime(item.startedAt) }}</text>
+                </view>
               </view>
             </view>
-            <view class="card-bottom">
-              <view class="info-item">
-                <text class="info-label">{{ t('interviewHistory.difficultyLabel') }}</text>
-                <text class="info-val">{{ item.difficulty }}</text>
-              </view>
-              <view class="info-item" v-if="item.finalScore != null">
-                <text class="info-label">{{ t('interviewHistory.scoreLabel') }}</text>
-                <text class="info-val score-val">{{ item.finalScore }}</text>
-              </view>
-              <view class="info-item info-item-time">
-                <text class="info-label">{{ t('interviewHistory.timeLabel') }}</text>
-                <text class="info-val">{{ formatTime(item.startedAt) }}</text>
-              </view>
+            <view
+              class="swipe-delete-btn"
+              :class="{ 'swipe-delete-visible': item.interviewId && (swipeOffsets[item.interviewId] ?? 0) < 0 }"
+              @click.stop="deleteInterview(item)"
+            >
+              <text class="swipe-delete-text">删除</text>
             </view>
           </view>
         </template>
@@ -73,7 +89,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
-import { getUserInterviewsApi, type Interview } from '@/api/interview';
+import { deleteInterviewApi, getUserInterviewsApi, type Interview } from '@/api/interview';
 import { useI18n } from '@/locales';
 import { useTheme } from '@/utils/theme';
 import SlPage from '@/style-library/components/SlPage.vue';
@@ -84,6 +100,14 @@ const loading = ref(true);
 const { t } = useI18n();
 const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const topSafeHeight = ref(52);
+const swipeOffsets = ref<Record<number, number>>({});
+const activeSwipeId = ref<number | null>(null);
+let touchStartX = 0;
+let touchStartY = 0;
+let touchBaseOffset = 0;
+let dirLocked = false;
+let isHorizontal = false;
+const DELETE_BTN_W = 80;
 
 const goBack = () => uni.navigateBack({ delta: 1 });
 
@@ -150,6 +174,64 @@ const formatTime = (dateStr?: string) => {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
+const difficultyLabel = (difficulty?: string) => {
+  const key = (difficulty || '').toLowerCase();
+  if (key === 'easy') return '简单';
+  if (key === 'hard') return '挑战';
+  if (key === 'normal' || key === 'medium') return '标准';
+  return difficulty || '标准';
+};
+
+const onItemTouchStart = (e: any, id: number) => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchBaseOffset = swipeOffsets.value[id] ?? 0;
+  dirLocked = false;
+  isHorizontal = false;
+  if (activeSwipeId.value !== null && activeSwipeId.value !== id) {
+    swipeOffsets.value[activeSwipeId.value] = 0;
+    activeSwipeId.value = null;
+  }
+};
+
+const onItemTouchMove = (e: any, id: number) => {
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (!dirLocked && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+    dirLocked = true;
+    isHorizontal = Math.abs(dx) > Math.abs(dy);
+  }
+  if (!isHorizontal) return;
+  swipeOffsets.value[id] = Math.max(-DELETE_BTN_W, Math.min(0, touchBaseOffset + dx));
+};
+
+const onItemTouchEnd = (_e: any, id: number) => {
+  if (!isHorizontal) return;
+  const offset = swipeOffsets.value[id] ?? 0;
+  if (offset < -DELETE_BTN_W / 2) {
+    swipeOffsets.value[id] = -DELETE_BTN_W;
+    activeSwipeId.value = id;
+  } else {
+    swipeOffsets.value[id] = 0;
+    activeSwipeId.value = null;
+  }
+};
+
+const deleteInterview = async (item: Interview) => {
+  if (!item.interviewId) return;
+  const backup = [...interviews.value];
+  interviews.value = interviews.value.filter((it) => it.interviewId !== item.interviewId);
+  delete swipeOffsets.value[item.interviewId];
+  activeSwipeId.value = null;
+  try {
+    await deleteInterviewApi(item.interviewId);
+    uni.showToast({ title: '已删除', icon: 'success' });
+  } catch (e: any) {
+    interviews.value = backup;
+    uni.showToast({ title: e?.message || '删除失败，请稍后重试', icon: 'none' });
+  }
+};
+
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 const groupedInterviews = computed(() => {
@@ -158,14 +240,14 @@ const groupedInterviews = computed(() => {
   const yesterday = today - 86400000;
   const sevenAgo = today - 6 * 86400000;
 
-  const buckets: Record<string, Interview[]> = { Today: [], Yesterday: [], 'This Week': [], Older: [] };
+  const buckets: Record<string, Interview[]> = { 今日: [], 昨天: [], 本周: [], 更早: [] };
   for (const it of interviews.value) {
-    if (!it.startedAt) { buckets['Older'].push(it); continue; }
+    if (!it.startedAt) { buckets['更早'].push(it); continue; }
     const day = startOfDay(new Date(it.startedAt.replace(' ', 'T')));
-    if (day === today) buckets['Today'].push(it);
-    else if (day === yesterday) buckets['Yesterday'].push(it);
-    else if (day >= sevenAgo) buckets['This Week'].push(it);
-    else buckets['Older'].push(it);
+    if (day === today) buckets['今日'].push(it);
+    else if (day === yesterday) buckets['昨天'].push(it);
+    else if (day >= sevenAgo) buckets['本周'].push(it);
+    else buckets['更早'].push(it);
   }
   return Object.entries(buckets)
     .filter(([, items]) => items.length > 0)
@@ -258,11 +340,44 @@ const groupedInterviews = computed(() => {
 
 .list { display: flex; flex-direction: column; gap: 12px; }
 
+.swipe-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md, 16px);
+}
+
 .interview-card {
-  transition: transform 0.15s;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
 }
 
 .interview-card:active { transform: scale(0.98); }
+
+.interview-card-swiped:active { transform: none; }
+
+.swipe-delete-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  background: var(--danger-color, #ef4444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 var(--radius-md, 16px) var(--radius-md, 16px) 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.swipe-delete-visible { opacity: 1; }
+.swipe-delete-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
 
 .card-top {
   display: flex; justify-content: space-between; align-items: center;

@@ -653,13 +653,20 @@ public class CareerAgentServiceImpl implements CareerAgentService {
                          UserProfileSnapshot.InterviewBlock interview,
                          String targetRole,
                          CheckInService.CheckInStatus checkIn) {
-        int score = 0;
-        if (assessment != null) score += 20;
-        if (hasText(targetRole)) score += 20;
-        if (resume != null) score += 25;
-        if (interview != null) score += 25;
-        if (checkIn.getWeeklyDays() >= 3) score += 10;
-        return Math.min(score, 100);
+        int directionClarity = Math.min(100, (hasText(targetRole) ? 60 : 0) + (assessment != null ? 40 : 0));
+        int resumeReadiness = resume == null
+                ? 0
+                : clampPercent(resume.getDiagnosisScore() != null ? resume.getDiagnosisScore() : 35);
+        int interviewReadiness = interview == null
+                ? 0
+                : clampPercent(interview.getLastScore() != null ? interview.getLastScore() : 30);
+        int actionContinuity = Math.min(100, checkIn.getWeeklyDays() * 20
+                + (checkIn.getTodayCompleted() > 0 ? 20 : 0));
+        return clampPercent((int) Math.round(
+                directionClarity * 0.20
+                        + resumeReadiness * 0.30
+                        + interviewReadiness * 0.30
+                        + actionContinuity * 0.20));
     }
 
     private String riskLevel(int riskCount) {
@@ -705,5 +712,9 @@ public class CareerAgentServiceImpl implements CareerAgentService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private int clampPercent(int score) {
+        return Math.max(0, Math.min(100, score));
     }
 }

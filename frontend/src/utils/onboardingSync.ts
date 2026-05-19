@@ -5,13 +5,17 @@ export const ONBOARDING_SETUP_KEY = 'career_onboarding_setup';
 export const PENDING_ONBOARDING_KEY = 'career_onboarding_pending';
 
 export interface PendingOnboardingSetup extends UpdateOnboardingDTO {
-  recommendedEntry?: 'resume' | 'assessment';
+  userId?: number;
+  recommendedEntry?: string;
   completedAt?: string;
 }
 
 export const readPendingOnboarding = (): PendingOnboardingSetup | null => {
   const pending = uni.getStorageSync(PENDING_ONBOARDING_KEY);
-  return pending && typeof pending === 'object' ? pending as PendingOnboardingSetup : null;
+  if (!pending || typeof pending !== 'object') return null;
+  const setup = pending as PendingOnboardingSetup;
+  const uid = Number(uni.getStorageSync('userId'));
+  return uid && setup.userId === uid ? setup : null;
 };
 
 export const clearPendingOnboarding = () => {
@@ -25,6 +29,14 @@ export const syncPendingOnboarding = async (options?: { silent?: boolean }) => {
   const payload: UpdateOnboardingDTO = {
     identityType: pending.identityType,
     hasResume: pending.hasResume,
+    stage: pending.stage,
+    painPoint: pending.painPoint,
+    resumeStatus: pending.resumeStatus,
+    timeline: pending.timeline,
+    education: pending.education,
+    weeklyAvailability: pending.weeklyAvailability,
+    priorityHelp: pending.priorityHelp,
+    recommendedEntry: pending.recommendedEntry,
     onboardingCompletedAt: pending.onboardingCompletedAt || pending.completedAt,
     targetRole: pending.targetRole?.trim(),
   };

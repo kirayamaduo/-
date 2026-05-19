@@ -26,6 +26,7 @@ public class CdutEmploymentInsightDto {
     private LocalDateTime updatedAt;
     private List<String> destinationHighlights;
     private List<YearPoint> trend;
+    private List<CoverageItem> coverage;
     private List<SourceItem> sources;
 
     @Data
@@ -54,5 +55,19 @@ public class CdutEmploymentInsightDto {
         private BigDecimal postgraduateRate;
         private String excerpt;
         private LocalDateTime fetchedAt;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CoverageItem {
+        private String school;
+        private Integer year;
+        /** VERIFIED_FULL | PARTIAL | MISSING | NEEDS_MANUAL_REVIEW */
+        private String status;
+        private String label;
+        private String reason;
+        private String sourceUrl;
     }
 }

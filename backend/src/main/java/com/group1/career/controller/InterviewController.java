@@ -52,16 +52,16 @@ public class InterviewController {
 
     /** Question angles rotated randomly so every session opens with a different focus. */
     private static final String[] OPENING_ANGLES = {
-        "a specific technical challenge you solved recently",
-        "a system design decision you made and why",
-        "a time you debugged a difficult production issue",
-        "your approach to writing clean, maintainable code",
-        "a project you're most proud of and your contribution",
-        "how you handle disagreements with teammates on technical decisions",
-        "a performance bottleneck you identified and fixed",
-        "your experience with testing strategies and why you chose them",
-        "a mistake you made and what you learned from it",
-        "how you stay current with new technologies in your field",
+        "你最近解决过的一个具体技术难题",
+        "你做过的一次系统设计或方案取舍，以及背后的原因",
+        "你排查过的一次复杂问题，以及定位过程",
+        "你如何保证代码清晰、可维护",
+        "你最有代表性的项目，以及你在其中的贡献",
+        "你和同伴在技术方案上有分歧时如何处理",
+        "你发现并优化过的一个性能瓶颈",
+        "你使用过的测试策略，以及为什么这样选择",
+        "你犯过的一次错误，以及从中学到了什么",
+        "你如何持续学习目标岗位需要的新技术",
     };
     private static final Random RNG = new Random();
 
@@ -100,7 +100,7 @@ public class InterviewController {
     @PostMapping("/{interviewId}/greeting")
     public Result<InterviewMessage> generateGreeting(
             @PathVariable Long interviewId,
-            @RequestParam(required = false, defaultValue = "en") String language) {
+            @RequestParam(required = false, defaultValue = "zh") String language) {
         Long uid = SecurityUtil.requireCurrentUserId();
         Interview interview = interviewService.assertOwnership(interviewId, uid);
 
@@ -117,11 +117,8 @@ public class InterviewController {
         String angle = drawn.map(InterviewQuestion::getContent)
                 .orElseGet(() -> OPENING_ANGLES[RNG.nextInt(OPENING_ANGLES.length)]);
         String prompt = String.format(
-                "You are a senior technical interviewer for the role of \"%s\" (difficulty: %s). " +
-                "Greet the candidate briefly (one sentence) and ask your FIRST interview question, " +
-                "which must be specifically about: %s. " +
-                "Do NOT include explanations, evaluation criteria, or follow-ups. " +
-                "%s Reply in plain text, no markdown.",
+                "你是“%s”岗位的资深面试官，当前难度：%s。请先用一句话简短问候候选人，然后提出第一个面试问题。 " +
+                "问题必须围绕：%s。不要解释评分标准，不要列追问，不要使用 Markdown。%s",
                 interview.getPositionName(),
                 interview.getDifficulty() == null ? "Normal" : interview.getDifficulty(),
                 angle,
@@ -156,9 +153,8 @@ public class InterviewController {
         Map<String, String> systemMsg = new HashMap<>();
         systemMsg.put("role", "system");
         systemMsg.put("content", String.format(
-                "You are a professional %s interviewer (difficulty: %s). Continue the interview by " +
-                "briefly evaluating the candidate's last answer and then asking the next focused " +
-                "question. Keep replies short (2-4 sentences). %s Plain text only, no markdown.",
+                "你是“%s”岗位的专业面试官，当前难度：%s。请先简短评价候选人上一轮回答，再提出下一个聚焦问题。 " +
+                "回复控制在 2-4 句，不要使用 Markdown。%s",
                 interview.getPositionName(),
                 interview.getDifficulty() == null ? "Normal" : interview.getDifficulty(),
                 langInstruction(request.getLanguage())
@@ -186,7 +182,7 @@ public class InterviewController {
     @PostMapping("/{interviewId}/voice-greeting")
     public Result<VoiceTurnResponse> voiceGreeting(
             @PathVariable Long interviewId,
-            @RequestParam(required = false, defaultValue = "en") String language) {
+            @RequestParam(required = false, defaultValue = "zh") String language) {
         Long uid = SecurityUtil.requireCurrentUserId();
         Interview interview = interviewService.assertOwnership(interviewId, uid);
 
@@ -203,9 +199,8 @@ public class InterviewController {
             String angle = drawn.map(InterviewQuestion::getContent)
                     .orElseGet(() -> OPENING_ANGLES[RNG.nextInt(OPENING_ANGLES.length)]);
             String prompt = String.format(
-                    "You are a senior %s interviewer (difficulty: %s) speaking to a candidate by voice. " +
-                    "Greet the candidate in ONE short sentence, then ask ONE interview question specifically about: %s. " +
-                    "%s No filler, no markdown, plain spoken text. Total output under 60 words.",
+                    "你是“%s”岗位的资深面试官，当前难度：%s，正在进行语音面试。请用一句话简短问候候选人，" +
+                    "然后提出一个围绕“%s”的面试问题。%s 不要寒暄过多，不要使用 Markdown，适合直接朗读，总字数不超过 90 个汉字。",
                     interview.getPositionName(),
                     interview.getDifficulty() == null ? "Normal" : interview.getDifficulty(),
                     angle,
@@ -247,7 +242,7 @@ public class InterviewController {
             @PathVariable Long interviewId,
             @RequestPart("audio") MultipartFile audio,
             @RequestParam(value = "format", defaultValue = "mp3") String format,
-            @RequestParam(value = "language", defaultValue = "en") String language
+            @RequestParam(value = "language", defaultValue = "zh") String language
     ) {
         Long uid = SecurityUtil.requireCurrentUserId();
         Interview interview = interviewService.assertOwnership(interviewId, uid);
@@ -272,7 +267,7 @@ public class InterviewController {
         String userText = voiceService.transcribe(bytes, format);
         long t1 = System.currentTimeMillis();
         if (userText == null || userText.isBlank()) {
-            throw new BizException("Could not recognize any speech. Please speak clearly and try again.");
+            throw new BizException("没有识别到有效语音，请说清楚后重试。");
         }
 
         // Persist the user turn before generating the AI reply so the chat
@@ -283,10 +278,8 @@ public class InterviewController {
         Map<String, String> systemMsg = new HashMap<>();
         systemMsg.put("role", "system");
         systemMsg.put("content", String.format(
-                "You are a professional %s interviewer (difficulty: %s) speaking to a candidate via voice. " +
-                "Briefly evaluate the candidate's last answer and ask the next focused interview question. " +
-                "Keep replies short — 1 to 2 sentences total — suitable for spoken delivery. " +
-                "%s Plain text only, no markdown, no lists, no emoji.",
+                "你是“%s”岗位的专业面试官，当前难度：%s，正在进行语音面试。请先用一句话评价候选人的上一轮回答，" +
+                "再问一个聚焦的下一题。总共 1-2 句，适合直接朗读。%s 不要使用 Markdown，不要列表，不要表情符号。",
                 interview.getPositionName(),
                 interview.getDifficulty() == null ? "Normal" : interview.getDifficulty(),
                 langInstruction(language)
@@ -364,14 +357,22 @@ public class InterviewController {
         return Result.success(interviewService.assertOwnership(interviewId, uid));
     }
 
+    @Operation(summary = "Delete an interview session and its messages (owner-only)")
+    @DeleteMapping("/{interviewId}")
+    public Result<String> deleteInterview(@PathVariable Long interviewId) {
+        Long uid = SecurityUtil.requireCurrentUserId();
+        interviewService.deleteInterview(uid, interviewId);
+        return Result.success("面试记录已删除");
+    }
+
     /**
      * Returns the language instruction appended to every AI interview prompt.
-     * "zh" → Chinese, anything else → English (safe default).
+     * "zh" means Chinese. Chinese is the safe default for this product stage.
      */
     private static String langInstruction(String language) {
-        return "zh".equalsIgnoreCase(language)
-                ? "请全程使用中文进行面试，包括提问和反馈，不要使用英文。"
-                : "Always reply in English.";
+        return "en".equalsIgnoreCase(language)
+                ? "如果用户明确选择英文模式，可以使用英文。"
+                : "请全程使用简体中文进行面试，包括提问、追问和反馈，不要夹杂英文标签。";
     }
 
     /** Remove common markdown artifacts that LLMs sometimes emit despite "plain text" instructions. */
@@ -402,7 +403,7 @@ public class InterviewController {
     @Data
     public static class SendMessageRequest {
         private String content;
-        /** "zh" for Chinese interview, anything else defaults to English. */
+        /** "zh" for Chinese interview. Chinese is the product default. */
         private String language;
     }
 

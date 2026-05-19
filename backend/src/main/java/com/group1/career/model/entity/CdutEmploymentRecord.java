@@ -26,7 +26,8 @@ import java.time.LocalDateTime;
 @Table(name = "cdut_employment_records", indexes = {
         @Index(name = "idx_cdut_employment_year", columnList = "source_year"),
         @Index(name = "idx_cdut_employment_major", columnList = "major_keyword"),
-        @Index(name = "idx_cdut_employment_career", columnList = "career_keyword")
+        @Index(name = "idx_cdut_employment_career", columnList = "career_keyword"),
+        @Index(name = "idx_cdut_employment_school", columnList = "school")
 })
 public class CdutEmploymentRecord {
 
@@ -34,6 +35,14 @@ public class CdutEmploymentRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
+
+    /**
+     * Canonical school name. Originally hard-coded to 成都理工大学; the
+     * table now also caches insights for every Sichuan Double First-Class
+     * university so each row must declare which school it describes.
+     */
+    @Column(name = "school", length = 80)
+    private String school;
 
     @Column(name = "source_year")
     private Integer year;

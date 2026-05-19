@@ -121,9 +121,25 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
             UserProfileSnapshot.OnboardingBlock o = snap.getOnboarding();
             StringBuilder sb = new StringBuilder("- Onboarding setup: ");
             if (hasText(o.getIdentityType())) sb.append("identity ").append(o.getIdentityType());
+            if (hasText(o.getPainPoint())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("pain point ").append(o.getPainPoint());
+            }
             if (hasText(o.getHasResume())) {
                 if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
                 sb.append("self-reported resume state ").append(o.getHasResume());
+            }
+            if (hasText(o.getTimeline())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("timeline ").append(o.getTimeline());
+            }
+            if (hasText(o.getWeeklyAvailability())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("weekly availability ").append(o.getWeeklyAvailability());
+            }
+            if (hasText(o.getPriorityHelp())) {
+                if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
+                sb.append("priority help ").append(o.getPriorityHelp());
             }
             if (hasText(o.getOnboardingCompletedAt())) {
                 if (sb.length() > "- Onboarding setup: ".length()) sb.append("; ");
@@ -201,7 +217,15 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
             current.setOnboarding(block);
         } else {
             if (block.getIdentityType() != null) existing.setIdentityType(block.getIdentityType());
+            if (block.getStage() != null) existing.setStage(block.getStage());
+            if (block.getPainPoint() != null) existing.setPainPoint(block.getPainPoint());
             if (block.getHasResume() != null) existing.setHasResume(block.getHasResume());
+            if (block.getResumeStatus() != null) existing.setResumeStatus(block.getResumeStatus());
+            if (block.getTimeline() != null) existing.setTimeline(block.getTimeline());
+            if (block.getEducation() != null) existing.setEducation(block.getEducation());
+            if (block.getWeeklyAvailability() != null) existing.setWeeklyAvailability(block.getWeeklyAvailability());
+            if (block.getPriorityHelp() != null) existing.setPriorityHelp(block.getPriorityHelp());
+            if (block.getRecommendedEntry() != null) existing.setRecommendedEntry(block.getRecommendedEntry());
             if (block.getOnboardingCompletedAt() != null) existing.setOnboardingCompletedAt(block.getOnboardingCompletedAt());
             current.setOnboarding(existing);
         }
