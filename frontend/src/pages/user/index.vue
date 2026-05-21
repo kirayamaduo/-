@@ -218,6 +218,7 @@ import { getUserResumesApi } from '@/api/resume';
 import { updateUserApi, getUserInfoApi, requestDeletionApi } from '@/api/user';
 import { uploadFileApi } from '@/api/file';
 import { getProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
+import { isCloudKeyword } from '@/utils/profileTagFilters';
 import { useTheme, type ThemeKey } from '@/utils/theme';
 import { setLocale, currentLocale, type LangCode } from '@/locales/index';
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
@@ -308,13 +309,7 @@ const wordCloudTags = computed(() =>
   })
 );
 
-const isCloudKeyword = (label?: string) => {
-  const text = String(label || '').trim();
-  if (!text || text.length > 14) return false;
-  if (/^\d+$/.test(text)) return false;
-  if (['用户', '目标', '岗位', '状态', '待补充', '简历状态', '简历匹配'].includes(text)) return false;
-  return /[A-Za-z]{2,}|[\u4e00-\u9fa5]{2,}|AI|UI|UX/.test(text);
-};
+// isCloudKeyword 已提取到 @/utils/profileTagFilters，直接使用导入版本
 
 const goLogin = () => {
   uni.reLaunch({ url: LOGIN_PAGE });

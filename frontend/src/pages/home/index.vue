@@ -399,6 +399,7 @@ import {
   type AgentUserProfile,
 } from '@/api/agent';
 import { getProfileTagsApi, refreshProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
+import { isGrowthKeyword } from '@/utils/profileTagFilters';
 import { getProfileSnapshotApi, type UserProfileSnapshot } from '@/api/user';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
 import { readStoredOnboardingSetup } from '@/utils/onboardingGate';
@@ -870,16 +871,7 @@ const clusterTitle = (tags: UserProfileTag[]) => {
   if (cat === 'GROWTH') return '探索';
   return '阶段';
 };
-const isGrowthKeyword = (label?: string) => {
-  const text = String(label || '').trim();
-  if (!text || text.length > 20) return false;
-  if (/^\d+$/.test(text)) return false;
-  // 纯年份/日期格式排除（如 "2020"、"2020.3"、"2021年"）
-  if (/^(?:19|20)\d{2}(?:[.年\-\/]\d{0,2})?[年月]?$/.test(text)) return false;
-  if (['用户', '目标', '岗位', '状态', '待补充', '简历状态', '简历匹配'].includes(text)) return false;
-  // 必须含有实际文字（中文2字以上或英文2字以上）
-  return /[A-Za-z]{2,}|[\u4e00-\u9fa5]{2,}|AI|UI|UX/.test(text);
-};
+// isGrowthKeyword 已提取到 @/utils/profileTagFilters
 
 // 去掉标签里的日期前缀，只保留有意义的文字部分
 const cleanNodeLabel = (label: string): string => {

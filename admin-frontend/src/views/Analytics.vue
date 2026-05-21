@@ -41,7 +41,7 @@
       </div>
       <div v-else>
         <div v-for="([type, count]) in eventEntries" :key="type" class="event-row">
-          <span class="event-type">{{ type }}</span>
+          <span class="event-type">{{ eventLabel(type) }}</span>
           <el-progress
             :percentage="Math.round((count / maxEventCount) * 100)"
             :format="() => String(count)"
@@ -79,10 +79,28 @@ interface AnalyticsSummary {
 const summary = ref<AnalyticsSummary | null>(null);
 const loading = ref(false);
 
+const EVENT_LABELS: Record<string, string> = {
+  AI_PROACTIVE_SENT:    'AI 主动推送任务',
+  INTERVIEW_STARTED:    '开始面试',
+  INTERVIEW_COMPLETED:  '完成面试',
+  ASSESSMENT_STARTED:   '开始测评',
+  ASSESSMENT_COMPLETED: '完成测评',
+  RESUME_UPLOADED:      '上传简历',
+  RESUME_DIAGNOSED:     '简历诊断',
+  CHECKIN:              '每日打卡',
+  TASK_COMPLETED:       '完成任务',
+  LOGIN:                '登录',
+  ONBOARDING_DONE:      '完成引导',
+  MEMORY_VIEWED:        '查看 AI 记忆',
+  AGENT_VIEWED:         '查看 Agent',
+};
+
 const eventEntries = computed<[string, number][]>(() => {
   if (!summary.value?.eventBreakdown30d) return [];
   return Object.entries(summary.value.eventBreakdown30d).sort((a, b) => b[1] - a[1]);
 });
+
+const eventLabel = (type: string) => EVENT_LABELS[type] ?? type;
 
 const maxEventCount = computed(() => {
   if (!eventEntries.value.length) return 1;

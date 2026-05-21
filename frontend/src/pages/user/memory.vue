@@ -60,7 +60,7 @@
       <view v-else>
         <view v-for="(group, cat) in grouped" :key="cat" class="group-section">
           <view class="group-header">
-            <text class="group-icon">{{ categoryIcon(cat) }}</text>
+            <text class="group-icon" :class="categoryIcon(cat)"></text>
             <text class="group-label">{{ categoryLabel(cat) }}</text>
             <text class="group-count">{{ group.length }}</text>
           </view>
@@ -74,6 +74,7 @@
               <view class="fact-body">
                 <text class="fact-key">{{ formatKey(fact.factKey) }}</text>
                 <text class="fact-value">{{ fact.factValue }}</text>
+                <text class="fact-time">{{ relativeTime(fact.updatedAt) }}</text>
               </view>
               <view class="fact-conf-badge" :class="confClass(fact.confidence)">
                 <text class="fact-conf-text">{{ confLabel(fact.confidence) }}</text>
@@ -236,6 +237,21 @@ const categoryIcon = (cat: string) => {
 const formatKey = (key: string) =>
   key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+const relativeTime = (iso?: string): string => {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins} 分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} 天前`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} 个月前`;
+  return `${Math.floor(months / 12)} 年前`;
+};
+
 const confLabel = (conf: number) => {
   if (conf >= 0.9) return t('memory.confidenceHigh');
   if (conf >= 0.6) return t('memory.confidenceMed');
@@ -363,6 +379,7 @@ const goBack = () => uni.navigateBack();
 .fact-body { flex: 1; min-width: 0; }
 .fact-key { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary, #64748b); margin-bottom: 2px; }
 .fact-value { display: block; font-size: 14px; font-weight: 500; color: var(--text-primary, #0f172a); word-break: break-word; }
+.fact-time { display: block; font-size: 11px; color: var(--text-tertiary, #8e8e93); margin-top: 3px; }
 
 /* Confidence badges */
 .fact-conf-badge {
