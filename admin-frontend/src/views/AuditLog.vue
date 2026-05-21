@@ -103,14 +103,13 @@ const selected = ref<AuditLogRow | null>(null);
 const loadLogs = async () => {
   loading.value = true;
   try {
-    const data: any = await http.get('/api/admin/audit-log', {
-      params: { page: page.value - 1, size: pageSize.value }
-    });
-    let content: AuditLogRow[] = data.content ?? [];
-    if (filterType.value) {
-      content = content.filter(r => r.targetType === filterType.value);
-    }
-    logs.value = content;
+    const params: Record<string, string | number> = {
+      page: page.value - 1,
+      size: pageSize.value,
+    };
+    if (filterType.value) params.targetType = filterType.value;
+    const data: any = await http.get('/api/admin/audit-log', { params });
+    logs.value = data.content ?? [];
     total.value = data.totalElements ?? 0;
   } catch (e: any) {
     ElMessage.error(e?.message || '加载失败');

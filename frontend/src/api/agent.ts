@@ -139,6 +139,30 @@ export interface ProfileInputsRequest {
 export const saveProfileInputsApi = (req: ProfileInputsRequest) =>
   request<AgentUserProfile>({ url: '/api/agent/profile/inputs', method: 'POST', data: req });
 
+/**
+ * 从 /api/facts/me 里把 USER_INPUT 类的 fact 提取出来，还原为表单字段。
+ * 后端没有独立的 GET /profile/inputs，所以通过 UserFact 倒推。
+ */
+export const getProfileInputsApi = async (): Promise<ProfileInputsRequest> => {
+  interface Fact { factKey: string; factValue: string; source: string }
+  const facts = await request<Fact[]>({ url: '/api/facts/me', method: 'GET', silent: true });
+  const get = (key: string) => facts.find((f) => f.factKey === key)?.factValue ?? '';
+  const getBool = (key: string): boolean | undefined => {
+    const v = get(key);
+    return v ? v === 'true' : undefined;
+  };
+  return {
+    targetCity: get('target_city') || undefined,
+    targetIndustry: get('target_industry') || undefined,
+    timeline: get('timeline') || undefined,
+    weeklyHours: get('weekly_hours') || undefined,
+    preferredDifficulty: get('preferred_task_difficulty') || undefined,
+    considerGradSchool: getBool('consider_grad_school'),
+    considerStudyAbroad: getBool('consider_study_abroad'),
+    careerGoalNote: get('career_goal_note') || undefined,
+  };
+};
+
 export const getAgentProfileApi = () =>
   request<AgentUserProfile>({ url: '/api/agent/profile', method: 'GET', silent: true });
 

@@ -164,6 +164,7 @@ const approve = async (row: InterviewQuestion) => {
     await api.approveQuestion(row.id);
     ElMessage.success('Question approved and published');
     loadPending();
+    loadAll();
   } catch (e: any) { ElMessage.error(e?.message || 'Failed'); }
 };
 

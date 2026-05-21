@@ -125,7 +125,7 @@ const sendBroadcast = async () => {
 const loadHistory = async () => {
   loadingHistory.value = true;
   try {
-    const data: any = await http.get('/api/admin/audit-log', {
+    const data: any = await http.get('/api/admin/notifications', {
       params: { page: histPage.value - 1, size: histPageSize.value }
     });
     history.value = data.content ?? [];

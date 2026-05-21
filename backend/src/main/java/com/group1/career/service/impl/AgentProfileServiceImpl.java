@@ -275,7 +275,63 @@ public class AgentProfileServiceImpl implements AgentProfileService {
                     req.getConsiderStudyAbroad() ? "true" : "false");
         }
         upsertFact(userId, "CAREER_GOAL", "career_goal_note", req.getCareerGoalNote());
+
+        // ── sync edited fields back to profileSnapshot.onboarding ────────────
+        // The "求职画像" card on the homepage reads from snapshot.onboarding.
+        // Without this sync, editing the profile never updates that card.
+        syncInputsToOnboarding(userId, req);
+
         return refresh(userId);
+    }
+
+    /**
+     * Push user-edited preference fields into the snapshot's onboarding block
+     * so the homepage "求职画像" card stays in sync with the profile editor.
+     *
+     * The onboarding block uses coded enum values (e.g. "lt_5h") while the
+     * profile editor stores human-readable / numeric values (e.g. "3").
+     * This method translates between the two vocabularies.
+     */
+    private void syncInputsToOnboarding(Long userId, ProfileInputsRequest req) {
+        UserProfileSnapshot.OnboardingBlock patch = UserProfileSnapshot.OnboardingBlock.builder().build();
+        boolean dirty = false;
+
+        // timeline: editor uses "1个月"/"3个月"/"6个月"/"校招季"/"不确定"
+        //           onboarding uses "within_1_month"/"within_3_months"/"prepare_early"
+        if (hasText(req.getTimeline())) {
+            patch.setTimeline(mapTimelineToOnboarding(req.getTimeline()));
+            dirty = true;
+        }
+
+        // weeklyHours: editor uses "3"/"7"/"15"/"25"
+        //              onboarding uses "lt_5h"/"5_10h"/"10_20h"/"gt_20h"
+        if (hasText(req.getWeeklyHours())) {
+            patch.setWeeklyAvailability(mapWeeklyHoursToOnboarding(req.getWeeklyHours()));
+            dirty = true;
+        }
+
+        if (dirty) {
+            snapshotService.mergeOnboarding(userId, patch);
+        }
+    }
+
+    private static String mapTimelineToOnboarding(String timeline) {
+        return switch (timeline) {
+            case "1个月" -> "within_1_month";
+            case "3个月" -> "within_3_months";
+            case "6个月", "校招季" -> "prepare_early";
+            default -> timeline; // "不确定" etc. — mapLabel fallback shows raw value
+        };
+    }
+
+    private static String mapWeeklyHoursToOnboarding(String hours) {
+        return switch (hours) {
+            case "3"  -> "lt_5h";
+            case "7"  -> "5_10h";
+            case "15" -> "10_20h";
+            case "25" -> "gt_20h";
+            default   -> hours;
+        };
     }
 
     private void upsertFact(Long userId, String category, String key, String value) {

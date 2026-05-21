@@ -89,47 +89,58 @@ export interface UserFeedback {
   createdAt?: string;
 }
 
+// Typed wrappers that reflect what the response interceptor actually returns.
+function $get<T>(url: string, config?: Parameters<typeof http.get>[1]): Promise<T> {
+  return http.get(url, config) as unknown as Promise<T>;
+}
+function $post<T>(url: string, data?: unknown, config?: Parameters<typeof http.post>[2]): Promise<T> {
+  return http.post(url, data, config) as unknown as Promise<T>;
+}
+function $delete<T>(url: string): Promise<T> {
+  return http.delete(url) as unknown as Promise<T>;
+}
+
 export const api = {
   // Auth — admin reuses the C-side /auth/login then checks /admin/whoami.
   login: (email: string, password: string) =>
     axios.post('/auth/login', { identityType: 'EMAIL_PASSWORD', identifier: email, credential: password })
       .then((r) => r.data?.data || r.data),
-  whoami: () => http.get<boolean>('/api/admin/whoami'),
+  whoami: () => $get<boolean>('/api/admin/whoami'),
 
   // Organizations + dashboard
-  listOrgs: () => http.get<Organization[]>('/api/admin/organizations'),
-  saveOrg: (payload: Organization) => http.post<Organization>('/api/admin/organizations', payload),
-  orgDashboard: (orgId: number) => http.get<OrgDashboard>(`/api/admin/organizations/${orgId}/dashboard`),
-  orgStudents: (orgId: number) => http.get<StudentRow[]>(`/api/admin/organizations/${orgId}/students`),
+  listOrgs: () => $get<Organization[]>('/api/admin/organizations'),
+  saveOrg: (payload: Organization) => $post<Organization>('/api/admin/organizations', payload),
+  orgDashboard: (orgId: number) => $get<OrgDashboard>(`/api/admin/organizations/${orgId}/dashboard`),
+  orgStudents: (orgId: number) => $get<StudentRow[]>(`/api/admin/organizations/${orgId}/students`),
 
   // Skill map
-  listPaths: () => http.get<CareerPath[]>('/api/admin/career-paths'),
-  savePath: (p: CareerPath) => http.post<CareerPath>('/api/admin/career-paths', p),
-  deletePath: (pathId: number) => http.delete<void>(`/api/admin/career-paths/${pathId}`),
-  listNodes: (pathId: number) => http.get<CareerNode[]>(`/api/admin/career-paths/${pathId}/nodes`),
+  listPaths: () => $get<CareerPath[]>('/api/admin/career-paths'),
+  savePath: (p: CareerPath) => $post<CareerPath>('/api/admin/career-paths', p),
+  deletePath: (pathId: number) => $delete<void>(`/api/admin/career-paths/${pathId}`),
+  listNodes: (pathId: number) => $get<CareerNode[]>(`/api/admin/career-paths/${pathId}/nodes`),
   saveNode: (pathId: number, n: CareerNode) =>
-    http.post<CareerNode>(`/api/admin/career-paths/${pathId}/nodes`, n),
-  deleteNode: (nodeId: number) => http.delete<void>(`/api/admin/career-paths/nodes/${nodeId}`),
+    $post<CareerNode>(`/api/admin/career-paths/${pathId}/nodes`, n),
+  deleteNode: (nodeId: number) => $delete<void>(`/api/admin/career-paths/nodes/${nodeId}`),
 
   // Question bank
   listQuestions: (params?: { source?: string; reviewStatus?: string }) =>
-    http.get<InterviewQuestion[]>('/api/admin/questions', { params }),
+    $get<InterviewQuestion[]>('/api/admin/questions', { params }),
   listPendingReview: () =>
-    http.get<InterviewQuestion[]>('/api/admin/questions', { params: { reviewStatus: 'PENDING_REVIEW' } }),
-  approveQuestion: (id: number) => http.post<InterviewQuestion>(`/api/admin/questions/${id}/approve`, {}),
-  rejectQuestion: (id: number) => http.post<InterviewQuestion>(`/api/admin/questions/${id}/reject`, {}),
+    $get<InterviewQuestion[]>('/api/admin/questions', { params: { reviewStatus: 'PENDING_REVIEW' } }),
+  approveQuestion: (id: number) => $post<InterviewQuestion>(`/api/admin/questions/${id}/approve`, {}),
+  rejectQuestion: (id: number) => $post<InterviewQuestion>(`/api/admin/questions/${id}/reject`, {}),
   updateQuestion: (id: number, payload: Partial<InterviewQuestion>) =>
-    http.post<InterviewQuestion>(`/api/admin/questions/${id}`, payload),
-  deleteQuestion: (id: number) => http.delete<void>(`/api/admin/questions/${id}`),
+    $post<InterviewQuestion>(`/api/admin/questions/${id}`, payload),
+  deleteQuestion: (id: number) => $delete<void>(`/api/admin/questions/${id}`),
 
   // Weekly report
-  runWeeklyReport: () => http.post<{ delivered: number; skipped: number }>('/api/admin/weekly-report/run'),
+  runWeeklyReport: () => $post<{ delivered: number; skipped: number }>('/api/admin/weekly-report/run'),
 
-  // Feedback (F26)
+  // Feedback
   listFeedbacks: (params?: { page?: number; size?: number; status?: string }) =>
-    http.get<{ content: UserFeedback[]; totalElements: number }>('/api/admin/feedback', { params }),
+    $get<{ content: UserFeedback[]; totalElements: number }>('/api/admin/feedback', { params }),
   updateFeedbackStatus: (id: number, status: string) =>
-    http.post<UserFeedback>(`/api/admin/feedback/${id}/status`, { status }),
+    $post<UserFeedback>(`/api/admin/feedback/${id}/status`, { status }),
 };
 
 export default http;

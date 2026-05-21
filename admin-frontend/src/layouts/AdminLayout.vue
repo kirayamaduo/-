@@ -60,7 +60,7 @@ const logout = () => {
 .admin-shell { height: 100vh; }
 .admin-aside { background: #0f172a; color: #f8fafc; padding-top: 12px; }
 .admin-aside :deep(.el-menu) { background: transparent; border-right: none; }
-.admin-aside :deep(.el-menu-item) { color: #cbd5f5; }
+.admin-aside :deep(.el-menu-item) { color: #cbd5e1; }
 .admin-aside :deep(.el-menu-item.is-active) { background: rgba(37, 99, 235, 0.18); color: #fff; }
 .brand { padding: 14px 20px 18px; font-size: 16px; font-weight: 700; color: #fff; }
 .admin-header { background: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; }

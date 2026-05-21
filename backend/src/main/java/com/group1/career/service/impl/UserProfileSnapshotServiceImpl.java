@@ -3,6 +3,8 @@ package com.group1.career.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.group1.career.model.dto.UserProfileSnapshot;
 import com.group1.career.model.entity.User;
+import com.group1.career.model.entity.UserFact;
+import com.group1.career.repository.UserFactRepository;
 import com.group1.career.repository.UserRepository;
 import com.group1.career.service.UserProfileSnapshotService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,6 +30,7 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
     private static final DateTimeFormatter PROMPT_DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final UserRepository userRepository;
+    private final UserFactRepository userFactRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -32,7 +38,64 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         if (userId == null) return UserProfileSnapshot.builder().build();
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) return UserProfileSnapshot.builder().build();
-        return parse(userOpt.get().getProfileSnapshot());
+        UserProfileSnapshot snapshot = parse(userOpt.get().getProfileSnapshot());
+        enrichOnboardingFromFacts(userId, snapshot);
+        return snapshot;
+    }
+
+    /**
+     * Fill empty onboarding fields from UserFacts so the homepage "求职画像"
+     * card reflects the latest user-edited values even when the onboarding
+     * block was written before those edits. This is a read-time overlay —
+     * it does NOT persist changes back to the snapshot column.
+     */
+    private void enrichOnboardingFromFacts(Long userId, UserProfileSnapshot snapshot) {
+        UserProfileSnapshot.OnboardingBlock onboarding = snapshot.getOnboarding();
+        if (onboarding == null) {
+            onboarding = UserProfileSnapshot.OnboardingBlock.builder().build();
+            snapshot.setOnboarding(onboarding);
+        }
+
+        // Only fetch facts when at least one field could benefit
+        boolean needsTimeline = !hasText(onboarding.getTimeline());
+        boolean needsWeekly = !hasText(onboarding.getWeeklyAvailability());
+        boolean needsEducation = onboarding.getEducation() == null
+                || (!hasText(onboarding.getEducation().getSchool()) && !hasText(onboarding.getEducation().getMajor()));
+        if (!needsTimeline && !needsWeekly && !needsEducation) return;
+
+        List<UserFact> facts = userFactRepository.findByUserId(userId);
+        Map<String, String> factMap = facts.stream()
+                .filter(f -> hasText(f.getFactValue()))
+                .collect(Collectors.toMap(UserFact::getFactKey, UserFact::getFactValue, (a, b) -> b));
+
+        if (needsTimeline && factMap.containsKey("timeline")) {
+            onboarding.setTimeline(factMap.get("timeline"));
+        }
+        if (needsWeekly && factMap.containsKey("weekly_hours")) {
+            onboarding.setWeeklyAvailability(mapWeeklyHoursToOnboarding(factMap.get("weekly_hours")));
+        }
+        if (needsEducation) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && (hasText(user.getSchool()) || hasText(user.getMajor()))) {
+                UserProfileSnapshot.EducationBlock edu = onboarding.getEducation();
+                if (edu == null) {
+                    edu = UserProfileSnapshot.EducationBlock.builder().build();
+                    onboarding.setEducation(edu);
+                }
+                if (!hasText(edu.getSchool()) && hasText(user.getSchool())) edu.setSchool(user.getSchool());
+                if (!hasText(edu.getMajor()) && hasText(user.getMajor())) edu.setMajor(user.getMajor());
+            }
+        }
+    }
+
+    private static String mapWeeklyHoursToOnboarding(String hours) {
+        return switch (hours) {
+            case "3"  -> "lt_5h";
+            case "7"  -> "5_10h";
+            case "15" -> "10_20h";
+            case "25" -> "gt_20h";
+            default   -> hours;
+        };
     }
 
     @Override

@@ -264,7 +264,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from '@/locales';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
 import SlPage from '@/style-library/components/SlPage.vue';
-import { getAgentProfileApi, saveProfileInputsApi, type AgentUserProfile, type ProfileInputsRequest } from '@/api/agent';
+import { getAgentProfileApi, saveProfileInputsApi, refreshAgentProfileApi, getProfileInputsApi, type AgentUserProfile, type ProfileInputsRequest } from '@/api/agent';
 import {
   getProfileTagsApi,
   refreshProfileTagsApi,
@@ -426,13 +426,25 @@ onMounted(async () => {
   topSafeHeight.value = safeMetrics.topSafeHeight;
   rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
   try {
-    const [profile, tags] = await Promise.all([
+    const [profile, tags, inputs] = await Promise.all([
       getAgentProfileApi(),
       getProfileTagsApi(),
+      getProfileInputsApi(),
     ]);
     agentProfile.value = profile;
     profileTagSummary.value = tags;
     hydrateTagDrafts(tags);
+    // 用已保存的偏好值回填表单，避免每次打开都是空的
+    form.value = {
+      targetCity: inputs.targetCity ?? '',
+      targetIndustry: inputs.targetIndustry ?? '',
+      timeline: inputs.timeline ?? '',
+      weeklyHours: inputs.weeklyHours ?? '',
+      preferredDifficulty: inputs.preferredDifficulty ?? '',
+      considerGradSchool: inputs.considerGradSchool,
+      considerStudyAbroad: inputs.considerStudyAbroad,
+      careerGoalNote: inputs.careerGoalNote ?? '',
+    };
   } catch { /* ignore */ }
 });
 
@@ -478,6 +490,10 @@ const saveProfileTags = async () => {
     profileTagSummary.value = saved;
     hydrateTagDrafts(saved);
     uni.showToast({ title: t('agent.profile.tagsSaved'), icon: 'success' });
+    // 标签变更后同步刷新 AgentProfile，让首页准备度和成长树也能感知新标签
+    refreshAgentProfileApi().then((fresh) => {
+      agentProfile.value = fresh;
+    }).catch(() => { /* 静默失败，不影响主流程 */ });
   } catch (e: any) {
     uni.showToast({ title: e?.message || t('agent.profile.saveFailed'), icon: 'none' });
   } finally {
@@ -512,6 +528,11 @@ const saveInputs = async () => {
 
     agentProfile.value = await saveProfileInputsApi(payload);
     uni.showToast({ title: t('agent.profile.saveSuccess'), icon: 'success' });
+    // 偏好表单变更后同步刷新标签（目标岗位、行业会影响标签推断）
+    refreshProfileTagsApi().then((fresh) => {
+      profileTagSummary.value = fresh;
+      hydrateTagDrafts(fresh);
+    }).catch(() => { /* 静默失败 */ });
     setTimeout(() => uni.navigateBack(), 800);
   } catch (e: any) {
     uni.showToast({ title: e?.message || t('agent.profile.saveFailed'), icon: 'none' });
