@@ -25,6 +25,8 @@ public class ResumeServiceImpl implements ResumeService {
 
     /** Resume previews are usually opened, scrolled, then closed quickly. */
     private static final long PREVIEW_TTL_SECONDS = 15 * 60;
+    private static final int MAX_RESUME_TITLE_LEN = 50;
+    private static final int MAX_TARGET_JOB_LEN = 50;
 
     private final ResumeRepository resumeRepository;
     private final FileService fileService;
@@ -35,8 +37,8 @@ public class ResumeServiceImpl implements ResumeService {
     public Resume createResume(Long userId, String title, String targetJob, String fileUrl, String parsedContent) {
         Resume resume = Resume.builder()
                 .userId(userId)
-                .title(title)
-                .targetJob(targetJob)
+                .title(truncateField(title, MAX_RESUME_TITLE_LEN))
+                .targetJob(truncateField(targetJob, MAX_TARGET_JOB_LEN))
                 .fileUrl(fileUrl)
                 .parsedContent(parsedContent)
                 .build();
@@ -152,5 +154,12 @@ public class ResumeServiceImpl implements ResumeService {
         if (resumes == null || resumes.isEmpty()) return Collections.emptyList();
         resumes.forEach(this::hydrateUrl);
         return resumes;
+    }
+
+    private static String truncateField(String value, int maxLen) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+        return trimmed.length() <= maxLen ? trimmed : trimmed.substring(0, maxLen);
     }
 }

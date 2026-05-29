@@ -34,6 +34,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ResumeGenController {
 
+    private static final int MAX_RESUME_TITLE_LEN = 50;
+    private static final int MAX_TARGET_JOB_LEN = 50;
+
     private final AiService aiService;
     private final ResumeService resumeService;
     private final FileService fileService;
@@ -91,10 +94,10 @@ public class ResumeGenController {
         String fileKey = htmlToPdfAndUpload(html, "resumes/tailored");
         log.info("[tailor] PDF render+OSS upload took {} ms", System.currentTimeMillis() - ts);
 
-        String title = (base.getTitle() == null ? "Resume" : base.getTitle()) + "_tailored";
+        String title = truncateField((base.getTitle() == null ? "Resume" : base.getTitle()) + "_tailored",
+                MAX_RESUME_TITLE_LEN);
         Resume saved = resumeService.createResume(uid, title,
-                req.getJobDescription() != null && req.getJobDescription().length() > 60
-                        ? req.getJobDescription().substring(0, 60) : req.getJobDescription(),
+                summarizeTargetJob(req.getJobDescription()),
                 fileKey, null);
         log.info("[tailor] DONE total {} ms, resumeId={}", System.currentTimeMillis() - t0, saved.getResumeId());
         TailorResponse response = new TailorResponse();
@@ -237,6 +240,34 @@ public class ResumeGenController {
     }
 
     private String safe(Object v) { return v == null ? "" : v.toString(); }
+
+    /** DB column `target_job` is VARCHAR(50) — never persist the full JD blob. */
+    private String summarizeTargetJob(String jobDescription) {
+        if (jobDescription == null || jobDescription.isBlank()) return null;
+        for (String line : jobDescription.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            if (trimmed.matches("^[一二三四五六七八九十]+[、.．].*")) {
+                int sep = Math.max(trimmed.indexOf('：'), trimmed.indexOf(':'));
+                if (sep > 0 && sep < trimmed.length() - 1) {
+                    trimmed = trimmed.substring(sep + 1).trim();
+                } else {
+                    continue;
+                }
+            }
+            if (!trimmed.isEmpty()) {
+                return truncateField(trimmed, MAX_TARGET_JOB_LEN);
+            }
+        }
+        return truncateField(jobDescription, MAX_TARGET_JOB_LEN);
+    }
+
+    private static String truncateField(String value, int maxLen) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+        return trimmed.length() <= maxLen ? trimmed : trimmed.substring(0, maxLen);
+    }
 
     // ========================= DTOs =========================
 
