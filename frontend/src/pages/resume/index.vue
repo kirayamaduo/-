@@ -24,7 +24,7 @@
       <view class="section-bar">
         <view class="section-titles">
           <text class="section-title">{{ t('resume.myResumes') }}</text>
-          <text class="section-sub">{{ t('resume.filesCount', { n: mainHubCount }) }}</text>
+          <text class="section-sub">{{ t('resume.filesCount', { n: mainHubResumes.length }) }}</text>
         </view>
         <view class="section-action" @click="handleUploadClick">
           <text class="section-action-text">{{ t('resume.addBtn') }}</text>
@@ -166,7 +166,7 @@ import { useI18n } from '@/locales';
 import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
-  getMyResumesApi,
+  listMyResumesApi,
   createResumeApi,
   deleteResumeApi,
   updateResumeApi,
@@ -181,6 +181,9 @@ import {
   startResumeKeywordExtractionApi,
   type ResumeKeywordStatus,
 } from '@/api/profileTags';
+
+const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 type KeywordStatus = 'idle' | 'loading' | 'done' | 'empty' | 'failed' | 'timeout';
 
@@ -210,8 +213,6 @@ const mainHubResumes = computed(() => {
   if (originalResumes.value.length > 0) return originalResumes.value;
   return tailoredResumes.value;
 });
-const mainHubCount = computed(() => mainHubResumes.value.length);
-
 /**
  * Render an absolute timestamp (e.g. "2026-04-30 01:00:21") as a friendly
  * relative label. We deliberately keep this self-contained -- it falls back
@@ -359,7 +360,7 @@ const loadResumes = async () => {
   }
   isLoading.value = true;
   try {
-    const raw = await getMyResumesApi();
+    const raw = await listMyResumesApi();
     // Guard against the API returning a non-array (e.g. a paginated
     // wrapper object or a null body) to prevent ".map is not a function".
     const resumes: Resume[] = Array.isArray(raw) ? raw : [];
@@ -402,8 +403,6 @@ const showSheet = ref(false);
 const topSafeHeight = ref(88);
 const rightAvoidWidth = ref(20);
 const scrollTopValue = ref(0);
-const { t } = useI18n();
-const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const RESUME_AUTO_UPLOAD_KEY = 'resume_auto_upload_once';
 const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
@@ -618,9 +617,13 @@ onMounted(() => {
 // Tab pages are kept alive across navigation; onShow re-fires every time
 // the page becomes visible (including after login -> switchTab back).
 onShow(() => {
-  refreshTheme();
-  loadResumes();
-  openPendingUploadSheet();
+  try {
+    refreshTheme();
+    loadResumes();
+    openPendingUploadSheet();
+  } catch (e) {
+    console.error('[resume] onShow failed', e);
+  }
 });
 
 onPageScroll(({ scrollTop }) => {

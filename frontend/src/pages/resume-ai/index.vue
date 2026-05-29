@@ -150,7 +150,7 @@ import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
-  getMyResumesApi,
+  listMyResumesApi,
   diagnoseResumeApi,
   tailorResumeApi,
   type Resume,
@@ -208,7 +208,7 @@ const goBack = () => {
 const loadResumes = async () => {
   if (!uni.getStorageSync('token')) return;
   try {
-    const raw = await getMyResumesApi();
+    const raw = await listMyResumesApi();
     userResumes.value = Array.isArray(raw) ? raw : [];
   } catch {
     userResumes.value = [];

@@ -43,7 +43,11 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         if (userOpt.isEmpty()) return UserProfileSnapshot.builder().build();
         UserProfileSnapshot snapshot = parse(userOpt.get().getProfileSnapshot());
         enrichOnboardingFromFacts(userId, snapshot);
-        reconcileResumeBlock(userId, snapshot);
+        try {
+            reconcileResumeBlock(userId, snapshot);
+        } catch (Exception e) {
+            log.warn("[snapshot] resume reconcile failed for user {}: {}", userId, e.toString());
+        }
         return snapshot;
     }
 
