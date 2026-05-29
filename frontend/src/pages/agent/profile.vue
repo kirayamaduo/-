@@ -260,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onShow, ref } from 'vue';
 import { useI18n } from '@/locales';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
 import SlPage from '@/style-library/components/SlPage.vue';
@@ -420,11 +420,7 @@ const normalizeSkillLevel = (level: number | undefined) => {
   return clampPercent(n <= 1 ? n * 100 : n);
 };
 
-onMounted(async () => {
-  refreshTheme();
-  const safeMetrics = getMpSafeAreaMetrics();
-  topSafeHeight.value = safeMetrics.topSafeHeight;
-  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+const loadProfilePage = async () => {
   try {
     const [profile, tags, inputs] = await Promise.all([
       getAgentProfileApi(),
@@ -434,7 +430,6 @@ onMounted(async () => {
     agentProfile.value = profile;
     profileTagSummary.value = tags;
     hydrateTagDrafts(tags);
-    // 用已保存的偏好值回填表单，避免每次打开都是空的
     form.value = {
       targetCity: inputs.targetCity ?? '',
       targetIndustry: inputs.targetIndustry ?? '',
@@ -446,6 +441,19 @@ onMounted(async () => {
       careerGoalNote: inputs.careerGoalNote ?? '',
     };
   } catch { /* ignore */ }
+};
+
+onMounted(async () => {
+  refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+  await loadProfilePage();
+});
+
+onShow(() => {
+  refreshTheme();
+  loadProfilePage();
 });
 
 const addTag = (category: ProfileTagCategory) => {

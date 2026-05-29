@@ -137,35 +137,36 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
     @Override
     @Transactional
     public UserProfileTagDto.Summary saveManualTags(Long userId, List<UserProfileTagDto> tags) {
-        tagRepository.deleteByUserIdAndSource(userId, SOURCE_USER);
+        // The editor shows the merged tag set; saving must persist exactly what the user left
+        // in the form. Re-inferring signals here would resurrect deleted SYSTEM_INFERRED tags.
+        tagRepository.deleteByUserId(userId);
         tagRepository.flush();
         if (tags != null) {
-            tags.stream()
+            List<TagSpec> submitted = tags.stream()
                     .filter(Objects::nonNull)
                     .map(this::sanitize)
                     .filter(Objects::nonNull)
-                    .flatMap(dto -> tokenizeSpec(new TagSpec(
+                    .map(dto -> new TagSpec(
                             dto.getCategory(),
                             dto.getLabel(),
                             dto.getWeight() == null ? 70 : dto.getWeight(),
                             dto.getEvidence() == null ? "user edited" : dto.getEvidence()
-                    )).stream())
-                    .forEach(spec -> {
-                        UserProfileTag tag = tagRepository
-                                .findByUserIdAndCategoryAndLabel(userId, spec.category(), spec.label())
-                                .orElseGet(() -> UserProfileTag.builder()
-                                        .userId(userId)
-                                        .category(spec.category())
-                                        .label(spec.label())
-                                        .build());
-                        tag.setWeight(clamp(spec.weight(), 1, 100));
-                        tag.setSource(SOURCE_USER);
-                        tag.setEvidence(spec.evidence());
-                        tag.setEditable(true);
+                    ))
+                    .toList();
+            mergeSpecs(submitted).forEach(spec -> {
+                        UserProfileTag tag = UserProfileTag.builder()
+                                .userId(userId)
+                                .category(spec.category())
+                                .label(spec.label())
+                                .weight(clamp(spec.weight(), 1, 100))
+                                .source(SOURCE_USER)
+                                .evidence(spec.evidence())
+                                .editable(true)
+                                .build();
                         tagRepository.save(tag);
                     });
         }
-        return refreshFromSignals(userId);
+        return getSummary(userId);
     }
 
     @Override
