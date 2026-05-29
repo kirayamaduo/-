@@ -173,8 +173,13 @@ import {
   uploadResumeFile,
   type Resume,
 } from '@/api/resume';
-import { isTailoredResumeTitle } from '@/utils/resumeDisplay';
 import { useTheme } from '@/utils/theme';
+
+/** JD-tailored copies use a `_tailored` suffix (see ResumeGenController). */
+const isTailoredResumeTitle = (title?: string | null): boolean => {
+  if (!title) return false;
+  return /_tailored(?:\.pdf)?$/i.test(title.trim());
+};
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 import {
   getResumeKeywordStatusApi,
