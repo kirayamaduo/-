@@ -19,13 +19,27 @@ const hasObjectValue = (value: unknown): value is Record<string, unknown> => {
   });
 };
 
-const withTimeout = async <T>(work: Promise<T>, timeoutMs: number): Promise<T> => {
+const ONBOARDING_SNAPSHOT_TIMEOUT_MS = 1500;
+
+const withTimeout = async <T>(
+  start: (registerTask: (task: UniApp.RequestTask) => void) => Promise<T>,
+  timeoutMs: number,
+): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let requestTask: UniApp.RequestTask | undefined;
+  const work = start((task) => {
+    requestTask = task;
+  });
+  // If the race times out first, the HTTP call may still finish later — absorb that rejection.
+  work.catch(() => undefined);
   try {
     return await Promise.race([
       work,
       new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('onboarding_snapshot_timeout')), timeoutMs);
+        timer = setTimeout(() => {
+          requestTask?.abort();
+          reject(new Error('onboarding_snapshot_timeout'));
+        }, timeoutMs);
       }),
     ]);
   } finally {
@@ -110,7 +124,13 @@ export const shouldForceOnboarding = async (): Promise<boolean> => {
   if (!isRealUser()) return true;
 
   try {
-    const snapshot = await withTimeout(getProfileSnapshotApi(), 1500);
+    const snapshot = await withTimeout(
+      (registerTask) => getProfileSnapshotApi({
+        timeout: ONBOARDING_SNAPSHOT_TIMEOUT_MS + 500,
+        onTask: registerTask,
+      }),
+      ONBOARDING_SNAPSHOT_TIMEOUT_MS,
+    );
     const serverSetup = snapshotToOnboardingSetup(snapshot);
     if (serverSetup) {
       markOnboardingSeen(serverSetup);

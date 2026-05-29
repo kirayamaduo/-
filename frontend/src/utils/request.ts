@@ -41,6 +41,8 @@ type RequestOptions = UniApp.RequestOptions & {
   silent?: boolean;   // suppress error toasts when true
   _retried?: boolean; // F21: internal flag to prevent double-retry
   params?: Record<string, unknown>;
+  /** Exposes the underlying RequestTask so callers can abort abandoned requests. */
+  onTask?: (task: UniApp.RequestTask) => void;
 };
 
 type UploadOptions = {
@@ -101,7 +103,7 @@ const request = <T>(options: RequestOptions): Promise<T> => {
     };
     if (token) header['Authorization'] = `Bearer ${token}`;
 
-    uni.request({
+    const task = uni.request({
       // AI endpoints can take up to 2 min — keep this floor high
       timeout: 120_000,
       ...options,
@@ -169,12 +171,19 @@ const request = <T>(options: RequestOptions): Promise<T> => {
         showError(errorMsg, options.silent);
         reject(new Error(errorMsg));
       },
-      fail: (_err) => {
+      fail: (err) => {
+        const errMsg = String((err as UniApp.GeneralCallbackResult)?.errMsg || '');
+        // Aborted by an intentional race/timeout — never toast or surface as a hard failure.
+        if (/abort/i.test(errMsg)) {
+          reject(new Error('Request aborted'));
+          return;
+        }
         const message = translate('common.networkError');
         showError(message, options.silent);
         reject(new Error(message));
       },
     });
+    options.onTask?.(task);
   });
 };
 
