@@ -190,10 +190,10 @@
 
     <view v-if="cdutInsight" class="support-card app-surface" @click="navTo('/pages/cdut-employment/index')">
       <view class="support-main">
-        <text class="support-title">{{ cdutInsight.school ? cdutInsight.school + '就业数据' : t('cdut.homeTitle') }}</text>
-        <text class="support-desc">{{ cdutInsight.matchLabel }} · {{ cdutInsight.latestYear || t('cdut.publicSources') }}</text>
+        <text class="support-title">{{ cdutHomeTitle }}</text>
+        <text class="support-desc">{{ cdutHomeDesc }}</text>
       </view>
-      <text class="support-link">就业数据 ›</text>
+      <text class="support-link">{{ cdutInsight.demoMode ? '演示 ›' : '就业数据 ›' }}</text>
     </view>
 
     <view v-if="hasResourceContent || searchQuery" class="resource-search app-surface">
@@ -1116,6 +1116,23 @@ const formatPercent = (n?: number): string => {
   const value = Number(n);
   return `${Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)}%`;
 };
+
+const cdutHomeTitle = computed(() => {
+  if (!cdutInsight.value) return t('cdut.homeTitle');
+  if (cdutInsight.value.demoMode) return '就业数据演示';
+  return cdutInsight.value.school ? `${cdutInsight.value.school}就业数据` : t('cdut.homeTitle');
+});
+
+const cdutHomeDesc = computed(() => {
+  if (!cdutInsight.value) return '';
+  if (cdutInsight.value.demoMode) {
+    const employment = formatPercent(cdutInsight.value.latestEmploymentRate);
+    const postgrad = formatPercent(cdutInsight.value.latestPostgraduateRate);
+    const materials = cdutInsight.value.sourceCount || 5;
+    return `${cdutInsight.value.matchLabel} · 落实率 ${employment} · 深造率 ${postgrad} · ${materials} 条演示材料`;
+  }
+  return `${cdutInsight.value.matchLabel} · ${cdutInsight.value.latestYear || t('cdut.publicSources')}`;
+});
 
 const openArticle = (a: HomeArticle) => {
   if (!a.url) {

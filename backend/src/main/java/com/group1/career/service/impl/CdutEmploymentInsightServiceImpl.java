@@ -48,6 +48,11 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
     /** Backwards-compat default school name used when the entity has no school set. */
     private static final String DEFAULT_SCHOOL = "成都理工大学";
     private static final String DEMO_SCHOOL = "XX大学";
+    private static final String DEMO_MAJOR = "软件工程";
+    private static final String DEMO_TARGET_ROLE = "Java 后端开发";
+    private static final List<Integer> DEMO_YEARS = List.of(2021, 2022, 2023, 2024, 2025);
+    private static final List<String> DEMO_EMPLOYMENT_RATES = List.of("92.8", "93.9", "94.7", "95.6", "96.3");
+    private static final List<String> DEMO_POSTGRAD_RATES = List.of("18.6", "19.8", "21.4", "22.7", "24.2");
 
     /**
      * The canonical list of "双一流" universities in Sichuan that this insight
@@ -254,24 +259,24 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
     }
 
     private CdutEmploymentInsightDto demoInsight(String major, String targetRole) {
-        List<Integer> years = coverageYears();
-        List<CdutEmploymentInsightDto.YearPoint> trend = List.of(
-                yearPoint(years.get(0), "92.8", "18.6"),
-                yearPoint(years.get(1), "93.9", "19.8"),
-                yearPoint(years.get(2), "94.7", "21.4"),
-                yearPoint(years.get(3), "95.6", "22.7"),
-                yearPoint(years.get(4), "96.3", "24.2")
-        );
+        String demoMajor = demoField(major, DEMO_MAJOR);
+        String demoTarget = demoField(targetRole, DEMO_TARGET_ROLE);
+        List<Integer> years = DEMO_YEARS;
+        List<CdutEmploymentInsightDto.YearPoint> trend = new ArrayList<>();
+        for (int i = 0; i < years.size(); i++) {
+            trend.add(yearPoint(years.get(i), DEMO_EMPLOYMENT_RATES.get(i), DEMO_POSTGRAD_RATES.get(i)));
+        }
         Integer latestYear = years.get(years.size() - 1);
         BigDecimal latestEmployment = trend.get(trend.size() - 1).getEmploymentRate();
         BigDecimal latestPostgrad = trend.get(trend.size() - 1).getPostgraduateRate();
 
         return CdutEmploymentInsightDto.builder()
                 .school(DEMO_SCHOOL)
-                .major(major)
-                .targetRole(targetRole)
-                .matchLabel("答辩脱敏演示数据")
-                .summary("当前为答辩演示模式：学校名称、来源和统计数据均为虚构脱敏样例，用于展示系统如何按专业、目标岗位和年份组织就业信息，不连接真实学校公开数据。")
+                .major(demoMajor)
+                .targetRole(demoTarget)
+                .matchLabel("与你的专业和目标职业高度相关")
+                .summary("当前为答辩脱敏演示数据：基于「" + demoMajor + "」专业与「" + demoTarget
+                        + "」目标岗位，展示近 5 年就业/落实率与升学/深造率趋势。所有学校名称、来源与统计值均为虚构样例，不连接真实学校公开数据。")
                 .latestEmploymentRate(latestEmployment)
                 .latestPostgraduateRate(latestPostgrad)
                 .latestYear(latestYear)
@@ -279,14 +284,19 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
                 .updatedAt(LocalDateTime.now().minusDays(1))
                 .demoMode(true)
                 .destinationHighlights(List.of(
-                        "近 5 年演示样例显示，软件开发、数据开发、测试与运维岗位为主要去向。",
-                        "升学/深造比例在演示周期内保持小幅上升，适合展示趋势分析能力。",
-                        "样例来源按年份组织，可用于演示来源追踪、口径说明和完整性校验。"
+                        "主要去向包括软件研发、Java 后端开发、数据开发、测试工程、信息化运维等方向。",
+                        "重点行业包括互联网软件、智能制造、金融科技、政企信息化等。",
+                        "近 5 年就业/落实率与升学/深造率稳步提升，岗位方向与软件工程专业和 Java 后端开发目标高度相关。"
                 ))
                 .trend(trend)
                 .coverage(demoCoverage(years))
-                .sources(demoSources(years))
+                .sources(demoSources(years, demoMajor, demoTarget))
                 .build();
+    }
+
+    private String demoField(String raw, String fallback) {
+        if (!hasText(raw) || raw.startsWith("未填写")) return fallback;
+        return raw.trim();
     }
 
     private CdutEmploymentInsightDto.YearPoint yearPoint(Integer year, String employment, String postgrad) {
@@ -304,13 +314,12 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
                         .year(year)
                         .status(COVERAGE_VERIFIED_FULL)
                         .label("演示完整")
-                        .reason("脱敏演示样例已补齐该年份的趋势、来源和摘要字段。")
-                        .sourceUrl("demo://employment/" + year)
+                        .reason("该年份演示材料已补齐就业率、升学率与去向摘要。")
                         .build())
                 .collect(Collectors.toList());
     }
 
-    private List<CdutEmploymentInsightDto.SourceItem> demoSources(List<Integer> years) {
+    private List<CdutEmploymentInsightDto.SourceItem> demoSources(List<Integer> years, String major, String targetRole) {
         List<CdutEmploymentInsightDto.SourceItem> out = new ArrayList<>();
         for (int i = 0; i < years.size(); i++) {
             Integer year = years.get(i);
@@ -320,19 +329,21 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
                     .title(DEMO_SCHOOL + year + "届毕业生就业质量报告（演示）")
                     .url("demo://employment/" + year)
                     .sourceType("DEMO_REPORT")
-                    .majorKeyword(majorKeywordForDemo(year))
-                    .careerKeyword("软件开发")
-                    .employmentRate(new BigDecimal(List.of("92.8", "93.9", "94.7", "95.6", "96.3").get(i)))
-                    .postgraduateRate(new BigDecimal(List.of("18.6", "19.8", "21.4", "22.7", "24.2").get(i)))
-                    .excerpt(year + " 届演示样例：主要去向包括软件研发、后端开发、数据开发、测试工程和信息化运维等方向。")
+                    .majorKeyword(major)
+                    .careerKeyword(targetRole)
+                    .employmentRate(new BigDecimal(DEMO_EMPLOYMENT_RATES.get(i)))
+                    .postgraduateRate(new BigDecimal(DEMO_POSTGRAD_RATES.get(i)))
+                    .excerpt(demoSourceExcerpt(year, major, targetRole))
                     .fetchedAt(LocalDateTime.now().minusDays(1))
                     .build());
         }
         return out;
     }
 
-    private String majorKeywordForDemo(Integer year) {
-        return Optional.ofNullable(year).orElse(0) % 2 == 0 ? "软件工程" : "计算机类";
+    private String demoSourceExcerpt(Integer year, String major, String targetRole) {
+        return year + " 届演示样例：主要去向包括软件研发、Java 后端开发、数据开发、测试工程、信息化运维等方向；"
+                + "重点行业包括互联网软件、智能制造、金融科技、政企信息化等；"
+                + "岗位方向与「" + major + "」专业和「" + targetRole + "」目标岗位高度相关。";
     }
 
     private CdutEmploymentInsightDto unavailableInsight(String school, String major, String targetRole) {

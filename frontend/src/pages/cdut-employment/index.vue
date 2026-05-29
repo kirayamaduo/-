@@ -102,7 +102,7 @@
 
             <view v-if="sourceTypeBars.length" class="source-type-block">
               <view class="chart-subhead">
-                <text class="chart-subtitle">来源类型分布</text>
+                <text class="chart-subtitle">{{ isDemoMode ? '演示材料类型' : '来源类型分布' }}</text>
               </view>
               <view class="source-type-row" v-for="bar in sourceTypeBars" :key="bar.key">
                 <text class="source-type-label">{{ bar.label }}</text>
@@ -193,18 +193,18 @@
           <view class="detail-grid">
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('trend')">
               <text class="detail-icon ri-line-chart-line"></text>
-              <text class="detail-title">已验证趋势</text>
-              <text class="detail-desc">{{ isDemoMode ? '展示脱敏样例的历年变化' : '仅展示已从公开来源识别到的历年变化' }}</text>
+              <text class="detail-title">{{ isDemoMode ? '演示趋势' : '已验证趋势' }}</text>
+              <text class="detail-desc">{{ isDemoMode ? '查看 2021-2025 年就业与升学变化' : '仅展示已从公开来源识别到的历年变化' }}</text>
             </view>
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('sources')">
               <text class="detail-icon ri-links-line"></text>
               <text class="detail-title">{{ isDemoMode ? '演示材料' : '公开来源' }}</text>
-              <text class="detail-desc">{{ isDemoMode ? '查看脱敏样例的年份和摘要' : '查看报告来源、年份和原链接' }}</text>
+              <text class="detail-desc">{{ isDemoMode ? '查看 5 条年份报告与去向摘要' : '查看报告来源、年份和原链接' }}</text>
             </view>
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('method')">
               <text class="detail-icon ri-information-line"></text>
               <text class="detail-title">数据口径</text>
-              <text class="detail-desc">了解抓取、匹配和未接入说明</text>
+              <text class="detail-desc">{{ isDemoMode ? '了解演示数据的组织方式与说明' : '了解抓取、匹配和未接入说明' }}</text>
             </view>
           </view>
         </view>
@@ -250,7 +250,7 @@ const pageTitle = computed(() => {
 });
 const pageSubtitle = computed(() =>
   isDemoMode.value
-    ? '当前展示答辩用脱敏演示数据，学校、来源和统计值均为虚构样例，不展示真实学校或个人信息。'
+    ? '当前为答辩脱敏演示数据，展示完整、稳定的就业信息样例。'
     : insight.value
       ? t('cdut.pageSubtitle')
       : '正在整理就业数据...'
@@ -259,7 +259,7 @@ const sourceMetricLabel = computed(() => isDemoMode.value ? '演示材料' : t('
 const coverageTitle = computed(() => isDemoMode.value ? '近 5 年演示覆盖' : '近 5 年覆盖审计');
 const coverageNote = computed(() =>
   isDemoMode.value
-    ? '演示模式下每个年份都使用脱敏样例补齐趋势、摘要和来源字段，用于答辩展示系统流程。'
+    ? '近 5 年演示材料均已补齐，覆盖趋势、摘要与演示完整状态。'
     : '只把官方报告或官方信息公开页中可抽取核心字段的年份标为完整；其他年份会保留缺失或待核验状态。'
 );
 const sourceYearTitle = computed(() => isDemoMode.value ? '按年份演示材料' : '按年份抓取来源');

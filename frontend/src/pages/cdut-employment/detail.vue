@@ -132,7 +132,7 @@
                 <text class="source-year" v-if="source.year">{{ source.year }}</text>
               </view>
               <view class="source-tags">
-                <text class="source-tag" v-if="source.sourceType">{{ source.sourceType }}</text>
+                <text class="source-tag" v-if="source.sourceType">{{ sourceTypeLabel(source.sourceType) }}</text>
                 <text class="source-tag" v-if="source.majorKeyword">{{ source.majorKeyword }}</text>
                 <text class="source-tag" v-if="source.careerKeyword">{{ source.careerKeyword }}</text>
               </view>
@@ -200,7 +200,7 @@ const section = ref<Section>('sources');
 const isDemoMode = computed(() => Boolean(insight.value?.demoMode));
 
 const pageTitle = computed(() => {
-  if (section.value === 'trend') return '已验证趋势';
+  if (section.value === 'trend') return isDemoMode.value ? '演示趋势' : '已验证趋势';
   if (section.value === 'method') return '数据口径';
   if (!insight.value) return '数据来源';
   return isDemoMode.value ? '演示材料' : '公开来源';
@@ -208,17 +208,17 @@ const pageTitle = computed(() => {
 
 const methodStep1 = computed(() =>
   isDemoMode.value
-    ? '当前页面使用答辩脱敏演示数据，学校、来源和统计值均为虚构样例。'
+    ? '当前页面使用答辩脱敏演示数据，学校、来源和统计值均为虚构样例，用于展示完整业务流程。'
     : '系统优先使用学校公开就业质量报告、学院就业去向公告等可追溯来源。'
 );
 const methodStep2 = computed(() =>
   isDemoMode.value
-    ? '专业和目标岗位只用于演示匹配流程，不连接真实学校公开数据，也不展示真实个人信息。'
+    ? '专业「软件工程」与目标岗位「Java 后端开发」用于演示匹配流程，不连接真实学校公开数据。'
     : '专业和目标岗位只用于筛选相关来源，不会把其他学校的数据替代到当前学校。'
 );
 const methodStep3 = computed(() =>
   isDemoMode.value
-    ? '演示材料按年份补齐趋势、来源和摘要字段，便于稳定展示完整业务流程。'
+    ? '2021-2025 年演示材料均已补齐趋势、摘要与覆盖状态，便于稳定展示完整效果。'
     : '未接入学校会明确显示暂无数据；就业率、升学率为空时不生成图表结论。'
 );
 
