@@ -54,6 +54,13 @@ public class ResumeController {
         return Result.success(resumeService.hydrateUrl(resumeService.assertOwnership(resumeId, uid)));
     }
 
+    @Operation(summary = "Get all resumes for the authenticated user")
+    @GetMapping("/me")
+    public Result<List<Resume>> getMyResumes() {
+        Long uid = SecurityUtil.requireCurrentUserId();
+        return Result.success(resumeService.hydrateUrls(resumeService.getUserResumes(uid)));
+    }
+
     @Operation(summary = "Get all resumes for a user (must be self)")
     @GetMapping("/user/{userId}")
     public Result<List<Resume>> getUserResumes(@PathVariable Long userId) {

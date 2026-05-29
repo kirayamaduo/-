@@ -35,6 +35,9 @@ public interface UserProfileSnapshotService {
     /** Merge a fresh resume upload / update into the user's snapshot. */
     void mergeResume(Long userId, UserProfileSnapshot.ResumeBlock block);
 
+    /** Clear the resume block when the user has no resumes left. */
+    void clearResume(Long userId);
+
     /** Merge a finished interview / report into the user's snapshot. */
     void mergeInterview(Long userId, UserProfileSnapshot.InterviewBlock block);
 

@@ -24,14 +24,14 @@
       <view class="section-bar">
         <view class="section-titles">
           <text class="section-title">{{ t('resume.myResumes') }}</text>
-          <text class="section-sub">{{ t('resume.filesCount', { n: originalResumes.length }) }}</text>
+          <text class="section-sub">{{ t('resume.filesCount', { n: mainHubCount }) }}</text>
         </view>
         <view class="section-action" @click="handleUploadClick">
           <text class="section-action-text">{{ t('resume.addBtn') }}</text>
         </view>
       </view>
       <view class="resume-list">
-        <view class="resume-card app-card-soft" v-for="(item, idx) in originalResumes" :key="item.resumeId">
+        <view class="resume-card app-card-soft" v-for="(item, idx) in mainHubResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon" :class="'rc-icon-' + (idx % 2)">
               <text class="rc-icon-text">PDF</text>
@@ -74,7 +74,7 @@
       </view>
 
       <!-- ── 针对岗位优化后的简历 section（有时才显示）── -->
-      <view v-if="tailoredResumes.length > 0" class="section-bar section-bar-ai">
+      <view v-if="tailoredResumes.length > 0 && originalResumes.length > 0" class="section-bar section-bar-ai">
         <view class="section-titles">
           <view class="ai-section-label-row">
             <text class="section-title">{{ t('resume.tailoredResumes') }}</text>
@@ -83,7 +83,7 @@
           <text class="section-sub">{{ t('resume.tailoredHint') }}</text>
         </view>
       </view>
-      <view class="resume-list" v-if="tailoredResumes.length > 0">
+      <view class="resume-list" v-if="tailoredResumes.length > 0 && originalResumes.length > 0">
         <view class="resume-card resume-card-ai app-card-soft" v-for="(item, idx) in tailoredResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon rc-icon-ai">
@@ -166,13 +166,14 @@ import { useI18n } from '@/locales';
 import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
-  getUserResumesApi,
+  getMyResumesApi,
   createResumeApi,
   deleteResumeApi,
   updateResumeApi,
   uploadResumeFile,
   type Resume,
 } from '@/api/resume';
+import { isTailoredResumeTitle } from '@/utils/resumeDisplay';
 import { useTheme } from '@/utils/theme';
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 import {
@@ -204,6 +205,12 @@ const keywordPollTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 const originalResumes = computed(() => resumeList.value.filter((r) => !r.isTailored));
 const tailoredResumes = computed(() => resumeList.value.filter((r) => r.isTailored));
+/** When only JD copies exist, show them in the main hub instead of an empty "我的简历" section. */
+const mainHubResumes = computed(() => {
+  if (originalResumes.value.length > 0) return originalResumes.value;
+  return tailoredResumes.value;
+});
+const mainHubCount = computed(() => mainHubResumes.value.length);
 
 /**
  * Render an absolute timestamp (e.g. "2026-04-30 01:00:21") as a friendly
@@ -262,7 +269,7 @@ const splitKeywordText = (text: string): string[] => {
 };
 
 const hydrateResumeKeywords = () => {
-  originalResumes.value.slice(0, 4).forEach((item) => {
+  mainHubResumes.value.slice(0, 4).forEach((item) => {
     if (item.resumeId && item.keywordStatus === 'idle') hydrateOneResumeKeywords(item.resumeId);
   });
 };
@@ -345,16 +352,14 @@ const retryResumeKeywords = (item: ResumeItem) => {
 const loadResumes = async () => {
   keywordPollTimers.forEach((timer) => clearTimeout(timer));
   keywordPollTimers.clear();
-  const userId = uni.getStorageSync('userId');
-  const numericId = Number(userId);
-  if (!userId || isNaN(numericId) || numericId <= 0) {
-    // Guest or not logged in — show empty list gracefully
+  const token = uni.getStorageSync('token');
+  if (!token) {
     resumeList.value = [];
     return;
   }
   isLoading.value = true;
   try {
-    const raw = await getUserResumesApi(numericId);
+    const raw = await getMyResumesApi();
     // Guard against the API returning a non-array (e.g. a paginated
     // wrapper object or a null body) to prevent ".map is not a function".
     const resumes: Resume[] = Array.isArray(raw) ? raw : [];
@@ -369,7 +374,7 @@ const loadResumes = async () => {
         statusLabel: r.status || 'Active',
         fileUrl: r.fileUrl,
         fileViewUrl: r.fileViewUrl,
-        isTailored: title.toLowerCase().includes('_tailored'),
+        isTailored: isTailoredResumeTitle(title),
         keywords: localKeywords,
         keywordStatus: localKeywords.length ? 'done' : 'idle',
       };

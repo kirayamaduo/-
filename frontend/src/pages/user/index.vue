@@ -214,7 +214,7 @@ import { useI18n } from '@/locales';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getUserInterviewsApi } from '@/api/interview';
-import { getUserResumesApi } from '@/api/resume';
+import { getMyResumesApi } from '@/api/resume';
 import { updateUserApi, getUserInfoApi, requestDeletionApi } from '@/api/user';
 import { uploadFileApi } from '@/api/file';
 import { getProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
@@ -498,7 +498,7 @@ const loadStats = async (uid: number) => {
   try {
     const [interviews, resumes] = await Promise.all([
       getUserInterviewsApi(uid),
-      getUserResumesApi(uid),
+      getMyResumesApi(),
     ]);
     statsInterviews.value = Array.isArray(interviews) ? interviews.length : 0;
     statsResumes.value = Array.isArray(resumes) ? resumes.length : 0;

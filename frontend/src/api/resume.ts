@@ -56,8 +56,18 @@ export const getResumeApi = (resumeId: number) => {
 };
 
 /**
+ * List resumes for the JWT-authenticated user (preferred — avoids stale local userId).
+ */
+export const getMyResumesApi = () => {
+  return request<Resume[]>({
+    url: '/api/resumes/me',
+    method: 'GET',
+  });
+};
+
+/**
  * Get User Resumes API
- * @param userId User ID
+ * @param userId User ID (must match JWT subject)
  */
 export const getUserResumesApi = (userId: number) => {
   return request<Resume[]>({

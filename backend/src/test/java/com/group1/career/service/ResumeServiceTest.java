@@ -86,4 +86,19 @@ public class ResumeServiceTest {
         assertEquals("Resume A", result.get(0).getTitle());
         verify(resumeRepository, times(1)).findByUserId(userId);
     }
+
+    @Test
+    @DisplayName("Delete resume clears snapshot when no resumes remain")
+    public void testDeleteResume_ClearsSnapshotWhenEmpty() {
+        Long userId = 10L;
+        Long resumeId = 5L;
+        Resume existing = Resume.builder().resumeId(resumeId).userId(userId).fileUrl("resumes/a.pdf").build();
+        when(resumeRepository.findById(resumeId)).thenReturn(Optional.of(existing));
+        when(resumeRepository.findByUserId(userId)).thenReturn(List.of());
+
+        resumeService.deleteResume(resumeId);
+
+        verify(resumeRepository).deleteById(resumeId);
+        verify(snapshotService).clearResume(userId);
+    }
 }
