@@ -11,4 +11,5 @@ public interface UserProfileTagRepository extends JpaRepository<UserProfileTag, 
     List<UserProfileTag> findByUserIdAndSource(Long userId, String source);
     Optional<UserProfileTag> findByUserIdAndCategoryAndLabel(Long userId, String category, String label);
     void deleteByUserIdAndSource(Long userId, String source);
+    void deleteByUserId(Long userId);
 }

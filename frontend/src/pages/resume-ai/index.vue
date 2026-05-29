@@ -150,7 +150,7 @@ import { useI18n } from '@/locales';
 import { onShow } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
-  getUserResumesApi,
+  listMyResumesApi,
   diagnoseResumeApi,
   tailorResumeApi,
   type Resume,
@@ -206,10 +206,9 @@ const goBack = () => {
 };
 
 const loadResumes = async () => {
-  const userId = Number(uni.getStorageSync('userId'));
-  if (!userId || isNaN(userId) || userId <= 0) return;
+  if (!uni.getStorageSync('token')) return;
   try {
-    const raw = await getUserResumesApi(userId);
+    const raw = await listMyResumesApi();
     userResumes.value = Array.isArray(raw) ? raw : [];
   } catch {
     userResumes.value = [];

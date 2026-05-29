@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.group1.career.model.dto.UserProfileSnapshot;
 import com.group1.career.model.entity.User;
 import com.group1.career.model.entity.UserFact;
+import com.group1.career.model.entity.Resume;
+import com.group1.career.repository.ResumeRepository;
 import com.group1.career.repository.UserFactRepository;
 import com.group1.career.repository.UserRepository;
 import com.group1.career.service.UserProfileSnapshotService;
@@ -31,6 +33,7 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
 
     private final UserRepository userRepository;
     private final UserFactRepository userFactRepository;
+    private final ResumeRepository resumeRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -40,6 +43,11 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         if (userOpt.isEmpty()) return UserProfileSnapshot.builder().build();
         UserProfileSnapshot snapshot = parse(userOpt.get().getProfileSnapshot());
         enrichOnboardingFromFacts(userId, snapshot);
+        try {
+            reconcileResumeBlock(userId, snapshot);
+        } catch (Exception e) {
+            log.warn("[snapshot] resume reconcile failed for user {}: {}", userId, e.toString());
+        }
         return snapshot;
     }
 
@@ -241,6 +249,47 @@ public class UserProfileSnapshotServiceImpl implements UserProfileSnapshotServic
         UserProfileSnapshot current = read(userId);
         current.setResume(block);
         persist(userId, current);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void clearResume(Long userId) {
+        if (userId == null) return;
+        UserProfileSnapshot current = read(userId);
+        current.setResume(null);
+        persist(userId, current);
+    }
+
+    /**
+     * Drop stale resume portrait data when the referenced row no longer exists,
+     * or back-fill from the newest DB row when the block is orphaned.
+     */
+    private void reconcileResumeBlock(Long userId, UserProfileSnapshot snapshot) {
+        UserProfileSnapshot.ResumeBlock block = snapshot.getResume();
+        List<Resume> resumes = resumeRepository.findByUserId(userId);
+        if (resumes.isEmpty()) {
+            if (block != null) snapshot.setResume(null);
+            return;
+        }
+
+        boolean valid = block != null
+                && block.getLastResumeId() != null
+                && resumes.stream().anyMatch(r -> block.getLastResumeId().equals(r.getResumeId()));
+        if (valid) return;
+
+        Resume latest = resumes.stream()
+                .max(java.util.Comparator.comparing(
+                        (Resume r) -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
+                        java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+                .orElse(resumes.get(0));
+        snapshot.setResume(UserProfileSnapshot.ResumeBlock.builder()
+                .lastResumeId(latest.getResumeId())
+                .lastResumeKey(latest.getFileUrl())
+                .title(latest.getTitle())
+                .targetJob(latest.getTargetJob())
+                .diagnosisScore(latest.getDiagnosisScore())
+                .updatedAt(latest.getUpdatedAt())
+                .build());
     }
 
     @Override

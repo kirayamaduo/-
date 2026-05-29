@@ -24,14 +24,14 @@
       <view class="section-bar">
         <view class="section-titles">
           <text class="section-title">{{ t('resume.myResumes') }}</text>
-          <text class="section-sub">{{ t('resume.filesCount', { n: originalResumes.length }) }}</text>
+          <text class="section-sub">{{ t('resume.filesCount', { n: mainHubResumes.length }) }}</text>
         </view>
         <view class="section-action" @click="handleUploadClick">
           <text class="section-action-text">{{ t('resume.addBtn') }}</text>
         </view>
       </view>
       <view class="resume-list">
-        <view class="resume-card app-card-soft" v-for="(item, idx) in originalResumes" :key="item.resumeId">
+        <view class="resume-card app-card-soft" v-for="(item, idx) in mainHubResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon" :class="'rc-icon-' + (idx % 2)">
               <text class="rc-icon-text">PDF</text>
@@ -74,7 +74,7 @@
       </view>
 
       <!-- ── 针对岗位优化后的简历 section（有时才显示）── -->
-      <view v-if="tailoredResumes.length > 0" class="section-bar section-bar-ai">
+      <view v-if="tailoredResumes.length > 0 && originalResumes.length > 0" class="section-bar section-bar-ai">
         <view class="section-titles">
           <view class="ai-section-label-row">
             <text class="section-title">{{ t('resume.tailoredResumes') }}</text>
@@ -83,7 +83,7 @@
           <text class="section-sub">{{ t('resume.tailoredHint') }}</text>
         </view>
       </view>
-      <view class="resume-list" v-if="tailoredResumes.length > 0">
+      <view class="resume-list" v-if="tailoredResumes.length > 0 && originalResumes.length > 0">
         <view class="resume-card resume-card-ai app-card-soft" v-for="(item, idx) in tailoredResumes" :key="item.resumeId">
           <view class="rc-icon-wrap">
             <view class="rc-icon rc-icon-ai">
@@ -166,7 +166,7 @@ import { useI18n } from '@/locales';
 import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import {
-  getUserResumesApi,
+  listMyResumesApi,
   createResumeApi,
   deleteResumeApi,
   updateResumeApi,
@@ -174,12 +174,21 @@ import {
   type Resume,
 } from '@/api/resume';
 import { useTheme } from '@/utils/theme';
+
+/** JD-tailored copies use a `_tailored` suffix (see ResumeGenController). */
+const isTailoredResumeTitle = (title?: string | null): boolean => {
+  if (!title) return false;
+  return /_tailored(?:\.pdf)?$/i.test(title.trim());
+};
 import SlScrollTopBar from '@/style-library/components/SlScrollTopBar.vue';
 import {
   getResumeKeywordStatusApi,
   startResumeKeywordExtractionApi,
   type ResumeKeywordStatus,
 } from '@/api/profileTags';
+
+const { t } = useI18n();
+const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 
 type KeywordStatus = 'idle' | 'loading' | 'done' | 'empty' | 'failed' | 'timeout';
 
@@ -204,7 +213,11 @@ const keywordPollTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 const originalResumes = computed(() => resumeList.value.filter((r) => !r.isTailored));
 const tailoredResumes = computed(() => resumeList.value.filter((r) => r.isTailored));
-
+/** When only JD copies exist, show them in the main hub instead of an empty "我的简历" section. */
+const mainHubResumes = computed(() => {
+  if (originalResumes.value.length > 0) return originalResumes.value;
+  return tailoredResumes.value;
+});
 /**
  * Render an absolute timestamp (e.g. "2026-04-30 01:00:21") as a friendly
  * relative label. We deliberately keep this self-contained -- it falls back
@@ -262,7 +275,7 @@ const splitKeywordText = (text: string): string[] => {
 };
 
 const hydrateResumeKeywords = () => {
-  originalResumes.value.slice(0, 4).forEach((item) => {
+  mainHubResumes.value.slice(0, 4).forEach((item) => {
     if (item.resumeId && item.keywordStatus === 'idle') hydrateOneResumeKeywords(item.resumeId);
   });
 };
@@ -345,16 +358,14 @@ const retryResumeKeywords = (item: ResumeItem) => {
 const loadResumes = async () => {
   keywordPollTimers.forEach((timer) => clearTimeout(timer));
   keywordPollTimers.clear();
-  const userId = uni.getStorageSync('userId');
-  const numericId = Number(userId);
-  if (!userId || isNaN(numericId) || numericId <= 0) {
-    // Guest or not logged in — show empty list gracefully
+  const token = uni.getStorageSync('token');
+  if (!token) {
     resumeList.value = [];
     return;
   }
   isLoading.value = true;
   try {
-    const raw = await getUserResumesApi(numericId);
+    const raw = await listMyResumesApi();
     // Guard against the API returning a non-array (e.g. a paginated
     // wrapper object or a null body) to prevent ".map is not a function".
     const resumes: Resume[] = Array.isArray(raw) ? raw : [];
@@ -369,7 +380,7 @@ const loadResumes = async () => {
         statusLabel: r.status || 'Active',
         fileUrl: r.fileUrl,
         fileViewUrl: r.fileViewUrl,
-        isTailored: title.toLowerCase().includes('_tailored'),
+        isTailored: isTailoredResumeTitle(title),
         keywords: localKeywords,
         keywordStatus: localKeywords.length ? 'done' : 'idle',
       };
@@ -397,8 +408,6 @@ const showSheet = ref(false);
 const topSafeHeight = ref(88);
 const rightAvoidWidth = ref(20);
 const scrollTopValue = ref(0);
-const { t } = useI18n();
-const { themeClass, fontClass, refresh: refreshTheme } = useTheme();
 const RESUME_AUTO_UPLOAD_KEY = 'resume_auto_upload_once';
 const topBarOpacity = computed(() => Math.min(1, Math.max(0, (scrollTopValue.value - 12) / 56)));
 
@@ -613,9 +622,13 @@ onMounted(() => {
 // Tab pages are kept alive across navigation; onShow re-fires every time
 // the page becomes visible (including after login -> switchTab back).
 onShow(() => {
-  refreshTheme();
-  loadResumes();
-  openPendingUploadSheet();
+  try {
+    refreshTheme();
+    loadResumes();
+    openPendingUploadSheet();
+  } catch (e) {
+    console.error('[resume] onShow failed', e);
+  }
 });
 
 onPageScroll(({ scrollTop }) => {

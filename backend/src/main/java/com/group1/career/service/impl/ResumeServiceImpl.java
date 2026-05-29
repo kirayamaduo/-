@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -24,6 +25,8 @@ public class ResumeServiceImpl implements ResumeService {
 
     /** Resume previews are usually opened, scrolled, then closed quickly. */
     private static final long PREVIEW_TTL_SECONDS = 15 * 60;
+    private static final int MAX_RESUME_TITLE_LEN = 50;
+    private static final int MAX_TARGET_JOB_LEN = 50;
 
     private final ResumeRepository resumeRepository;
     private final FileService fileService;
@@ -34,8 +37,8 @@ public class ResumeServiceImpl implements ResumeService {
     public Resume createResume(Long userId, String title, String targetJob, String fileUrl, String parsedContent) {
         Resume resume = Resume.builder()
                 .userId(userId)
-                .title(title)
-                .targetJob(targetJob)
+                .title(truncateField(title, MAX_RESUME_TITLE_LEN))
+                .targetJob(truncateField(targetJob, MAX_TARGET_JOB_LEN))
                 .fileUrl(fileUrl)
                 .parsedContent(parsedContent)
                 .build();
@@ -67,6 +70,7 @@ public class ResumeServiceImpl implements ResumeService {
         if (resume.getFileUrl() != null && !resume.getFileUrl().isBlank()) {
             fileService.deleteObject(resume.getFileUrl());
         }
+        syncResumeSnapshotFromDb(resume.getUserId());
         log.info("Deleted resume: {}", resumeId);
     }
 
@@ -92,11 +96,30 @@ public class ResumeServiceImpl implements ResumeService {
                     .title(resume.getTitle())
                     .targetJob(resume.getTargetJob())
                     .diagnosisScore(resume.getDiagnosisScore())
-                    .updatedAt(LocalDateTime.now())
+                    .updatedAt(resume.getUpdatedAt() != null ? resume.getUpdatedAt() : LocalDateTime.now())
                     .build());
         } catch (Exception e) {
             log.warn("[resume] snapshot merge failed for resume {}: {}", resume.getResumeId(), e.toString());
         }
+    }
+
+    /**
+     * After delete, re-point the portrait at the newest remaining resume or clear it.
+     * Prevents the home "最近简历" row from showing a ghost entry.
+     */
+    private void syncResumeSnapshotFromDb(Long userId) {
+        if (userId == null) return;
+        List<Resume> remaining = resumeRepository.findByUserId(userId);
+        if (remaining.isEmpty()) {
+            snapshotService.clearResume(userId);
+            return;
+        }
+        Resume latest = remaining.stream()
+                .max(Comparator.comparing(
+                        (Resume r) -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(remaining.get(0));
+        mergeIntoSnapshot(latest);
     }
 
     @Override
@@ -131,5 +154,12 @@ public class ResumeServiceImpl implements ResumeService {
         if (resumes == null || resumes.isEmpty()) return Collections.emptyList();
         resumes.forEach(this::hydrateUrl);
         return resumes;
+    }
+
+    private static String truncateField(String value, int maxLen) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+        return trimmed.length() <= maxLen ? trimmed : trimmed.substring(0, maxLen);
     }
 }

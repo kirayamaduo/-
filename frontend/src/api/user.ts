@@ -195,10 +195,19 @@ export interface UserProfileSnapshot {
  * Get the caller's cross-tool profile snapshot. Always resolves with
  * a snapshot object (possibly empty) — never null.
  */
-export const getProfileSnapshotApi = () => {
+export type ProfileSnapshotRequestOptions = {
+  silent?: boolean;
+  timeout?: number;
+  onTask?: (task: UniApp.RequestTask) => void;
+};
+
+export const getProfileSnapshotApi = (options?: ProfileSnapshotRequestOptions) => {
   return request<UserProfileSnapshot>({
     url: '/users/me/profile-snapshot',
     method: 'GET',
+    silent: options?.silent ?? true,
+    timeout: options?.timeout,
+    onTask: options?.onTask,
   });
 };
 

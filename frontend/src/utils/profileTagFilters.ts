@@ -12,8 +12,26 @@
 /** 两者共用的基础过滤：纯数字、无意义占位词、太短的全部排除 */
 const BASE_BLOCKLIST = ['用户', '目标', '岗位', '状态', '待补充', '简历状态', '简历匹配'];
 
+/** 后端枚举/布尔原值，不应作为画像标签展示 */
+const TECHNICAL_ENUM_TOKENS = new Set([
+  'true', 'false', 'yes', 'no', 'null', 'undefined', 'unsure',
+  'new_graduate', 'internship_seeker', 'career_switcher', 'experienced', 'student',
+  'ready', 'draft', 'within_1_month', 'within_3_months', 'prepare_early',
+  'lt_5h', '5_10h', '10_20h', 'gt_20h', 'easy', 'medium', 'hard',
+]);
+
 const hasRealText = (text: string) =>
   /[A-Za-z]{2,}|[一-龥]{2,}|AI|UI|UX/.test(text);
+
+/** 画像标签编辑区 / 保存时应保留的标签 */
+export const isEditableProfileTagLabel = (label?: string): boolean => {
+  const text = String(label || '').trim();
+  if (!text || text.length > 24) return false;
+  if (/^\d+$/.test(text)) return false;
+  if (BASE_BLOCKLIST.includes(text)) return false;
+  if (TECHNICAL_ENUM_TOKENS.has(text.toLowerCase())) return false;
+  return hasRealText(text);
+};
 
 /**
  * 词云关键词过滤（my/index.vue 使用）
@@ -22,9 +40,8 @@ const hasRealText = (text: string) =>
 export const isCloudKeyword = (label?: string): boolean => {
   const text = String(label || '').trim();
   if (!text || text.length > 14) return false;
-  if (/^\d+$/.test(text)) return false;
-  if (BASE_BLOCKLIST.includes(text)) return false;
-  return hasRealText(text);
+  if (!isEditableProfileTagLabel(text)) return false;
+  return true;
 };
 
 /**

@@ -60,9 +60,9 @@
       <view v-if="wordCloudTags.length" class="tag-cloud">
         <view
           v-for="tag in wordCloudTags"
-          :key="tag.category + tag.label"
+          :key="(tag.category || 'misc') + '-' + tag.label"
           class="tag-cloud-word"
-          :class="'tag-cat-' + tag.category.toLowerCase()"
+          :class="'tag-cat-' + (tag.category || 'misc').toLowerCase()"
           :style="{
             left: tag.left + '%',
             top: tag.top + '%',
@@ -214,7 +214,7 @@ import { useI18n } from '@/locales';
 import { clearAuthState, LOGIN_PAGE } from '@/utils/auth';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
 import { getUserInterviewsApi } from '@/api/interview';
-import { getUserResumesApi } from '@/api/resume';
+import { listMyResumesApi } from '@/api/resume';
 import { updateUserApi, getUserInfoApi, requestDeletionApi } from '@/api/user';
 import { uploadFileApi } from '@/api/file';
 import { getProfileTagsApi, type UserProfileTag } from '@/api/profileTags';
@@ -498,7 +498,7 @@ const loadStats = async (uid: number) => {
   try {
     const [interviews, resumes] = await Promise.all([
       getUserInterviewsApi(uid),
-      getUserResumesApi(uid),
+      listMyResumesApi(),
     ]);
     statsInterviews.value = Array.isArray(interviews) ? interviews.length : 0;
     statsResumes.value = Array.isArray(resumes) ? resumes.length : 0;
@@ -530,7 +530,11 @@ const refreshUserFromBackend = async (numericId: number) => {
 };
 
 onShow(() => {
-  loadProfile();
+  try {
+    loadProfile();
+  } catch (e) {
+    console.error('[user] onShow failed', e);
+  }
 });
 
 onPageScroll(({ scrollTop }) => {

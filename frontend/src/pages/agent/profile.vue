@@ -260,6 +260,7 @@
 </template>
 
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from '@/locales';
 import SlNavBar from '@/style-library/components/SlNavBar.vue';
@@ -273,6 +274,7 @@ import {
   type UserProfileTagSummary,
 } from '@/api/profileTags';
 import { getMpSafeAreaMetrics } from '@/utils/safeArea';
+import { isEditableProfileTagLabel } from '@/utils/profileTagFilters';
 import { useTheme } from '@/utils/theme';
 
 const { t } = useI18n();
@@ -340,7 +342,7 @@ const hydrateTagDrafts = (summary: UserProfileTagSummary | null) => {
   };
   (summary?.tags || []).forEach((tag) => {
     const category = tag.category as ProfileTagCategory;
-    if (!next[category] || !tag.label) return;
+    if (!next[category] || !tag.label || !isEditableProfileTagLabel(tag.label)) return;
     if (!next[category].includes(tag.label)) next[category].push(tag.label);
   });
   tagDrafts.value = next;
@@ -420,11 +422,7 @@ const normalizeSkillLevel = (level: number | undefined) => {
   return clampPercent(n <= 1 ? n * 100 : n);
 };
 
-onMounted(async () => {
-  refreshTheme();
-  const safeMetrics = getMpSafeAreaMetrics();
-  topSafeHeight.value = safeMetrics.topSafeHeight;
-  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+const loadProfilePage = async () => {
   try {
     const [profile, tags, inputs] = await Promise.all([
       getAgentProfileApi(),
@@ -434,7 +432,6 @@ onMounted(async () => {
     agentProfile.value = profile;
     profileTagSummary.value = tags;
     hydrateTagDrafts(tags);
-    // 用已保存的偏好值回填表单，避免每次打开都是空的
     form.value = {
       targetCity: inputs.targetCity ?? '',
       targetIndustry: inputs.targetIndustry ?? '',
@@ -446,6 +443,22 @@ onMounted(async () => {
       careerGoalNote: inputs.careerGoalNote ?? '',
     };
   } catch { /* ignore */ }
+};
+
+onMounted(async () => {
+  refreshTheme();
+  const safeMetrics = getMpSafeAreaMetrics();
+  topSafeHeight.value = safeMetrics.topSafeHeight;
+  rightAvoidWidth.value = safeMetrics.rightAvoidWidth;
+  await loadProfilePage();
+});
+
+onShow(() => {
+  refreshTheme();
+  // 底部保存后 navigateBack 会触发 onShow；保存过程中不要重新拉标签覆盖草稿
+  if (!saving.value && !savingTags.value) {
+    loadProfilePage();
+  }
 });
 
 const addTag = (category: ProfileTagCategory) => {
@@ -470,23 +483,25 @@ const removeTag = (category: ProfileTagCategory, index: number) => {
   tagDrafts.value[category] = tagDrafts.value[category].filter((_, i) => i !== index);
 };
 
+const buildManualTagsFromDrafts = () =>
+  tagSections.value.flatMap((section) =>
+    tagDrafts.value[section.category]
+      .filter((label) => Boolean(label) && isEditableProfileTagLabel(label))
+      .map((label) => ({
+        category: section.category,
+        label,
+        weight: 80,
+        source: 'USER_EDITED',
+        evidence: 'user edited',
+        editable: true,
+      }))
+  );
+
 const saveProfileTags = async () => {
   if (savingTags.value) return;
   savingTags.value = true;
   try {
-    const tags = tagSections.value.flatMap((section) =>
-      tagDrafts.value[section.category]
-        .filter(Boolean)
-        .map((label) => ({
-          category: section.category,
-          label,
-          weight: 80,
-          source: 'USER_EDITED',
-          evidence: 'user edited',
-          editable: true,
-        }))
-    );
-    const saved = await saveManualProfileTagsApi(tags);
+    const saved = await saveManualProfileTagsApi(buildManualTagsFromDrafts());
     profileTagSummary.value = saved;
     hydrateTagDrafts(saved);
     uni.showToast({ title: t('agent.profile.tagsSaved'), icon: 'success' });
@@ -526,13 +541,12 @@ const saveInputs = async () => {
     if (form.value.considerStudyAbroad !== undefined) payload.considerStudyAbroad = form.value.considerStudyAbroad;
     if (form.value.careerGoalNote?.trim()) payload.careerGoalNote = form.value.careerGoalNote.trim();
 
+    // 先持久化标签，再保存求职偏好，避免并行请求后标签被旧数据覆盖
+    const savedTags = await saveManualProfileTagsApi(buildManualTagsFromDrafts());
+    profileTagSummary.value = savedTags;
+    hydrateTagDrafts(savedTags);
     agentProfile.value = await saveProfileInputsApi(payload);
     uni.showToast({ title: t('agent.profile.saveSuccess'), icon: 'success' });
-    // 偏好表单变更后同步刷新标签（目标岗位、行业会影响标签推断）
-    refreshProfileTagsApi().then((fresh) => {
-      profileTagSummary.value = fresh;
-      hydrateTagDrafts(fresh);
-    }).catch(() => { /* 静默失败 */ });
     setTimeout(() => uni.navigateBack(), 800);
   } catch (e: any) {
     uni.showToast({ title: e?.message || t('agent.profile.saveFailed'), icon: 'none' });

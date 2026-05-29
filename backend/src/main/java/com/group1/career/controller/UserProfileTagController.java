@@ -24,7 +24,7 @@ public class UserProfileTagController {
     @GetMapping
     public Result<UserProfileTagDto.Summary> getTags() {
         Long userId = SecurityUtil.requireCurrentUserId();
-        return Result.success(tagService.refreshFromSignals(userId));
+        return Result.success(tagService.getSummary(userId));
     }
 
     @Operation(summary = "Refresh inferred tags from existing user signals")

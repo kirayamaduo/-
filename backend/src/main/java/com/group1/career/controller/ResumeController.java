@@ -47,11 +47,11 @@ public class ResumeController {
         return Result.success(resumeService.hydrateUrl(resume));
     }
 
-    @Operation(summary = "Get Resume by ID (owner only)")
-    @GetMapping("/{resumeId}")
-    public Result<Resume> getResume(@PathVariable Long resumeId) {
+    @Operation(summary = "Get all resumes for the authenticated user")
+    @GetMapping("/me")
+    public Result<List<Resume>> getMyResumes() {
         Long uid = SecurityUtil.requireCurrentUserId();
-        return Result.success(resumeService.hydrateUrl(resumeService.assertOwnership(resumeId, uid)));
+        return Result.success(resumeService.hydrateUrls(resumeService.getUserResumes(uid)));
     }
 
     @Operation(summary = "Get all resumes for a user (must be self)")
@@ -62,6 +62,13 @@ public class ResumeController {
             throw new BizException(com.group1.career.common.ErrorCode.FORBIDDEN);
         }
         return Result.success(resumeService.hydrateUrls(resumeService.getUserResumes(userId)));
+    }
+
+    @Operation(summary = "Get Resume by ID (owner only)")
+    @GetMapping("/{resumeId}")
+    public Result<Resume> getResume(@PathVariable Long resumeId) {
+        Long uid = SecurityUtil.requireCurrentUserId();
+        return Result.success(resumeService.hydrateUrl(resumeService.assertOwnership(resumeId, uid)));
     }
 
     @Operation(summary = "Delete Resume (owner only)")

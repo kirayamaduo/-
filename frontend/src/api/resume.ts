@@ -56,8 +56,34 @@ export const getResumeApi = (resumeId: number) => {
 };
 
 /**
+ * List resumes for the JWT-authenticated user (preferred — avoids stale local userId).
+ */
+export const getMyResumesApi = () => {
+  return request<Resume[]>({
+    url: '/api/resumes/me',
+    method: 'GET',
+  });
+};
+
+/**
+ * List resumes with fallback when /me is unavailable (older backends).
+ */
+export const listMyResumesApi = async (): Promise<Resume[]> => {
+  try {
+    const raw = await getMyResumesApi();
+    if (Array.isArray(raw)) return raw;
+  } catch {
+    // fall through
+  }
+  const userId = Number(uni.getStorageSync('userId'));
+  if (!userId || Number.isNaN(userId) || userId <= 0) return [];
+  const legacy = await getUserResumesApi(userId);
+  return Array.isArray(legacy) ? legacy : [];
+};
+
+/**
  * Get User Resumes API
- * @param userId User ID
+ * @param userId User ID (must match JWT subject)
  */
 export const getUserResumesApi = (userId: number) => {
   return request<Resume[]>({
