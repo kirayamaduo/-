@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # F23: Blue-green backend deploy script.
 #
-# Pre-requisite: the target branch must already be merged to master on the
-# remote and the server must have the repo cloned at SERVER_DIR.
+# Pre-requisite: the target branch must already be merged to master on GitHub
+# (origin) and the server must have the repo cloned at SERVER_DIR with
+# git@github.com-careerloop deploy key configured.
 #
 # Usage:
 #   ./scripts/deploy-backend.sh
