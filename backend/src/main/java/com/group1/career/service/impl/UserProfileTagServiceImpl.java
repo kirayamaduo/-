@@ -44,7 +44,20 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
             "用户", "目标", "岗位", "状态", "待补充", "未知", "暂无", "简历状态", "简历匹配",
             "公司", "负责", "参与", "完成", "熟悉", "掌握", "了解", "使用", "进行", "相关",
             "basic", "profile", "target", "role", "state", "status", "null", "none", "no", "yes",
-            "company", "responsible", "use", "used", "using", "related"
+            "company", "responsible", "use", "used", "using", "related",
+            "true", "false"
+    );
+    /** Raw enum / schema tokens that must never appear as portrait tag chips. */
+    private static final Set<String> TECHNICAL_ENUM_TOKENS = Set.of(
+            "unsure", "new_graduate", "internship_seeker", "career_switcher", "experienced", "student",
+            "ready", "draft", "within_1_month", "within_3_months", "prepare_early",
+            "lt_5h", "5_10h", "10_20h", "gt_20h",
+            "easy", "medium", "hard",
+            "yes", "no", "true", "false", "null", "undefined"
+    );
+    private static final Set<String> FACT_KEYS_SKIP_TAG = Set.of(
+            "consider_grad_school", "consider_study_abroad",
+            "preferred_task_difficulty", "weekly_hours", "timeline"
     );
     private static final Set<String> CONTACT_TOKENS = Set.of(
             "email", "mail", "phone", "tel", "mobile", "wechat", "weixin", "qq", "github", "linkedin"
@@ -80,6 +93,7 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
     public UserProfileTagDto.Summary getSummary(Long userId) {
         List<UserProfileTagDto> tags = tagRepository.findByUserIdOrderByCategoryAscWeightDescUpdatedAtDesc(userId)
                 .stream()
+                .filter(tag -> isMeaningfulTagLabel(tag.getLabel()))
                 .map(this::toDto)
                 .toList();
         return buildSummary(tags);
@@ -201,9 +215,16 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
         }
 
         if (snapshot.getOnboarding() != null) {
-            add(out, UserProfileTag.CATEGORY_BACKGROUND, snapshot.getOnboarding().getIdentityType(), 65, "onboarding identity");
-            String hasResume = snapshot.getOnboarding().getHasResume();
-            if (hasText(hasResume)) add(out, UserProfileTag.CATEGORY_BACKGROUND, "简历状态：" + hasResume, 50, "onboarding resume state");
+            String identityLabel = mapOnboardingIdentity(snapshot.getOnboarding().getIdentityType());
+            if (hasText(identityLabel)) {
+                add(out, UserProfileTag.CATEGORY_BACKGROUND, identityLabel, 65, "onboarding identity");
+            }
+            String resumeLabel = mapResumeStateLabel(
+                    snapshot.getOnboarding().getResumeStatus(),
+                    snapshot.getOnboarding().getHasResume());
+            if (hasText(resumeLabel)) {
+                add(out, UserProfileTag.CATEGORY_BACKGROUND, resumeLabel, 50, "onboarding resume state");
+            }
         }
         if (snapshot.getAssessment() != null) {
             add(out, UserProfileTag.CATEGORY_BACKGROUND, snapshot.getAssessment().getSummary(), 68, "assessment result");
@@ -231,6 +252,7 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
         }
 
         for (UserFact f : facts) {
+            if (!shouldExposeFactAsTag(f)) continue;
             String category = mapFactCategory(f);
             String label = factLabel(f);
             int weight = f.getConfidence() == null ? 60 :
@@ -285,7 +307,7 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
         Map<String, TagSpec> merged = new LinkedHashMap<>();
         for (TagSpec raw : specs) {
             for (TagSpec spec : tokenizeSpec(raw)) {
-            if (!hasText(spec.label())) continue;
+            if (!hasText(spec.label()) || !isMeaningfulTagLabel(spec.label())) continue;
             String normalized = spec.label().trim();
             if (normalized.length() > 24) normalized = normalized.substring(0, 24);
             String key = spec.category() + "::" + normalized.toLowerCase(Locale.ROOT);
@@ -305,7 +327,47 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
         if (!hasText(label)) return;
         String clean = label.trim();
         if ("null".equalsIgnoreCase(clean) || "-".equals(clean)) return;
+        if (!isMeaningfulTagLabel(clean)) return;
         out.add(new TagSpec(category, clean, weight == null ? 50 : weight, evidence));
+    }
+
+    private boolean shouldExposeFactAsTag(UserFact fact) {
+        if (fact == null || !hasText(fact.getFactKey())) return false;
+        String key = fact.getFactKey().toLowerCase(Locale.ROOT);
+        if (FACT_KEYS_SKIP_TAG.contains(key)) return false;
+        return isMeaningfulTagLabel(factLabel(fact));
+    }
+
+    private String mapOnboardingIdentity(String raw) {
+        if (!hasText(raw)) return null;
+        return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+            case "student" -> "在校学生";
+            case "new_graduate" -> "应届求职";
+            case "internship_seeker" -> "实习求职";
+            case "career_switcher" -> "转行求职";
+            case "experienced" -> "职场进阶";
+            default -> isMeaningfulTagLabel(raw) ? raw.trim() : null;
+        };
+    }
+
+    private String mapResumeStateLabel(String resumeStatus, String hasResume) {
+        String raw = hasText(resumeStatus) ? resumeStatus : hasResume;
+        if (!hasText(raw)) return null;
+        return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+            case "ready", "yes" -> "已有可用简历";
+            case "draft" -> "简历草稿中";
+            case "none", "no" -> "暂无简历";
+            case "unsure" -> "简历质量待确认";
+            default -> isMeaningfulTagLabel(raw) ? raw.trim() : null;
+        };
+    }
+
+    private boolean isMeaningfulTagLabel(String label) {
+        if (!isUsefulToken(label)) return false;
+        String lower = normalizeLabel(label).toLowerCase(Locale.ROOT);
+        if (TECHNICAL_ENUM_TOKENS.contains(lower)) return false;
+        if (lower.matches("^(true|false)$")) return false;
+        return true;
     }
 
     private void addResumeSignals(List<TagSpec> out, Long userId) {
@@ -532,6 +594,7 @@ public class UserProfileTagServiceImpl implements UserProfileTagService {
         if (!CATEGORY_ORDER.contains(dto.getCategory())) return null;
         if (!hasText(dto.getLabel())) return null;
         String label = dto.getLabel().trim();
+        if (!isMeaningfulTagLabel(label)) return null;
         if (label.length() > 60) label = label.substring(0, 60);
         return UserProfileTagDto.builder()
                 .category(dto.getCategory())
