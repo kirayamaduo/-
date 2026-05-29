@@ -1,12 +1,12 @@
 <template>
   <SlPage class="cdut-page app-soft-bg" :custom-class="[themeClass, fontClass].join(' ')">
-    <SlNavBar :title="t('cdut.pageTitle')" show-back @back="goBack" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
+    <SlNavBar :title="pageTitle" show-back @back="goBack" :safe-top="topSafeHeight" :right-avoid-width="rightAvoidWidth" />
 
     <view class="content">
       <view class="hero app-card-gradient">
         <text class="hero-kicker">{{ insight?.school || '就业数据' }}</text>
-        <text class="hero-title">{{ t('cdut.pageTitle') }}</text>
-        <text class="hero-sub">{{ t('cdut.pageSubtitle') }}</text>
+        <text class="hero-title">{{ pageTitle }}</text>
+        <text class="hero-sub">{{ pageSubtitle }}</text>
       </view>
 
       <view v-if="loading" class="skeleton-list">
@@ -40,7 +40,7 @@
             </view>
             <view class="metric">
               <text class="metric-value">{{ insight.sourceCount || 0 }}</text>
-              <text class="metric-label">{{ t('cdut.publicSources') }}</text>
+              <text class="metric-label">{{ sourceMetricLabel }}</text>
             </view>
           </view>
           <text class="updated" v-if="insight.updatedAt">{{ t('cdut.updatedAt') }} {{ formatDate(insight.updatedAt) }}</text>
@@ -48,11 +48,11 @@
 
         <view class="section" v-if="coverageStats.total">
           <view class="section-head-row">
-            <text class="section-title">近 5 年覆盖审计</text>
-            <text class="section-action">{{ coverageStats.verified }}/{{ coverageStats.total }} 已验证完整</text>
+            <text class="section-title">{{ coverageTitle }}</text>
+            <text class="section-action">{{ coverageAction }}</text>
           </view>
           <view class="coverage-card app-card-soft app-surface">
-            <text class="coverage-note">只把官方报告或官方信息公开页中可抽取核心字段的年份标为完整；其他年份会保留缺失或待核验状态。</text>
+            <text class="coverage-note">{{ coverageNote }}</text>
             <view class="coverage-grid">
               <view class="coverage-item" v-for="item in visibleCoverage" :key="item.school + item.year" :class="'coverage-' + item.status.toLowerCase()">
                 <text class="coverage-school">{{ item.school }}</text>
@@ -80,14 +80,14 @@
               </view>
               <view class="visual-stat">
                 <text class="visual-stat-value source-text">{{ insight.sourceCount || 0 }}</text>
-                <text class="visual-stat-label">公开来源</text>
+                <text class="visual-stat-label">{{ sourceMetricLabel }}</text>
               </view>
             </view>
 
             <view v-if="sourceYearBars.length" class="bar-chart-block">
               <view class="chart-subhead">
-                <text class="chart-subtitle">按年份抓取来源</text>
-                <text class="chart-submeta">柱高代表该年份来源数量</text>
+                <text class="chart-subtitle">{{ sourceYearTitle }}</text>
+                <text class="chart-submeta">{{ sourceYearMeta }}</text>
               </view>
               <view class="source-year-chart">
                 <view class="year-bar-item" v-for="bar in sourceYearBars" :key="bar.key">
@@ -194,12 +194,12 @@
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('trend')">
               <text class="detail-icon ri-line-chart-line"></text>
               <text class="detail-title">已验证趋势</text>
-              <text class="detail-desc">仅展示已从公开来源识别到的历年变化</text>
+              <text class="detail-desc">{{ isDemoMode ? '展示脱敏样例的历年变化' : '仅展示已从公开来源识别到的历年变化' }}</text>
             </view>
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('sources')">
               <text class="detail-icon ri-links-line"></text>
-              <text class="detail-title">公开来源</text>
-              <text class="detail-desc">查看报告来源、年份和原链接</text>
+              <text class="detail-title">{{ isDemoMode ? '演示材料' : '公开来源' }}</text>
+              <text class="detail-desc">{{ isDemoMode ? '查看脱敏样例的年份和摘要' : '查看报告来源、年份和原链接' }}</text>
             </view>
             <view class="detail-entry app-card-soft app-surface" @click="openDetail('method')">
               <text class="detail-icon ri-information-line"></text>
@@ -242,6 +242,29 @@ const rightAvoidWidth = ref(20);
 const loading = ref(true);
 const insight = ref<CdutEmploymentInsight | null>(null);
 
+const isDemoMode = computed(() => Boolean(insight.value?.demoMode));
+const pageTitle = computed(() => {
+  if (isDemoMode.value) return '就业数据演示';
+  if (!insight.value) return '就业数据洞察';
+  return t('cdut.pageTitle');
+});
+const pageSubtitle = computed(() =>
+  isDemoMode.value
+    ? '当前展示答辩用脱敏演示数据，学校、来源和统计值均为虚构样例，不展示真实学校或个人信息。'
+    : insight.value
+      ? t('cdut.pageSubtitle')
+      : '正在整理就业数据...'
+);
+const sourceMetricLabel = computed(() => isDemoMode.value ? '演示材料' : t('cdut.publicSources'));
+const coverageTitle = computed(() => isDemoMode.value ? '近 5 年演示覆盖' : '近 5 年覆盖审计');
+const coverageNote = computed(() =>
+  isDemoMode.value
+    ? '演示模式下每个年份都使用脱敏样例补齐趋势、摘要和来源字段，用于答辩展示系统流程。'
+    : '只把官方报告或官方信息公开页中可抽取核心字段的年份标为完整；其他年份会保留缺失或待核验状态。'
+);
+const sourceYearTitle = computed(() => isDemoMode.value ? '按年份演示材料' : '按年份抓取来源');
+const sourceYearMeta = computed(() => isDemoMode.value ? '柱高代表该年份演示材料数量' : '柱高代表该年份来源数量');
+
 const trimmedHighlights = computed(() =>
   (insight.value?.destinationHighlights || [])
     .map((item) => item.length > 58 ? `${item.slice(0, 58)}...` : item)
@@ -271,6 +294,10 @@ const coverageStats = computed(() => {
     review: rows.filter((item) => item.status === 'NEEDS_MANUAL_REVIEW').length,
   };
 });
+
+const coverageAction = computed(() =>
+  `${coverageStats.value.verified}/${coverageStats.value.total} ${isDemoMode.value ? '演示完整' : '已验证完整'}`
+);
 
 const visibleCoverage = computed(() => {
   const rows = insight.value?.coverage || [];
@@ -400,6 +427,7 @@ const percentWidth = (n?: number) => `${Math.max(0, Math.min(100, Number(n || 0)
 
 const sourceTypeLabel = (type: string) => {
   if (!type) return '公开来源';
+  if (type.includes('DEMO')) return '演示材料';
   if (type.includes('PDF')) return '官方报告';
   if (type.includes('OFFICIAL')) return '官方页面';
   if (type.includes('SUMMARY')) return '公开汇总';

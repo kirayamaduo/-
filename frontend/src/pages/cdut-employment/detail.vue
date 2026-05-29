@@ -20,7 +20,7 @@
 
         <view v-if="hasVisualData" class="visual-card app-card-soft app-surface">
           <view class="visual-head">
-            <text class="visual-title">学校就业数据可视化</text>
+            <text class="visual-title">{{ isDemoMode ? '就业数据演示可视化' : '学校就业数据可视化' }}</text>
             <text class="visual-meta">{{ insight.latestYear || '近年' }} 数据参考</text>
           </view>
           <view class="visual-top">
@@ -34,7 +34,7 @@
             </view>
             <view class="visual-stat">
               <text class="visual-stat-value source-text">{{ insight.sourceCount || 0 }}</text>
-              <text class="visual-stat-label">公开来源</text>
+              <text class="visual-stat-label">{{ isDemoMode ? '演示材料' : '公开来源' }}</text>
             </view>
           </view>
 
@@ -124,7 +124,7 @@
         </view>
 
         <view v-if="section === 'sources'" class="section">
-          <text class="section-title">公开来源</text>
+          <text class="section-title">{{ isDemoMode ? '演示材料' : '公开来源' }}</text>
           <view v-if="insight.sources?.length" class="source-list">
             <view class="source-card app-card-soft app-surface" v-for="source in insight.sources" :key="source.url">
               <view class="source-head">
@@ -137,7 +137,7 @@
                 <text class="source-tag" v-if="source.careerKeyword">{{ source.careerKeyword }}</text>
               </view>
               <text class="source-excerpt" v-if="source.excerpt">{{ source.excerpt }}</text>
-              <view class="source-actions">
+              <view v-if="!isDemoMode" class="source-actions">
                 <view class="source-btn primary" @click="openSource(source.url, source.title)">
                   <text>打开来源</text>
                 </view>
@@ -148,7 +148,7 @@
             </view>
           </view>
           <view v-else class="state-card app-surface">
-            <text class="state-text">暂未接入该校公开就业数据来源</text>
+            <text class="state-text">{{ isDemoMode ? '暂无演示材料' : '暂未接入该校公开就业数据来源' }}</text>
           </view>
         </view>
 
@@ -157,18 +157,18 @@
           <view class="method-card app-card-soft app-surface">
             <view class="method-row">
               <text class="method-step">1</text>
-              <text class="method-text">系统优先使用学校公开就业质量报告、学院就业去向公告等可追溯来源。</text>
+              <text class="method-text">{{ methodStep1 }}</text>
             </view>
             <view class="method-row">
               <text class="method-step">2</text>
-              <text class="method-text">专业和目标岗位只用于筛选相关来源，不会把其他学校的数据替代到当前学校。</text>
+              <text class="method-text">{{ methodStep2 }}</text>
             </view>
             <view class="method-row">
               <text class="method-step">3</text>
-              <text class="method-text">未接入学校会明确显示暂无数据；就业率、升学率为空时不生成图表结论。</text>
+              <text class="method-text">{{ methodStep3 }}</text>
             </view>
             <view class="method-meta">
-              <text>来源数量：{{ insight.sourceCount || 0 }}</text>
+              <text>{{ isDemoMode ? '演示材料' : '来源数量' }}：{{ insight.sourceCount || 0 }}</text>
               <text v-if="insight.updatedAt">更新时间：{{ formatDate(insight.updatedAt) }}</text>
             </view>
           </view>
@@ -197,12 +197,30 @@ const topSafeHeight = ref(52);
 const loading = ref(true);
 const insight = ref<CdutEmploymentInsight | null>(null);
 const section = ref<Section>('sources');
+const isDemoMode = computed(() => Boolean(insight.value?.demoMode));
 
 const pageTitle = computed(() => {
   if (section.value === 'trend') return '已验证趋势';
   if (section.value === 'method') return '数据口径';
-  return '公开来源';
+  if (!insight.value) return '数据来源';
+  return isDemoMode.value ? '演示材料' : '公开来源';
 });
+
+const methodStep1 = computed(() =>
+  isDemoMode.value
+    ? '当前页面使用答辩脱敏演示数据，学校、来源和统计值均为虚构样例。'
+    : '系统优先使用学校公开就业质量报告、学院就业去向公告等可追溯来源。'
+);
+const methodStep2 = computed(() =>
+  isDemoMode.value
+    ? '专业和目标岗位只用于演示匹配流程，不连接真实学校公开数据，也不展示真实个人信息。'
+    : '专业和目标岗位只用于筛选相关来源，不会把其他学校的数据替代到当前学校。'
+);
+const methodStep3 = computed(() =>
+  isDemoMode.value
+    ? '演示材料按年份补齐趋势、来源和摘要字段，便于稳定展示完整业务流程。'
+    : '未接入学校会明确显示暂无数据；就业率、升学率为空时不生成图表结论。'
+);
 
 type ChartPoint = { year: number; value: number; x: number; y: number };
 type ChartSegment = { key: string; x: number; y: number; width: number; height: number; direction: string };
@@ -324,6 +342,7 @@ const percentWidth = (n?: number) => `${Math.max(0, Math.min(100, Number(n || 0)
 
 const sourceTypeLabel = (type: string) => {
   if (!type) return '公开来源';
+  if (type.includes('DEMO')) return '演示材料';
   if (type.includes('PDF')) return '官方报告';
   if (type.includes('OFFICIAL')) return '官方页面';
   if (type.includes('SUMMARY')) return '公开汇总';

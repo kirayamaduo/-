@@ -24,6 +24,7 @@ public class CdutEmploymentInsightDto {
     private Integer latestYear;
     private Integer sourceCount;
     private LocalDateTime updatedAt;
+    private Boolean demoMode;
     private List<String> destinationHighlights;
     private List<YearPoint> trend;
     private List<CoverageItem> coverage;

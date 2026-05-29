@@ -47,6 +47,7 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
 
     /** Backwards-compat default school name used when the entity has no school set. */
     private static final String DEFAULT_SCHOOL = "成都理工大学";
+    private static final String DEMO_SCHOOL = "XX大学";
 
     /**
      * The canonical list of "双一流" universities in Sichuan that this insight
@@ -97,6 +98,11 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
     @Transactional
     public CdutEmploymentInsightDto refreshForCurrentUser() {
         Long uid = SecurityUtil.requireCurrentUserId();
+        User user = userRepository.findById(uid).orElse(null);
+        String school = normalizeSchool(user == null ? null : user.getSchool());
+        if (isDemoSchool(school)) {
+            return buildInsight(uid);
+        }
         refreshSources();
         return buildInsight(uid);
     }
@@ -118,6 +124,9 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
         String major = firstText(user == null ? null : user.getMajor(), "未填写专业");
         String school = normalizeSchool(user == null ? null : user.getSchool());
         String targetRole = inferTargetRole(snapshot);
+        if (isDemoSchool(school)) {
+            return demoInsight(major, targetRole);
+        }
         if (school == null || !SUPPORTED_SCHOOLS.contains(school)) {
             return unavailableInsight(school, major, targetRole);
         }
@@ -204,6 +213,7 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
                 .latestYear(latestYear)
                 .sourceCount(selected.size())
                 .updatedAt(selected.stream().map(CdutEmploymentRecord::getFetchedAt).filter(Objects::nonNull).max(LocalDateTime::compareTo).orElse(null))
+                .demoMode(false)
                 .destinationHighlights(highlights)
                 .trend(buildTrend(all))
                 .coverage(buildCoverageAudit())
@@ -214,6 +224,7 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
     private String normalizeSchool(String raw) {
         if (!hasText(raw)) return null;
         String normalized = raw.trim();
+        if (isDemoSchool(normalized)) return DEMO_SCHOOL;
         // Substring match handles common variants like "成都理工大学（双一流）" or
         // user-entered "西南交大" by checking the formal name first.
         for (String school : SICHUAN_DOUBLE_FIRST_CLASS) {
@@ -236,6 +247,94 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
         return normalized;
     }
 
+    private boolean isDemoSchool(String school) {
+        if (!hasText(school)) return false;
+        String normalized = school.trim().toUpperCase(Locale.ROOT);
+        return normalized.contains("XX大学") || normalized.contains("XX UNIVERSITY");
+    }
+
+    private CdutEmploymentInsightDto demoInsight(String major, String targetRole) {
+        List<Integer> years = coverageYears();
+        List<CdutEmploymentInsightDto.YearPoint> trend = List.of(
+                yearPoint(years.get(0), "92.8", "18.6"),
+                yearPoint(years.get(1), "93.9", "19.8"),
+                yearPoint(years.get(2), "94.7", "21.4"),
+                yearPoint(years.get(3), "95.6", "22.7"),
+                yearPoint(years.get(4), "96.3", "24.2")
+        );
+        Integer latestYear = years.get(years.size() - 1);
+        BigDecimal latestEmployment = trend.get(trend.size() - 1).getEmploymentRate();
+        BigDecimal latestPostgrad = trend.get(trend.size() - 1).getPostgraduateRate();
+
+        return CdutEmploymentInsightDto.builder()
+                .school(DEMO_SCHOOL)
+                .major(major)
+                .targetRole(targetRole)
+                .matchLabel("答辩脱敏演示数据")
+                .summary("当前为答辩演示模式：学校名称、来源和统计数据均为虚构脱敏样例，用于展示系统如何按专业、目标岗位和年份组织就业信息，不连接真实学校公开数据。")
+                .latestEmploymentRate(latestEmployment)
+                .latestPostgraduateRate(latestPostgrad)
+                .latestYear(latestYear)
+                .sourceCount(years.size())
+                .updatedAt(LocalDateTime.now().minusDays(1))
+                .demoMode(true)
+                .destinationHighlights(List.of(
+                        "近 5 年演示样例显示，软件开发、数据开发、测试与运维岗位为主要去向。",
+                        "升学/深造比例在演示周期内保持小幅上升，适合展示趋势分析能力。",
+                        "样例来源按年份组织，可用于演示来源追踪、口径说明和完整性校验。"
+                ))
+                .trend(trend)
+                .coverage(demoCoverage(years))
+                .sources(demoSources(years))
+                .build();
+    }
+
+    private CdutEmploymentInsightDto.YearPoint yearPoint(Integer year, String employment, String postgrad) {
+        return CdutEmploymentInsightDto.YearPoint.builder()
+                .year(year)
+                .employmentRate(new BigDecimal(employment))
+                .postgraduateRate(new BigDecimal(postgrad))
+                .build();
+    }
+
+    private List<CdutEmploymentInsightDto.CoverageItem> demoCoverage(List<Integer> years) {
+        return years.stream()
+                .map(year -> CdutEmploymentInsightDto.CoverageItem.builder()
+                        .school(DEMO_SCHOOL)
+                        .year(year)
+                        .status(COVERAGE_VERIFIED_FULL)
+                        .label("演示完整")
+                        .reason("脱敏演示样例已补齐该年份的趋势、来源和摘要字段。")
+                        .sourceUrl("demo://employment/" + year)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<CdutEmploymentInsightDto.SourceItem> demoSources(List<Integer> years) {
+        List<CdutEmploymentInsightDto.SourceItem> out = new ArrayList<>();
+        for (int i = 0; i < years.size(); i++) {
+            Integer year = years.get(i);
+            out.add(CdutEmploymentInsightDto.SourceItem.builder()
+                    .id(-1L - i)
+                    .year(year)
+                    .title(DEMO_SCHOOL + year + "届毕业生就业质量报告（演示）")
+                    .url("demo://employment/" + year)
+                    .sourceType("DEMO_REPORT")
+                    .majorKeyword(majorKeywordForDemo(year))
+                    .careerKeyword("软件开发")
+                    .employmentRate(new BigDecimal(List.of("92.8", "93.9", "94.7", "95.6", "96.3").get(i)))
+                    .postgraduateRate(new BigDecimal(List.of("18.6", "19.8", "21.4", "22.7", "24.2").get(i)))
+                    .excerpt(year + " 届演示样例：主要去向包括软件研发、后端开发、数据开发、测试工程和信息化运维等方向。")
+                    .fetchedAt(LocalDateTime.now().minusDays(1))
+                    .build());
+        }
+        return out;
+    }
+
+    private String majorKeywordForDemo(Integer year) {
+        return Optional.ofNullable(year).orElse(0) % 2 == 0 ? "软件工程" : "计算机类";
+    }
+
     private CdutEmploymentInsightDto unavailableInsight(String school, String major, String targetRole) {
         String displaySchool = hasText(school) ? school : "未填写学校";
         String summary;
@@ -255,6 +354,7 @@ public class CdutEmploymentInsightServiceImpl implements CdutEmploymentInsightSe
                 .matchLabel("暂未接入该校公开就业数据")
                 .summary(summary)
                 .sourceCount(0)
+                .demoMode(false)
                 .destinationHighlights(List.of("当前没有可验证的公开就业来源，因此不生成就业率、升学率或去向结论。"))
                 .trend(List.of())
                 .coverage(buildCoverageAudit())

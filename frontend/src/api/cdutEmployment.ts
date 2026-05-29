@@ -42,6 +42,7 @@ export interface CdutEmploymentInsight {
   latestYear?: number;
   sourceCount: number;
   updatedAt?: string;
+  demoMode?: boolean;
   destinationHighlights: string[];
   trend: CdutEmploymentTrendPoint[];
   coverage: CdutEmploymentCoverageItem[];
